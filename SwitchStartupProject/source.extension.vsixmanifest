@@ -6,6 +6,7 @@
     <Version>1.0</Version>
     <Description xml:space="preserve">Provides a toolbar dropdown box  to switch between startup projects.</Description>
     <Locale>1033</Locale>
+    <License>license.txt</License>
     <Icon>Resources\SwitchStartupProject.ico</Icon>
     <PreviewImage>preview.png</PreviewImage>
     <InstalledByMsi>false</InstalledByMsi>

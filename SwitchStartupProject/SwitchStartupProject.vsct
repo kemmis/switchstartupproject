@@ -1,125 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-  <!--  This is the file that defines the actual layout and type of the commands.
-        It is divided in different sections (e.g. command definition, command
-        placement, ...), with each defining a specific set of properties.
-        See the comment before each section for more details about how to
-        use it. -->
-
-  <!--  The VSCT compiler (the tool that translates this file into the binary 
-        format that VisualStudio will consume) has the ability to run a preprocessor 
-        on the vsct file; this preprocessor is (usually) the C++ preprocessor, so 
-        it is possible to define includes and macros with the same syntax used 
-        in C++ files. Using this ability of the compiler here, we include some files 
-        defining some of the constants that we will use inside the file. -->
-
   <!--This is the file that defines the IDs for all the commands exposed by VisualStudio. -->
   <Extern href="stdidcmd.h"/>
 
   <!--This header contains the command ids for the menus provided by the shell. -->
   <Extern href="vsshlids.h"/>
 
-  <!--Definition of some VSCT specific constants. In this sample we use it for the IDs inside the guidOfficeIcon group. -->
-  <Extern href="msobtnid.h"/>
-
-  <Extern href="VSDbgCmd.h"/>
-  <Extern href="VsDebugGuids.h"/>
-
-
-
+  
   <!--The Commands section is where we the commands, menus and menu groups are defined.
       This section uses a Guid to identify the package that provides the command defined inside it. -->
   <Commands package="guidSwitchStartupProjectPkg">
-    <!-- Inside this section we have different sub-sections: one for the menus, another  
-    for the menu groups, one for the buttons (the actual commands), one for the combos 
-    and the last one for the bitmaps used. Each element is identified by a command id that  
-    is a unique pair of guid and numeric identifier; the guid part of the identifier is usually  
-    called "command set" and is used to group different command inside a logically related  
-    group; your package should define its own command set in order to avoid collisions  
-    with command ids defined by other packages. -->
-
-
-    <Menus>
-      <!--In this section you can define new menu groups. A menu group is a container for 
-      other menus or buttons (commands); from a visual point of view you can see the 
-      group as the part of a menu contained between two lines. The parent of a group 
-      must be a menu. -->
-      <Menu guid="guidSwitchStartupProjectCmdSet" id="SwitchStartupProjectToolbar" priority="0x0000" type="Toolbar">
-        <Parent guid="guidSwitchStartupProjectCmdSet" id="0"/>
-        <Strings>
-          <ButtonText>SwitchStartupProject</ButtonText>
-          <CommandName>Switch Startup Project</CommandName>
-        </Strings>
-      </Menu>
-    </Menus>
-
-
-    <!-- In this section you can define new menu groups. A menu group is a container for 
-         other menus or buttons (commands); from a visual point of view you can see the 
-         group as the part of a menu contained between two lines. The parent of a group 
-         must be a menu. -->
-    <Groups>
-      <!--NOTE: we deliberatly define our toolbar group with a main menu location as our parent (in this case Debug menu). 
-      This makes sure that our commands have a Programatic name that begins with "Tools."; also our commands 
-      will be organized into this "Tools" group in the command well. Our combo box commands are defined 
-      with the COMMANDWELLONLY flag which will make our combo box commands hidden on the main menu by default. 
-      If the user customizes our commands onto the main menu, then they will be visible. 
-      Below we use a placement definition to also place our combo boxes on our Toolbar. -->
-      <Group guid="guidSwitchStartupProjectCmdSet" id="SwitchStartupProjectToolbarGroup" priority="0xFF45">
-        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/> <!-- Add the toolbar group to the Debug Menu --> 
-      </Group>
-    </Groups>
-
-
     <Combos>
-      <!-- 	The following types of combo boxes are supported: 
-       			DropDownCombo 
-       				a DROPDOWNCOMBO does not let the user type into the combo box; they can only pick from the list. 
-       	          The string value of the element selected is returned. 
-       				For example, this type of combo could be used for the "Solution Configurations" on the "Standard" toolbar. 
-       			IndexCombo 
-       				An INDEXCOMBO is the same as a DROPDOWNCOMBO in that it is a "pick from list" only combo. 
-       				The difference is an INDEXCOMBO returns the selected value as an index into the list (0 based). 
-       				For example, this type of combo could be used for the "Solution Configurations" on the "Standard" toolbar. 
-       			MRUCombo 
-       				An MRUCOMBO allows the user to type into the edit box. The history of strings entered 
-       	          is automatically persisted by the IDE on a per-user/per-machine basis.  
-       				For example, this type of combo is used for the "Find" combo on the "Standard" toolbar. 
-       			DynamicCombo 
-       				A DYNAMICCOMBO allows the user to type into the edit box or pick from the list. The  
-       				list of choices is usually fixed and is managed by the command handler for the command. 
-       				For example, this type of combo is used for the "Zoom" combo on the "Class Designer" toolbar. 
-       	 The following flags can be applied to Combo boxes: 
-       			NoKeyCustomize		(rarely used) 
-       			NoButtonCustomize	(rarely used) 
-       			NoCustomize			(rarely used) 
-       			DefaultInvisible	(often used) 
-       			DefaultDisabled		(often used) 
-       			DynamicVisibility	(often used) 
-       			CommandWellOnly		(used for commands that should not be shown on main menu by default.) 
-       								(NOTE: all commands should have a main menu placement defined as this is used 
-       								as the organization of the command well. This flag makes the command 
-       								hidden by default on the main menu. It does not affect other placements.) 
-       			IconAndText			(sometimes used) 
-       			FilterKeys			(rarely used ** used to hook window messages on commandbar controls) 
-       			NoAutoComplete		(often used with DynamicCombo and MRUCombo) 
-       			CaseSensitive		(used with MRUCombo ** controls whether strings are persisted in a case sensitive fashion) 
-       			StretchHorizontallY	(only used with combos on Toolwindow toolbars. Tells combo to stretch to size of window) 
-      
-       	 The following strings can be supplied with a command: 
-       			Button Text (required) ** displayed as label of the command on a toolbar if ICONANDTEXT flag is specified.  
-       			   If any of the following optional strings are missing then Button Text is used instead. 
-       	  	Menu Text (optional) ** displayed as label of the command on a menu if ICONANDTEXT flag is specified. 
-        		Tooltip Text (optional) ** displayed when mouse hovers on command 
-       			Command Well Name (optional) ** displayed as name of command in command well. 
-       			Canonical Name (optional) ** English programmatic name of command used in Command Window and DTE.ExecuteCommand. 
-       	             In localized command/menu (CTO) resources, always provide the English canonical name so macros can be language independent. 
-       			Localized Canonical Name (optional) ** Localized programmatic name of command used in Command Window, DTE.ExecuteCommand, 
-       	             and Tools.Options "Environment/Keyboard" page. -->
-
-      <Combo guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" priority="0x0010" type="DropDownCombo" defaultWidth="200" idCommandList="cmdidSwitchStartupProjectComboGetList">
-        <Parent guid="guidSwitchStartupProjectCmdSet" id="SwitchStartupProjectToolbarGroup"/>
+      <Combo guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" priority="0x0150" type="DropDownCombo" defaultWidth="150" idCommandList="cmdidSwitchStartupProjectComboGetList">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_TOOLSB_RUNBUILD"/>
         <CommandFlag>IconAndText</CommandFlag>
         <CommandFlag>CommandWellOnly</CommandFlag>
         <Strings>
@@ -131,24 +25,8 @@
           <LocCanonicalName>Switch Startup Project Combo</LocCanonicalName>
         </Strings>
       </Combo>
-
     </Combos>
-   
- 
   </Commands>
-
-
-
-  <!--Inside this section, we have the ability to place menu groups inside some other menu or 
-  menu / commands inside other groups. 
-  For instance, it is possible to place one of VisualStudio's menus or commands inside one of our  
-  groups or one of our groups inside a menu defined somewhere else. -->
-  <CommandPlacements>
-    <CommandPlacement guid="guidSwitchStartupProjectCmdSet" id="SwitchStartupProjectToolbarGroup" priority="0x0100">
-      <Parent guid="guidSwitchStartupProjectCmdSet" id="SwitchStartupProjectToolbar"/>
-    </CommandPlacement>
-  </CommandPlacements>
-
 
   <Symbols>
     <!-- This is the package guid. -->

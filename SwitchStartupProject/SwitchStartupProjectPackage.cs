@@ -42,26 +42,14 @@ namespace LucidConcepts.SwitchStartupProject
     [Guid(GuidList.guidSwitchStartupProjectPkgString)]
     public sealed class SwitchStartupProjectPackage : Package, IVsSolutionEvents, IVsSolutionLoadEvents, IVsSelectionEvents
     {
-        OleMenuCommand menuSwitchStartupProjectComboCommand;
 
         private uint solutionEventsCookie;
         private IVsSolution2 solution = null;
-        private IVsSolutionBuildManager2 sbm2 = null;
         private uint selectionEventsCookie;
         private IVsMonitorSelection ms = null;
         private uint debuggingCookie;
 
-        private MRUList<string> mruStartupProjects;
-        private List<string> typeStartupProjects;
-
-        private Dictionary<IVsHierarchy, string> proj2name = new Dictionary<IVsHierarchy, string>();
-        private Dictionary<string, IVsHierarchy> name2proj = new Dictionary<string, IVsHierarchy>();
-        private const string sentinel = "";
-        private List<string> startupProjects = new List<string>(new string[] { sentinel });
-        private string currentStartupProject = sentinel;
-        private string currentSolutionFilename;
-        private OptionPage options;
-        private WritableSettingsStore userSettingsStore;
+        private StartupProjectSwitcher switcher;
 
         protected override void Dispose(bool disposing)
         {
@@ -85,23 +73,7 @@ namespace LucidConcepts.SwitchStartupProject
             LogStart();
             base.Initialize();
 
-            // get options
-            options = (OptionPage)GetDialogPage(typeof(OptionPage));
-            options.Modified += (s, e) =>
-            {
-                if (e.OptionParameter == EOptionParameter.MruMode)
-                {
-                    _SwitchModeInOptions();
-                }
-                else if (e.OptionParameter == EOptionParameter.MruCount)
-                {
-                    _ChangeMRUCountInOptions();
-                }
-            };
-
-            // get settings store
-            SettingsManager settingsManager = new ShellSettingsManager(this);
-            userSettingsStore = settingsManager.GetWritableSettingsStore(SettingsScope.UserSettings);
+            OleMenuCommand menuSwitchStartupProjectComboCommand = null;
 
             // Add our command handlers for menu (commands must exist in the .vsct file)
             OleMenuCommandService mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
@@ -137,8 +109,11 @@ namespace LucidConcepts.SwitchStartupProject
                 solution.AdviseSolutionEvents(this, out solutionEventsCookie);
             }
 
+            // get options
+            var options = (OptionPage)GetDialogPage(typeof(OptionPage));
+
             // Get solution build manager
-            sbm2 = ServiceProvider.GlobalProvider.GetService(typeof(SVsSolutionBuildManager)) as IVsSolutionBuildManager2;
+            var sbm = ServiceProvider.GlobalProvider.GetService(typeof(SVsSolutionBuildManager)) as IVsSolutionBuildManager2;
 
             // Get selection monitor
             ms = ServiceProvider.GlobalProvider.GetService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
@@ -150,12 +125,7 @@ namespace LucidConcepts.SwitchStartupProject
                 ms.AdviseSelectionEvents(this, out selectionEventsCookie);
             }
 
-            // initialize MRU list
-            mruStartupProjects = new MRUList<string>(options.MruCount);
-
-            // initialize type list
-            typeStartupProjects = new List<string>();
-
+            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, sbm, this, options.MruCount);
         }
         #endregion
 
@@ -193,32 +163,12 @@ namespace LucidConcepts.SwitchStartupProject
                 if (vOut != IntPtr.Zero)
                 {
                     // when vOut is non-NULL, the IDE is requesting the current value for the combo
-                    Marshal.GetNativeVariantForObject(this.currentStartupProject, vOut);
+                    Marshal.GetNativeVariantForObject(switcher.GetCurrentStartupProject(), vOut);
                 }
 
                 else if (newChoice != null)
                 {
-                    // new value was selected or typed in
-                    // see if it is one of our items
-                    bool validInput = false;
-                    int indexInput = -1;
-                    for (indexInput = 0; indexInput < startupProjects.Count; indexInput++)
-                    {
-                        if (String.Compare(startupProjects[indexInput], newChoice, StringComparison.CurrentCultureIgnoreCase) == 0)
-                        {
-                            validInput = true;
-                            break;
-                        }
-                    }
-
-                    if (validInput)
-                    {
-                        _SetStartupProjectInCombo(startupProjects[indexInput]);
-                    }
-                    else
-                    {
-                        throw (new ArgumentException("ParamNotValidStringInList")); // force an exception to be thrown
-                    }
+                    switcher.ChooseStartupProject(newChoice);
                 }
                 else
                 {
@@ -266,7 +216,7 @@ namespace LucidConcepts.SwitchStartupProject
                 }
                 else if (vOut != IntPtr.Zero)
                 {
-                    Marshal.GetNativeVariantForObject(this.startupProjects.ToArray(), vOut);
+                    Marshal.GetNativeVariantForObject(switcher.GetStartupProjectChoices(), vOut);
                 }
                 else
                 {
@@ -282,10 +232,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterCloseSolution(object pUnkReserved)
         {
-            // When solution is closed: choose no project, disable combobox
-            currentStartupProject = sentinel;
-            menuSwitchStartupProjectComboCommand.Enabled = false;
-            _ClearProjects();
+            switcher.AfterCloseSolution();
             return VSConstants.S_OK;
         }
 
@@ -296,48 +243,31 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterOpenProject(IVsHierarchy pHierarchy, int fAdded)
         {
-            _RegisterProject(pHierarchy);
+            switcher.OpenProject(pHierarchy);
             return VSConstants.S_OK;
         }
 
 
         public int OnAfterOpenSolution(object pUnkReserved, int fNewSolution)
         {
-            // When solution is open: enable combobox
-            menuSwitchStartupProjectComboCommand.Enabled = true;
-            if (!options.MruMode)
-            {
-                _PopulateStartupProjectsFromTypeList();
-            }
+            switcher.AfterOpenSolution();
             return VSConstants.S_OK;
         }
 
         public int OnBeforeCloseProject(IVsHierarchy pHierarchy, int fRemoved)
         {
-            // When project is closed: remove it from list of startup projects (if it was in there)
             object propNameObj = null;
             if (pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Name, out propNameObj) == VSConstants.S_OK)
             {
                 string name = (string)propNameObj;
-                if (startupProjects.Contains(name))
-                {
-                    if (currentStartupProject == name)
-                    {
-                        currentStartupProject = sentinel;
-                    }
-                    startupProjects.Remove(name);
-                    name2proj.Remove(name);
-                    proj2name.Remove(pHierarchy);
-
-                }
+                switcher.CloseProject(pHierarchy, name);
             }
             return VSConstants.S_OK;
         }
 
         public int OnBeforeCloseSolution(object pUnkReserved)
         {
-            // When solution is about to be closed, store MRU list to settings
-            _StoreMRUListToSettings();
+            switcher.BeforeCloseSolution();
             return VSConstants.S_OK;
         }
 
@@ -387,8 +317,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnBeforeOpenSolution(string pszSolutionFilename)
         {
-            currentSolutionFilename = pszSolutionFilename;
-            _PopulateMRUListFromSettings(pszSolutionFilename);
+            switcher.BeforeOpenSolution(pszSolutionFilename);
             return VSConstants.S_OK;
         }
 
@@ -404,10 +333,9 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnCmdUIContextChanged(uint dwCmdUICookie, int fActive)
         {
-            // When debugging command UI context is activated, disable combobox, otherwise enable combobox
             if (dwCmdUICookie == debuggingCookie)
             {
-                menuSwitchStartupProjectComboCommand.Enabled = fActive == 0;
+                switcher.ToggleDebuggingActive(fActive != 0);
             }
             return VSConstants.S_OK;
         }
@@ -416,8 +344,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             if (elementid == (uint)VSConstants.VSSELELEMID.SEID_StartupProject)
             {
-                // When startup project is set in solution explorer, update combobox
-                _SetStartupProjectInTree((IVsHierarchy)varValueNew);
+                switcher.UpdateStartupProject((IVsHierarchy) varValueNew);
             }
             return VSConstants.S_OK;
         }
@@ -431,177 +358,14 @@ namespace LucidConcepts.SwitchStartupProject
 
         #region project management
 
-        private void _RegisterProject(IVsHierarchy pHierarchy)
-        {
-            // When project is opened: register it and its name
-            bool valid = true;
-            object nameObj = null;
-            object typeNameObj = null;
-            object captionObj = null;
-            valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Name, out nameObj) == VSConstants.S_OK;
-            valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_TypeName, out typeNameObj) == VSConstants.S_OK;
-            valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Caption, out captionObj) == VSConstants.S_OK;
-            if (valid)
-            {
-                string name = (string)nameObj;
-                string typeName = (string)typeNameObj;
-                string caption = (string)captionObj;
 
-                _AddProject(name, pHierarchy);
 
-                // Only add local (not web) C# projects with OutputType of either Exe (command line tool) or WinExe (windows application)
-                if (typeName == "Microsoft Visual C# 2010")
-                {
-                    Project project = GetProject(pHierarchy);
-                    var projectType = project.Properties.Item("ProjectType");
-                    var eProjectType = (VSLangProj.prjProjectType)projectType.Value;
-                    if (eProjectType == VSLangProj.prjProjectType.prjProjectTypeLocal)
-                    {
-                        var outputType = project.Properties.Item("OutputType");
-                        var eOutputType = (VSLangProj.prjOutputType)outputType.Value;
-                        if (eOutputType == VSLangProj.prjOutputType.prjOutputTypeWinExe ||
-                            eOutputType == VSLangProj.prjOutputType.prjOutputTypeExe)
-                        {
-                            _AddStartupProjectType(name, pHierarchy);
-                        }
-                    }
-                }
-            }
-        }
 
-        private void _ClearProjects()
-        {
-            name2proj.Clear();
-            proj2name.Clear();
-            typeStartupProjects = new List<string>();
-            startupProjects = new List<string>(new string[] { sentinel });
-        }
-
-        private void _AddProject(string name, IVsHierarchy pHierarchy)
-        {
-            name2proj.Add(name, pHierarchy);
-            proj2name.Add(pHierarchy, name);
-        }
-
-        private void _AddStartupProjectType(string name, IVsHierarchy pHierarchy)
-        {
-            typeStartupProjects.Add(name);
-        }
-
-        private void _SetStartupProjectInCombo(string newStartupProject)
-        {
-            IVsHierarchy oldStartupProject = null;
-            if (sbm2.get_StartupProject(out oldStartupProject) == VSConstants.S_OK)
-            {
-                if ((!proj2name.ContainsKey(oldStartupProject) || newStartupProject != proj2name[oldStartupProject]) &&
-                    name2proj.ContainsKey(newStartupProject) &&
-                    newStartupProject != sentinel)
-                {
-                    sbm2.set_StartupProject(name2proj[newStartupProject]);
-                }
-            }
-            this.currentStartupProject = newStartupProject;
-        }
-
-        private void _SetStartupProjectInTree(IVsHierarchy startupProject)
-        {
-            if (null != startupProject && proj2name.ContainsKey(startupProject))
-            {
-                var newStartupProjectName = proj2name[startupProject];
-                mruStartupProjects.Touch(newStartupProjectName);
-                if (options.MruMode)
-                {
-                    _PopulateStartupProjectsFromMRUList();
-                }
-                currentStartupProject = newStartupProjectName;
-            }
-            else
-            {
-                currentStartupProject = sentinel;
-            }
-        }
-
-        private void _PopulateStartupProjectsFromTypeList()
-        {
-            typeStartupProjects.Sort();
-            startupProjects = typeStartupProjects.ToList();
-        }
-
-        private void _PopulateStartupProjectsFromMRUList()
-        {
-            startupProjects = mruStartupProjects.ToList();
-        }
-
-        private const string collectionKeyFormat = "LucidConcepts\\SwitchStartupProject\\StartupProjectMRUListBySolution\\{0}";
-        private void _PopulateMRUListFromSettings(string solutionFileName)
-        {
-            var collectionPath = string.Format(collectionKeyFormat, _GetPathFromSolutionFilename(solutionFileName));
-            if (userSettingsStore.CollectionExists(collectionPath))
-            {
-                var names = userSettingsStore.GetPropertyNames(collectionPath).ToList();
-                names.Sort();
-                mruStartupProjects = new MRUList<string>(options.MruCount, names.Select(name => userSettingsStore.GetString(collectionPath, name)));
-            }
-            else
-            {
-                mruStartupProjects = new MRUList<string>(options.MruCount);
-            }
-        }
-
-        private void _StoreMRUListToSettings()
-        {
-            var collectionPath = string.Format(collectionKeyFormat, _GetPathFromSolutionFilename(currentSolutionFilename));
-            if (userSettingsStore.CollectionExists(collectionPath))
-            {
-                userSettingsStore.DeleteCollection(collectionPath);
-            }
-            userSettingsStore.CreateCollection(collectionPath);
-            int index = 0;
-            foreach (var project in mruStartupProjects)
-            {
-                userSettingsStore.SetString(collectionPath, string.Format("Project{0:D2}", index++), project);
-            }
-        }
-
-        private string _GetPathFromSolutionFilename(string filename)
-        {
-            return filename.Replace('\\', '/');
-        }
-
-        private void _SwitchModeInOptions()
-        {
-            if (options.MruMode)
-            {
-                _PopulateStartupProjectsFromMRUList();
-            }
-            else
-            {
-                _PopulateStartupProjectsFromTypeList();
-            }
-        }
-
-        private void _ChangeMRUCountInOptions()
-        {
-            var oldList = mruStartupProjects;
-            mruStartupProjects = new MRUList<string>(options.MruCount, oldList);
-            if (options.MruMode)
-            {
-                _PopulateStartupProjectsFromMRUList();
-            }
-        }
 
         #endregion
 
         #region helper methods
 
-        private Project GetProject(IVsHierarchy pHierarchy)
-        {
-            object project;
-            ErrorHandler.ThrowOnFailure(pHierarchy.GetProperty(VSConstants.VSITEMID_ROOT,
-                                                               (int)__VSHPROPID.VSHPROPID_ExtObject,
-                                                               out project));
-            return (project as Project);
-        }
 
         private void LogStart()
         {

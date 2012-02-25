@@ -123,6 +123,8 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="SettingsPersister.cs" />
+    <Compile Include="StartupProjectSwitcher.cs" />
     <Compile Include="SwitchStartupProjectPackage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PkgCmdID.cs" />

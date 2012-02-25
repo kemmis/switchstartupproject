@@ -28,6 +28,7 @@ namespace LucidConcepts.SwitchStartupProject
         private List<string> startupProjects = new List<string>(new string[] { sentinel });
         private string currentStartupProject = sentinel;
         private string currentSolutionFilename;
+        private bool openingSolution = false;
 
         private IVsSolutionBuildManager2 sbm = null;
 
@@ -75,12 +76,11 @@ namespace LucidConcepts.SwitchStartupProject
         {
             // new value was selected or typed in
             // see if it is one of our items
-            int indexInput = -1;
-            for (indexInput = 0; indexInput < startupProjects.Count; indexInput++)
+            foreach (string project in this.startupProjects)
             {
-                if (String.Compare(startupProjects[indexInput], name, StringComparison.CurrentCultureIgnoreCase) == 0)
+                if (String.Compare(project, name, StringComparison.CurrentCultureIgnoreCase) == 0)
                 {
-                    _ChangeStartupProject(startupProjects[indexInput]);
+                    _ChangeStartupProject(project);
                     return;
                 }
             }
@@ -111,17 +111,22 @@ namespace LucidConcepts.SwitchStartupProject
         {
             currentSolutionFilename = solutionFileName;
             mruStartupProjects = new MRUList<string>(options.MruCount, settingsPersister.GetMostRecentlyUsedProjectsForSolution(solutionFileName));
+            openingSolution = true;
         }
 
         public void AfterOpenSolution()
         {
+            openingSolution = false;
             // When solution is open: enable combobox
             menuSwitchStartupProjectComboCommand.Enabled = true;
-            if (!options.MruMode)
+            if (options.MruMode)
+            {
+                _PopulateStartupProjectsFromMRUList();
+            }
+            else
             {
                 _PopulateStartupProjectsFromTypeList();
             }
-            
         }
 
         public void BeforeCloseSolution()
@@ -169,7 +174,12 @@ namespace LucidConcepts.SwitchStartupProject
                         if (eOutputType == VSLangProj.prjOutputType.prjOutputTypeWinExe ||
                             eOutputType == VSLangProj.prjOutputType.prjOutputTypeExe)
                         {
-                            _AddStartupProjectType(name, pHierarchy);
+                            typeStartupProjects.Add(name);
+                            if (!openingSolution && !options.MruMode)
+                            {
+                                _PopulateStartupProjectsFromTypeList(); // when reopening a single project, refresh list
+                            }
+
                         }
                     }
                 }
@@ -188,6 +198,7 @@ namespace LucidConcepts.SwitchStartupProject
                     currentStartupProject = sentinel;
                 }
                 startupProjects.Remove(projectName);
+                typeStartupProjects.Remove(projectName);
                 name2proj.Remove(projectName);
                 proj2name.Remove(pHierarchy);
             }
@@ -226,21 +237,12 @@ namespace LucidConcepts.SwitchStartupProject
             proj2name.Add(pHierarchy, name);
         }
 
-        private void _AddStartupProjectType(string name, IVsHierarchy pHierarchy)
-        {
-            typeStartupProjects.Add(name);
-        }
-
         private void _ClearProjects()
         {
             name2proj.Clear();
             proj2name.Clear();
             typeStartupProjects = new List<string>();
             startupProjects = new List<string>(new string[] { sentinel });
-        }
-
-        private void _PopulateMRUListFromSettings(string solutionFileName)
-        {
         }
 
         private void _PopulateStartupProjectsFromTypeList()

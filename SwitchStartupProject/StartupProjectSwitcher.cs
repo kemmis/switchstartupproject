@@ -3,38 +3,38 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using EnvDTE;
+using LucidConcepts.SwitchStartupProject.ConfigurationsPersister;
 using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Settings;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.Shell.Settings;
 
 namespace LucidConcepts.SwitchStartupProject
 {
     public class StartupProjectSwitcher
     {
-        private SettingsPersister settingsPersister;
-        private OptionPage options;
-        OleMenuCommand menuSwitchStartupProjectComboCommand;
+        private const string mostRecentlyUsedListKey = "MRU";
+
+        private readonly IConfigurationPersister settingsPersister;
+        private readonly OptionPage options;
+        private readonly OleMenuCommand menuSwitchStartupProjectComboCommand;
 
 
-        private Dictionary<IVsHierarchy, string> proj2name = new Dictionary<IVsHierarchy, string>();
-        private Dictionary<string, IVsHierarchy> name2proj = new Dictionary<string, IVsHierarchy>();
+        private readonly Dictionary<IVsHierarchy, string> proj2name = new Dictionary<IVsHierarchy, string>();
+        private readonly Dictionary<string, IVsHierarchy> name2proj = new Dictionary<string, IVsHierarchy>();
 
         private MRUList<string> mruStartupProjects;
         private List<string> typeStartupProjects;
 
         private const string sentinel = "";
-        private List<string> startupProjects = new List<string>(new string[] { sentinel });
+        private List<string> startupProjects = new List<string>(new [] { sentinel });
         private string currentStartupProject = sentinel;
-        private string currentSolutionFilename;
-        private bool openingSolution = false;
+        private bool openingSolution;
 
-        private IVsSolutionBuildManager2 sbm = null;
-
+        private readonly IVsSolutionBuildManager2 sbm;
 
 
-        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, IVsSolutionBuildManager2 sbm, IServiceProvider serviceProvider, int mruCount)
+
+        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, IVsSolutionBuildManager2 sbm, IServiceProvider serviceProvider, int mruCount)
         {
             this.menuSwitchStartupProjectComboCommand = combobox;
             this.options = options;
@@ -47,7 +47,7 @@ namespace LucidConcepts.SwitchStartupProject
             // initialize type list
             typeStartupProjects = new List<string>();
 
-            settingsPersister = new SettingsPersister(serviceProvider);
+            settingsPersister = new LegacyConfigurationsProviderAdapter(new JsonFileConfigurationsPersister(dte), new SettingsStoreConfigurationsPersister(serviceProvider, dte));
             options.Modified += (s, e) =>
             {
                 if (e.OptionParameter == EOptionParameter.MruMode)
@@ -109,14 +109,13 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void BeforeOpenSolution(string solutionFileName)
         {
-            currentSolutionFilename = solutionFileName;
-            mruStartupProjects = new MRUList<string>(options.MruCount, settingsPersister.GetMostRecentlyUsedProjectsForSolution(solutionFileName));
             openingSolution = true;
         }
 
         public void AfterOpenSolution()
         {
             openingSolution = false;
+            mruStartupProjects = new MRUList<string>(options.MruCount, settingsPersister.GetList(mostRecentlyUsedListKey));
             // When solution is open: enable combobox
             menuSwitchStartupProjectComboCommand.Enabled = true;
             if (options.MruMode)
@@ -132,7 +131,8 @@ namespace LucidConcepts.SwitchStartupProject
         public void BeforeCloseSolution()
         {
             // When solution is about to be closed, store MRU list to settings
-            settingsPersister.StoreMostRecentlyUsedProjectsForSolution(currentSolutionFilename, mruStartupProjects.ToList());
+            settingsPersister.StoreList(mostRecentlyUsedListKey, mruStartupProjects.OfType<object>().ToList());
+            settingsPersister.Persist();
         }
 
         public void AfterCloseSolution()

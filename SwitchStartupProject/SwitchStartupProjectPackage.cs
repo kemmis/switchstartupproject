@@ -1,21 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 
 using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.OLE.Interop;
-using Microsoft.VisualStudio.Package;
-using Microsoft.VisualStudio.Settings;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.Win32;
-
-using EnvDTE;
-using Microsoft.VisualStudio.Shell.Settings;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -101,6 +93,9 @@ namespace LucidConcepts.SwitchStartupProject
                 mcs.AddCommand(menuSwitchStartupProjectComboGetListCommand);
             }
 
+            // Get VS Automation object
+            var dte = (EnvDTE.DTE)GetGlobalService(typeof(EnvDTE.DTE));
+
             // Get solution
             solution = ServiceProvider.GlobalProvider.GetService(typeof(SVsSolution)) as IVsSolution2;
             if (solution != null)
@@ -125,7 +120,7 @@ namespace LucidConcepts.SwitchStartupProject
                 ms.AdviseSelectionEvents(this, out selectionEventsCookie);
             }
 
-            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, sbm, this, options.MruCount);
+            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, sbm, this, options.MruCount);
         }
         #endregion
 

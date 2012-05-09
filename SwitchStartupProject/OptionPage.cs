@@ -10,8 +10,14 @@ namespace LucidConcepts.SwitchStartupProject
 {
     public enum EOptionParameter
     {
-        MruMode,
+        Mode,
         MruCount
+    }
+
+    public enum EMode
+    {
+        Smart,
+        Mru
     }
 
     public class OptionsModifiedEventArgs : EventArgs
@@ -30,26 +36,26 @@ namespace LucidConcepts.SwitchStartupProject
     [CLSCompliant(false), ComVisible(true)]
     public class OptionPage : DialogPage
     {
-        private bool mruMode = false;
+        private EMode mode = EMode.Smart;
         private int mruCount = 5;
 
         public event OptionsModifiedEventHandler Modified = (s, e) => { };
 
-        [Category("MRU mode")]
-        [DisplayName("Enable MRU mode")]
-        [Description("If enabled, lists for each solution the 'MRU count' most recently as startup project chosen projects. If disabled, the default smart mode filters projects according to their type.")]
-        public bool MruMode
+        [Category("Mode")]
+        [DisplayName("Startup project list population mode")]
+        [Description("In Smart mode (default) projects are chosen according to their type. In MRU mode, the most recently used startup projects are displayed. ")]
+        public EMode Mode
         {
-            get { return mruMode; }
-            set { 
-                mruMode = value;
-                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.MruMode));
+            get { return mode; }
+            set {
+                mode = value;
+                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.Mode));
             }
         }
 
         [Category("MRU mode")]
         [DisplayName("MRU count")]
-        [Description("Defines how many most recently as startup project chosen projects will be listed. Has only effect if MRU mode is enabled.")]
+        [Description("Defines how many projects will be listed in most recently used mode. Has only effect if MRU mode is enabled.")]
         public int MruCount
         {
             get { return mruCount; }

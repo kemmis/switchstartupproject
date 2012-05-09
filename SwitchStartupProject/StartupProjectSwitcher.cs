@@ -50,7 +50,7 @@ namespace LucidConcepts.SwitchStartupProject
             settingsPersister = new LegacyConfigurationsProviderAdapter(new JsonFileConfigurationsPersister(dte), new SettingsStoreConfigurationsPersister(serviceProvider, dte));
             options.Modified += (s, e) =>
             {
-                if (e.OptionParameter == EOptionParameter.MruMode)
+                if (e.OptionParameter == EOptionParameter.Mode)
                 {
                     _SwitchModeInOptions();
                 }
@@ -94,7 +94,7 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 var newStartupProjectName = proj2name[startupProject];
                 mruStartupProjects.Touch(newStartupProjectName);
-                if (options.MruMode)
+                if (options.Mode == EMode.Mru)
                 {
                     _PopulateStartupProjectsFromMRUList();
                 }
@@ -118,7 +118,7 @@ namespace LucidConcepts.SwitchStartupProject
             mruStartupProjects = new MRUList<string>(options.MruCount, settingsPersister.GetList(mostRecentlyUsedListKey));
             // When solution is open: enable combobox
             menuSwitchStartupProjectComboCommand.Enabled = true;
-            if (options.MruMode)
+            if (options.Mode == EMode.Mru)
             {
                 _PopulateStartupProjectsFromMRUList();
             }
@@ -175,7 +175,7 @@ namespace LucidConcepts.SwitchStartupProject
                             eOutputType == VSLangProj.prjOutputType.prjOutputTypeExe)
                         {
                             typeStartupProjects.Add(name);
-                            if (!openingSolution && !options.MruMode)
+                            if (!openingSolution && options.Mode == EMode.Smart)
                             {
                                 _PopulateStartupProjectsFromTypeList(); // when reopening a single project, refresh list
                             }
@@ -260,7 +260,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _SwitchModeInOptions()
         {
-            if (options.MruMode)
+            if (options.Mode == EMode.Mru)
             {
                 _PopulateStartupProjectsFromMRUList();
             }
@@ -274,7 +274,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             var oldList = mruStartupProjects;
             mruStartupProjects = new MRUList<string>(options.MruCount, oldList);
-            if (options.MruMode)
+            if (options.Mode == EMode.Mru)
             {
                 _PopulateStartupProjectsFromMRUList();
             }

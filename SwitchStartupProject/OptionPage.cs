@@ -36,7 +36,7 @@ namespace LucidConcepts.SwitchStartupProject
     [CLSCompliant(false), ComVisible(true)]
     public class OptionPage : DialogPage
     {
-        private EMode mode = EMode.Smart;
+        private EMode mode = EMode.Mru;
         private int mruCount = 5;
 
         public event OptionsModifiedEventHandler Modified = (s, e) => { };

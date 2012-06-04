@@ -3,30 +3,18 @@ Are you often working with solutions that contain multiple startup projects? The
 **Switch Startup Project provides a toolbar dropdown box to easily switch between startup projects.**  
 So you don't need to scroll up and down the solution explorer tree anymore just for switching to another startup project!  
 
-## Modes:
-* Smart Mode: The tool detects potential startup projects by their type and properties (currently C# Projects with output type Exe or WinExe only) 
-* MRU Mode: The tool remembers the most recently used startup projects for each solution 
-You can switch and adjust these modes in the Options page (Tools -> Options -> Switch Startup Project -> General)
-
 ## Installation:
 1. Download the latest SwitchStartupProject.vsix file
 2. Close any VisualStudio instances
-3. Double-click the file. A dialog may appear that asks for which Visual Studio versions you want to install the package. Answer appropriately.
-4. The "Switch Startup Project" dropdown is now available in the Debug category of commands but not yet visible in the UI.
-5. You need to customize your Visual Studio UI to make the dropdown visible. See next section. 
+3. Double-click the downloaded file. A dialog may appear that asks for which Visual Studio versions you want to install the package. Answer appropriately.
+4. After successful installation, the "Switch Startup Project" dropdown is available in the standard toolbar to the right of the start debugging button.
+5. If you open a solution for the first time after the installation of this extension, the dropdown is still empty.
+6. Each time you set a startup project (the old way in the solution explorer) that project is remembered and added to the dropdown list for fast selection.
 
-## Add the tool to your Visual Studio UI:
-1. As an example, we add the "Switch Startup Project" dropdown to the standard toolbar between the "Start Debugging" button and the "Solution Configuration" dropdown.
-2. Open Visual Studio
-3. Open the Customization Tool (Tools -> Customize...)
-4. Switch to the Commands tab
-5. Choose the Toolbar radio button and select the Standard toolbar in the dropdown right to it (you need to scroll down quite far).
-6. In the Controls list below scroll down to the "Solution Configurations" command and select it.
-7. Press the "Add Command..." button
-8. Choose the Debug Category on the left
-9. Select the "Switch Startup Project" command on the right
-10. Click OK
-11. Click Close 
+## Modes:
+* MRU Mode: The tool remembers the most recently used startup projects for each solution (default)
+* Smart Mode: The tool detects potential startup projects by their type and properties (currently C# Projects with output type Exe or WinExe only) 
+You can switch and adjust these modes in the Options page (Tools -> Options -> Switch Startup Project -> General)
 
 ## Source Code:
 You can get the source code of this tool:

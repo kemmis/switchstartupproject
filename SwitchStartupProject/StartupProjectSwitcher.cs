@@ -131,7 +131,7 @@ namespace LucidConcepts.SwitchStartupProject
         public void BeforeCloseSolution()
         {
             // When solution is about to be closed, store MRU list to settings
-            settingsPersister.StoreList(mostRecentlyUsedListKey, mruStartupProjects.OfType<object>().ToList());
+            settingsPersister.StoreList(mostRecentlyUsedListKey, mruStartupProjects);
             settingsPersister.Persist();
         }
 

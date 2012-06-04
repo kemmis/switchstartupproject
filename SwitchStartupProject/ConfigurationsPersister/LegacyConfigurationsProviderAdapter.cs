@@ -19,6 +19,16 @@ namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
         public void Persist()
         {
             currentPersister.Persist();
+            foreach (var legacyPersister in legacyPersisters)
+            {
+                legacyPersister.Clean();
+            }
+        }
+
+        public void Clean()
+        {
+            currentPersister.Clean();
+            legacyPersisters.Clear();
         }
 
         public bool Exists(string key)
@@ -27,7 +37,7 @@ namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
                    this.legacyPersisters.Any(legacyPersister => legacyPersister.Exists(key));
         }
 
-        public dynamic Get(string key)
+        public string Get(string key)
         {
             if (currentPersister.Exists(key))
                 return currentPersister.Get(key);
@@ -39,7 +49,7 @@ namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
             return null;
         }
 
-        public void Store(string key, dynamic value)
+        public void Store(string key, string value)
         {
             currentPersister.Store(key, value);
         }
@@ -51,7 +61,7 @@ namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
                    this.legacyPersisters.Any(legacyPersister => legacyPersister.ExistsList(key));
         }
 
-        public dynamic GetList(string key)
+        public IEnumerable<string> GetList(string key)
         {
             if (currentPersister.ExistsList(key))
                 return currentPersister.GetList(key);
@@ -63,33 +73,9 @@ namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
             return new List<string>();
         }
 
-        public void StoreList(string key, dynamic startupProjects)
+        public void StoreList(string key, IEnumerable<string> values)
         {
-            currentPersister.StoreList(key, startupProjects);
+            currentPersister.StoreList(key, values);
         }
-
-        public bool ExistsObject(string key)
-        {
-            return currentPersister.ExistsObject(key) ||
-                   this.legacyPersisters.Any(legacyPersister => legacyPersister.ExistsObject(key));
-        }
-
-        public dynamic GetObject(string key)
-        {
-            if (currentPersister.ExistsObject(key))
-                return currentPersister.GetObject(key);
-            for (var i = legacyPersisters.Count - 1; i >= 0; i--)
-            {
-                if (legacyPersisters[i].ExistsObject(key))
-                    return legacyPersisters[i].GetObject(key);
-            }
-            return null;
-        }
-
-        public void StoreObject(string key, dynamic value)
-        {
-            currentPersister.StoreObject(key, value);
-        }
-
     }
 }

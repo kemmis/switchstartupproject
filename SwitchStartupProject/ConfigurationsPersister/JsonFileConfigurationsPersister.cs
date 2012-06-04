@@ -28,19 +28,26 @@ namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
             File.WriteAllText(settingsFilename, settings.ToString());
         }
 
+        public void Clean()
+        {
+            var currentSolutionFilename = dte.Solution.FullName;
+            var settingsFilename = _GetSettingsFilename(currentSolutionFilename);
+            File.Delete(settingsFilename);
+        }
+
         public bool Exists(string key)
         {
             _EnsureSettingsLoaded();
             return settings.Children<JProperty>().Any(child => child.Name == key);
         }
 
-        public dynamic Get(string key)
+        public string Get(string key)
         {
             _EnsureSettingsLoaded();
-            return settings[key];
+            return settings[key].Value<string>();
         }
 
-        public void Store(string key, dynamic value)
+        public void Store(string key, string value)
         {
             _EnsureSettingsLoaded();
             settings[key] = value;
@@ -52,34 +59,16 @@ namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
             return settings.Children<JProperty>().Any(child => child.Name == key);
         }
 
-        public dynamic GetList(string key)
+        public IEnumerable<string> GetList(string key)
         {
             _EnsureSettingsLoaded();
-            return settings[key];
+            return settings[key].Values<string>();
         }
 
-        public void StoreList(string key, dynamic list)
+        public void StoreList(string key, IEnumerable<string> list)
         {
             _EnsureSettingsLoaded();
             settings[key] = JArray.FromObject(list);
-        }
-
-        public bool ExistsObject(string key)
-        {
-            _EnsureSettingsLoaded();
-            return settings.Children<JProperty>().Any(child => child.Name == key);
-        }
-
-        public dynamic GetObject(string key)
-        {
-            _EnsureSettingsLoaded();
-            return settings[key];
-        }
-
-        public void StoreObject(string key, dynamic obj)
-        {
-            _EnsureSettingsLoaded();
-            settings[key] = JObject.FromObject(obj);
         }
 
         private void _EnsureSettingsLoaded()

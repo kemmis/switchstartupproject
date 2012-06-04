@@ -12,17 +12,14 @@ namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
         /// </summary>
         void Persist();
 
+        void Clean();
+
         bool Exists(string key);
-        dynamic Get(string key);
-        void Store(string key, dynamic value);
+        string Get(string key);
+        void Store(string key, string value);
         
         bool ExistsList(string key);
-        dynamic GetList(string key);
-        void StoreList(string key, dynamic list);
-
-        bool ExistsObject(string key);
-        dynamic GetObject(string key);
-        void StoreObject(string key, dynamic obj);
-
+        IEnumerable<string> GetList(string key);
+        void StoreList(string key, IEnumerable<string> list);
     }
 }

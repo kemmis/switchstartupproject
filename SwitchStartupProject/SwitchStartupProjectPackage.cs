@@ -351,14 +351,6 @@ namespace LucidConcepts.SwitchStartupProject
 
         #endregion
 
-        #region project management
-
-
-
-
-
-        #endregion
-
         #region helper methods
 
 

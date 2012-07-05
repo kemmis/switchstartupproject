@@ -17,7 +17,8 @@ namespace LucidConcepts.SwitchStartupProject
     public enum EMode
     {
         Smart,
-        Mru
+        Mru,
+        All
     }
 
     public class OptionsModifiedEventArgs : EventArgs
@@ -43,7 +44,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         [Category("Mode")]
         [DisplayName("Startup project list population mode")]
-        [Description("In Smart mode (default) projects are chosen according to their type. In MRU mode, the most recently used startup projects are displayed. ")]
+        [Description("In Smart mode projects are chosen according to their type. In MRU mode (default) the most recently used startup projects are displayed. In All mode all projects are listed. ")]
         public EMode Mode
         {
             get { return mode; }

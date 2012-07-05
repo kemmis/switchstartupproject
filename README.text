@@ -14,6 +14,7 @@ So you don't need to scroll up and down the solution explorer tree anymore just 
 ## Modes:
 * MRU Mode: The tool remembers the most recently used startup projects for each solution (default)
 * Smart Mode: The tool detects potential startup projects by their type and properties (currently C# Projects with output type Exe or WinExe only) 
+* All Mode: The tool lists all projects of the current solution
 You can switch and adjust these modes in the Options page (Tools -> Options -> Switch Startup Project -> General)
 
 ## Source Code:

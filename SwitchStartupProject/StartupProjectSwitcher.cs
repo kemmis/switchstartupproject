@@ -24,6 +24,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private MRUList<string> mruStartupProjects;
         private List<string> typeStartupProjects;
+        private List<string> allStartupProjects;
 
         private const string sentinel = "";
         private List<string> startupProjects = new List<string>(new [] { sentinel });
@@ -47,12 +48,15 @@ namespace LucidConcepts.SwitchStartupProject
             // initialize type list
             typeStartupProjects = new List<string>();
 
+            // initialize all list
+            allStartupProjects = new List<string>();
+
             settingsPersister = new LegacyConfigurationsProviderAdapter(new JsonFileConfigurationsPersister(dte), new SettingsStoreConfigurationsPersister(serviceProvider, dte));
             options.Modified += (s, e) =>
             {
                 if (e.OptionParameter == EOptionParameter.Mode)
                 {
-                    _SwitchModeInOptions();
+                    _PopulateStartupProjects();
                 }
                 else if (e.OptionParameter == EOptionParameter.MruCount)
                 {
@@ -94,10 +98,7 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 var newStartupProjectName = proj2name[startupProject];
                 mruStartupProjects.Touch(newStartupProjectName);
-                if (options.Mode == EMode.Mru)
-                {
-                    _PopulateStartupProjectsFromMRUList();
-                }
+                _PopulateStartupProjects();
                 currentStartupProject = newStartupProjectName;
             }
             else
@@ -118,14 +119,7 @@ namespace LucidConcepts.SwitchStartupProject
             mruStartupProjects = new MRUList<string>(options.MruCount, settingsPersister.GetList(mostRecentlyUsedListKey));
             // When solution is open: enable combobox
             menuSwitchStartupProjectComboCommand.Enabled = true;
-            if (options.Mode == EMode.Mru)
-            {
-                _PopulateStartupProjectsFromMRUList();
-            }
-            else
-            {
-                _PopulateStartupProjectsFromTypeList();
-            }
+            _PopulateStartupProjects();
         }
 
         public void BeforeCloseSolution()
@@ -155,16 +149,16 @@ namespace LucidConcepts.SwitchStartupProject
             valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Caption, out captionObj) == VSConstants.S_OK;
             if (valid)
             {
-                string name = (string)nameObj;
-                string typeName = (string)typeNameObj;
-                string caption = (string)captionObj;
+                var name = (string)nameObj;
+                var typeName = (string)typeNameObj;
 
                 _AddProject(name, pHierarchy);
+                allStartupProjects.Add(name);
 
                 // Only add local (not web) C# projects with OutputType of either Exe (command line tool) or WinExe (windows application)
                 if (typeName == "Microsoft Visual C# 2010")
                 {
-                    Project project = GetProject(pHierarchy);
+                    var project = GetProject(pHierarchy);
                     var projectType = project.Properties.Item("ProjectType");
                     var eProjectType = (VSLangProj.prjProjectType)projectType.Value;
                     if (eProjectType == VSLangProj.prjProjectType.prjProjectTypeLocal)
@@ -175,13 +169,12 @@ namespace LucidConcepts.SwitchStartupProject
                             eOutputType == VSLangProj.prjOutputType.prjOutputTypeExe)
                         {
                             typeStartupProjects.Add(name);
-                            if (!openingSolution && options.Mode == EMode.Smart)
-                            {
-                                _PopulateStartupProjectsFromTypeList(); // when reopening a single project, refresh list
-                            }
-
                         }
                     }
+                }
+                if (!openingSolution)
+                {
+                    _PopulateStartupProjects(); // when reopening a single project, refresh list
                 }
             }
         }
@@ -198,6 +191,7 @@ namespace LucidConcepts.SwitchStartupProject
                     currentStartupProject = sentinel;
                 }
                 startupProjects.Remove(projectName);
+                allStartupProjects.Remove(projectName);
                 typeStartupProjects.Remove(projectName);
                 name2proj.Remove(projectName);
                 proj2name.Remove(pHierarchy);
@@ -241,32 +235,26 @@ namespace LucidConcepts.SwitchStartupProject
         {
             name2proj.Clear();
             proj2name.Clear();
+            allStartupProjects = new List<string>();
             typeStartupProjects = new List<string>();
             startupProjects = new List<string>(new string[] { sentinel });
         }
 
-        private void _PopulateStartupProjectsFromTypeList()
+        private void _PopulateStartupProjects()
         {
-            typeStartupProjects.Sort();
-            startupProjects = typeStartupProjects.ToList();
-        }
-
-        private void _PopulateStartupProjectsFromMRUList()
-        {
-            startupProjects = mruStartupProjects.ToList();
-        }
-
-
-
-        private void _SwitchModeInOptions()
-        {
-            if (options.Mode == EMode.Mru)
+            switch (options.Mode)
             {
-                _PopulateStartupProjectsFromMRUList();
-            }
-            else
-            {
-                _PopulateStartupProjectsFromTypeList();
+                case EMode.All:
+                    allStartupProjects.Sort();
+                    startupProjects = allStartupProjects.ToList();
+                    break;
+                case EMode.Mru:
+                    startupProjects = mruStartupProjects.ToList();
+                    break;
+                case EMode.Smart:
+                    typeStartupProjects.Sort();
+                    startupProjects = typeStartupProjects.ToList();
+                    break;
             }
         }
 
@@ -274,15 +262,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             var oldList = mruStartupProjects;
             mruStartupProjects = new MRUList<string>(options.MruCount, oldList);
-            if (options.Mode == EMode.Mru)
-            {
-                _PopulateStartupProjectsFromMRUList();
-            }
+            _PopulateStartupProjects();
         }
-
-
-
-
-
     }
 }

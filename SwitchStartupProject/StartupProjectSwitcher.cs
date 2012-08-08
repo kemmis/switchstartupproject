@@ -51,7 +51,10 @@ namespace LucidConcepts.SwitchStartupProject
             // initialize all list
             allStartupProjects = new List<string>();
 
-            settingsPersister = new LegacyConfigurationsProviderAdapter(new JsonFileConfigurationsPersister(dte), new SettingsStoreConfigurationsPersister(serviceProvider, dte));
+            settingsPersister = new LegacyConfigurationsProviderAdapter(
+                new JsonFileConfigurationsPersister(dte, ".startup.suo"),
+                new JsonFileConfigurationsPersister(dte, ".startup"),
+                new SettingsStoreConfigurationsPersister(serviceProvider, dte));
             options.Modified += (s, e) =>
             {
                 if (e.OptionParameter == EOptionParameter.Mode)

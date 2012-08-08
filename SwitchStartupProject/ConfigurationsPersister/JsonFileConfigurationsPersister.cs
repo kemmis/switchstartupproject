@@ -10,14 +10,15 @@ namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
 {
     public class JsonFileConfigurationsPersister : IConfigurationPersister
     {
-        private const string settingsFileExtension = ".startup";
+        private readonly string settingsFileExtension;
         private readonly DTE dte;
         private string settingsForSolutionFilename;
         private JObject settings;
 
-        public JsonFileConfigurationsPersister(DTE dte)
+        public JsonFileConfigurationsPersister(DTE dte, string settingsFileExtension)
         {
             this.dte = dte;
+            this.settingsFileExtension = settingsFileExtension;
         }
 
         public void Persist()

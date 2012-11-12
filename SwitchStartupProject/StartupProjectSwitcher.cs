@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using EnvDTE;
-using LucidConcepts.SwitchStartupProject.ConfigurationsPersister;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -14,7 +13,7 @@ namespace LucidConcepts.SwitchStartupProject
     {
         private const string mostRecentlyUsedListKey = "MRU";
 
-        private readonly IConfigurationPersister settingsPersister;
+        private readonly ConfigurationsPersister settingsPersister;
         private readonly OptionPage options;
         private readonly OleMenuCommand menuSwitchStartupProjectComboCommand;
 
@@ -51,10 +50,7 @@ namespace LucidConcepts.SwitchStartupProject
             // initialize all list
             allStartupProjects = new List<string>();
 
-            settingsPersister = new LegacyConfigurationsProviderAdapter(
-                new JsonFileConfigurationsPersister(dte, ".startup.suo"),
-                new JsonFileConfigurationsPersister(dte, ".startup"),
-                new SettingsStoreConfigurationsPersister(serviceProvider, dte));
+            settingsPersister = new ConfigurationsPersister(dte, ".startup.suo");
             options.Modified += (s, e) =>
             {
                 if (e.OptionParameter == EOptionParameter.Mode)

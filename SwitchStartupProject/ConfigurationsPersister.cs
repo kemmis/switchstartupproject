@@ -6,16 +6,16 @@ using System.Text;
 using EnvDTE;
 using Newtonsoft.Json.Linq;
 
-namespace LucidConcepts.SwitchStartupProject.ConfigurationsPersister
+namespace LucidConcepts.SwitchStartupProject
 {
-    public class JsonFileConfigurationsPersister : IConfigurationPersister
+    public class ConfigurationsPersister
     {
         private readonly string settingsFileExtension;
         private readonly DTE dte;
         private string settingsForSolutionFilename;
         private JObject settings;
 
-        public JsonFileConfigurationsPersister(DTE dte, string settingsFileExtension)
+        public ConfigurationsPersister(DTE dte, string settingsFileExtension)
         {
             this.dte = dte;
             this.settingsFileExtension = settingsFileExtension;

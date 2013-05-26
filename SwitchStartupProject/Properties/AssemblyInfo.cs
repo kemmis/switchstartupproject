@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Lucid Concepts")]
 [assembly: AssemblyProduct("SwitchStartupProject")]
-[assembly: AssemblyCopyright("Copyright (c) 2012 Lucid Concepts AG")]
+[assembly: AssemblyCopyright("Copyright (c) 2013 Lucid Concepts AG")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]   
 [assembly: ComVisible(false)]     

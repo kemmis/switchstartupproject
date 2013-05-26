@@ -120,7 +120,7 @@ namespace LucidConcepts.SwitchStartupProject
                 ms.AdviseSelectionEvents(this, out selectionEventsCookie);
             }
 
-            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, sbm, this, options.MruCount);
+            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, sbm, this, options.MostRecentlyUsedCount);
         }
         #endregion
 

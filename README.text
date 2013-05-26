@@ -8,14 +8,13 @@ So you don't need to scroll up and down the solution explorer tree anymore just 
 2. Close any VisualStudio instances
 3. Double-click the downloaded file. A dialog may appear that asks for which Visual Studio versions you want to install the package. Answer appropriately.
 4. After successful installation, the "Switch Startup Project" dropdown is available in the standard toolbar to the right of the start debugging button.
-5. If you open a solution for the first time after the installation of this extension, the dropdown is still empty.
-6. Each time you set a startup project (the old way in the solution explorer) that project is remembered and added to the dropdown list for fast selection.
 
 ## Modes:
-* MRU Mode: The tool remembers the most recently used startup projects for each solution (default)
-* Smart Mode: The tool detects potential startup projects by their type and properties (currently C# Projects with output type Exe or WinExe only) 
-* All Mode: The tool lists all projects of the current solution
-You can switch and adjust these modes in the Options page (Tools -> Options -> Switch Startup Project -> General)
+* All: The tool lists all projects of the current solution (default)
+* Smart: The tool detects potential startup projects by their type and properties (currently C# Projects with output type Exe or WinExe only) 
+* MostRecentlyUsed: The tool remembers the most recently used startup projects for each solution
+
+You can switch and adjust these modes in the options page. To open the options page select the last entry *Configure...* in the dropdown list.
 
 ## Source Code:
 You can get the source code of this tool:

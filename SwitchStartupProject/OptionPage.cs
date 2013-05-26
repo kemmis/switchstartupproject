@@ -16,9 +16,9 @@ namespace LucidConcepts.SwitchStartupProject
 
     public enum EMode
     {
+        All,
         Smart,
-        Mru,
-        All
+        MostRecentlyUsed,
     }
 
     public class OptionsModifiedEventArgs : EventArgs
@@ -37,14 +37,14 @@ namespace LucidConcepts.SwitchStartupProject
     [CLSCompliant(false), ComVisible(true)]
     public class OptionPage : DialogPage
     {
-        private EMode mode = EMode.Mru;
+        private EMode mode = EMode.All;
         private int mruCount = 5;
 
         public event OptionsModifiedEventHandler Modified = (s, e) => { };
 
         [Category("Mode")]
-        [DisplayName("Startup project list population mode")]
-        [Description("In Smart mode projects are chosen according to their type. In MRU mode (default) the most recently used startup projects are displayed. In All mode all projects are listed. ")]
+        [DisplayName("Choose which projects are listed")]
+        [Description("All (default): All projects are listed. Smart: Projects are chosen according to their type. MostRecentlyUsed: The most recently used startup projects are listed.")]
         public EMode Mode
         {
             get { return mode; }
@@ -54,10 +54,10 @@ namespace LucidConcepts.SwitchStartupProject
             }
         }
 
-        [Category("MRU mode")]
-        [DisplayName("MRU count")]
-        [Description("Defines how many projects will be listed in most recently used mode. Has only effect if MRU mode is enabled.")]
-        public int MruCount
+        [Category("Most Recently Used")]
+        [DisplayName("Count")]
+        [Description("Choose how many projects are listed in MostRecentlyUsed mode. Has only effect if MostRecentlyUsed mode is active.")]
+        public int MostRecentlyUsedCount
         {
             get { return mruCount; }
             set { 

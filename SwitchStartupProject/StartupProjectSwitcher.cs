@@ -16,6 +16,7 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly ConfigurationsPersister settingsPersister;
         private readonly OptionPage options;
         private readonly OleMenuCommand menuSwitchStartupProjectComboCommand;
+        private readonly Action openOptionsPage;
 
 
         private readonly Dictionary<IVsHierarchy, string> proj2name = new Dictionary<IVsHierarchy, string>();
@@ -26,7 +27,8 @@ namespace LucidConcepts.SwitchStartupProject
         private List<string> allStartupProjects;
 
         private const string sentinel = "";
-        private List<string> startupProjects = new List<string>(new [] { sentinel });
+        private const string configure = "Configure...";
+        private List<string> startupProjects = new List<string>(new [] { sentinel, configure });
         private string currentStartupProject = sentinel;
         private bool openingSolution;
 
@@ -34,11 +36,12 @@ namespace LucidConcepts.SwitchStartupProject
 
 
 
-        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, IVsSolutionBuildManager2 sbm, IServiceProvider serviceProvider, int mruCount)
+        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, IVsSolutionBuildManager2 sbm, Package package, int mruCount)
         {
             this.menuSwitchStartupProjectComboCommand = combobox;
             this.options = options;
             this.sbm = sbm;
+            this.openOptionsPage = () => package.ShowOptionPage(typeof (OptionPage));
 
 
             // initialize MRU list
@@ -78,6 +81,13 @@ namespace LucidConcepts.SwitchStartupProject
         public void ChooseStartupProject(string name)
         {
             // new value was selected or typed in
+            // see if it is the configuration item
+            if (String.Compare(configure, name, StringComparison.CurrentCultureIgnoreCase) == 0)
+            {
+                openOptionsPage();
+                name = sentinel;
+            }
+
             // see if it is one of our items
             foreach (string project in this.startupProjects)
             {
@@ -115,7 +125,7 @@ namespace LucidConcepts.SwitchStartupProject
         public void AfterOpenSolution()
         {
             openingSolution = false;
-            mruStartupProjects = new MRUList<string>(options.MruCount, settingsPersister.GetList(mostRecentlyUsedListKey));
+            mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetList(mostRecentlyUsedListKey));
             // When solution is open: enable combobox
             menuSwitchStartupProjectComboCommand.Enabled = true;
             _PopulateStartupProjects();
@@ -236,7 +246,7 @@ namespace LucidConcepts.SwitchStartupProject
             proj2name.Clear();
             allStartupProjects = new List<string>();
             typeStartupProjects = new List<string>();
-            startupProjects = new List<string>(new string[] { sentinel });
+            startupProjects = new List<string>(new [] { sentinel, configure });
         }
 
         private void _PopulateStartupProjects()
@@ -247,7 +257,7 @@ namespace LucidConcepts.SwitchStartupProject
                     allStartupProjects.Sort();
                     startupProjects = allStartupProjects.ToList();
                     break;
-                case EMode.Mru:
+                case EMode.MostRecentlyUsed:
                     startupProjects = mruStartupProjects.ToList();
                     break;
                 case EMode.Smart:
@@ -255,12 +265,14 @@ namespace LucidConcepts.SwitchStartupProject
                     startupProjects = typeStartupProjects.ToList();
                     break;
             }
+            startupProjects.Insert(0, sentinel);
+            startupProjects.Add(configure);
         }
 
         private void _ChangeMRUCountInOptions()
         {
             var oldList = mruStartupProjects;
-            mruStartupProjects = new MRUList<string>(options.MruCount, oldList);
+            mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, oldList);
             _PopulateStartupProjects();
         }
     }

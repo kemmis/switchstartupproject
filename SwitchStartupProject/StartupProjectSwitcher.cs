@@ -28,7 +28,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private const string sentinel = "";
         private const string configure = "Configure...";
-        private List<string> startupProjects = new List<string>(new [] { sentinel, configure });
+        private List<string> startupProjects = new List<string>(new [] { configure });
         private string currentStartupProject = sentinel;
         private bool openingSolution;
 
@@ -247,7 +247,7 @@ namespace LucidConcepts.SwitchStartupProject
             proj2name.Clear();
             allStartupProjects = new List<string>();
             typeStartupProjects = new List<string>();
-            startupProjects = new List<string>(new [] { sentinel, configure });
+            startupProjects = new List<string>(new [] { configure });
         }
 
         private void _PopulateStartupProjects()
@@ -266,7 +266,6 @@ namespace LucidConcepts.SwitchStartupProject
                     startupProjects = typeStartupProjects.ToList();
                     break;
             }
-            startupProjects.Insert(0, sentinel);
             startupProjects.Add(configure);
         }
 

@@ -85,7 +85,8 @@ namespace LucidConcepts.SwitchStartupProject
             if (String.Compare(configure, name, StringComparison.CurrentCultureIgnoreCase) == 0)
             {
                 openOptionsPage();
-                name = sentinel;
+                return;
+
             }
 
             // see if it is one of our items

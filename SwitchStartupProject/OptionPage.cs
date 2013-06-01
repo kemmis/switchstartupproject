@@ -5,6 +5,7 @@ using System.Text;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.Shell;
 using System.ComponentModel;
+using Microsoft.Win32;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -37,6 +38,8 @@ namespace LucidConcepts.SwitchStartupProject
     [CLSCompliant(false), ComVisible(true)]
     public class OptionPage : DialogPage
     {
+        const string schemeValueName = "Scheme";
+        private bool firstLoad = true;
         private EMode mode = EMode.All;
         private int mruCount = 5;
 
@@ -66,5 +69,58 @@ namespace LucidConcepts.SwitchStartupProject
             }
         }
 
+        public override void LoadSettingsFromStorage()
+        {
+            if (firstLoad)
+            {
+                _MigrateOptions();
+                firstLoad = false;
+            }
+            base.LoadSettingsFromStorage();
+        }
+
+        private void _MigrateOptions()
+        {
+
+            var package = (Package)GetService(typeof(Package));
+            if (package != null)
+            {
+                using (var userRegistryRoot = package.UserRegistryRoot)
+                {
+                    var settingsRegistryPath = SettingsRegistryPath;
+                    var registryKey = userRegistryRoot.OpenSubKey(settingsRegistryPath, true);
+                    if (registryKey != null)
+                    {
+                        using (registryKey)
+                        {
+                            var scheme = (int?)registryKey.GetValue(schemeValueName) ?? 0;
+                            if (scheme <= 0) _MigrateTo1(registryKey);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void _MigrateTo1(RegistryKey registryKey)
+        {
+            const string valueMruMode = "MruMode";
+            const string valueMruCount = "MruCount";
+            const string valueMostRecentlyUsedCount = "MostRecentlyUsedCount";
+            const string valueMode = "Mode";
+
+            if (registryKey.GetValue(valueMruMode) != null) registryKey.DeleteValue(valueMruMode);
+            var count = registryKey.GetValue(valueMruCount);
+            if (count != null)
+            {
+                registryKey.SetValue(valueMostRecentlyUsedCount, count);
+                registryKey.DeleteValue(valueMruCount);
+            }
+            var mode = registryKey.GetValue(valueMode);
+            if (mode != null && (string)mode == "Mru")
+            {
+                registryKey.SetValue(valueMode, "MostRecentlyUsed");
+            }
+            registryKey.SetValue(schemeValueName, 1);
+        }
     }
 }

@@ -125,15 +125,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Guids.cs" />
-    <Compile Include="ConfigurationsPersister.cs" />
+    <Compile Include="Helpers\ConfigurationsPersister.cs" />
     <Compile Include="Helpers\EnumerableExtensions.cs" />
     <Compile Include="Helpers\Paths.cs" />
-    <Compile Include="MRUList.cs" />
+    <Compile Include="Helpers\MRUList.cs" />
     <Compile Include="MultiProjectConfiguration.cs" />
     <Compile Include="OptionPage.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Helpers\GlobalSuppressions.cs" />
     <Compile Include="OptionsPage\AutoGreyableImage.cs" />
     <Compile Include="OptionsPage\Configuration.cs" />
     <Compile Include="OptionsPage\DelegateCommand.cs" />
@@ -173,10 +173,10 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="license.txt">
+    <Content Include="Resources\license.txt">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="preview.png">
+    <Content Include="Resources\preview.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>

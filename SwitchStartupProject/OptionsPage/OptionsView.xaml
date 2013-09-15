@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:LucidConcepts.SwitchStartupProject.OptionsPage"
              mc:Ignorable="d" 
              d:DesignHeight="333" d:DesignWidth="460">
     <Grid>
@@ -11,7 +12,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         
-        <GroupBox Header="Project List Mode" Grid.Row="0" Padding="10 0" BorderThickness="1" BorderBrush="DarkGray">
+        <GroupBox Header="Single-Project List Mode" Grid.Row="0" Padding="10 0" BorderThickness="1" BorderBrush="DarkGray">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -31,5 +32,125 @@
                 <TextBox Grid.Row="1" Grid.Column="1" Visibility="{Binding MruVisibility}" Text="{Binding MruCount}"/>
             </Grid>
         </GroupBox>
+        <GroupBox Header="Multi-Project Startup Configurations" Grid.Row="1" Padding="10 0" BorderThickness="1" BorderBrush="DarkGray"
+                  IsEnabled="{Binding EnableMultiProjectConfiguration}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Configurations:" VerticalAlignment="Center" />
+                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Width="24" Height="24" Margin="1 1"
+                            Command="{Binding AddConfigurationCommand}">
+                        <local:AutoGreyableImage Source="../Resources/Add.png" Height="16" Width="16"
+                                ToolTip="Add new configuration"
+                                />
+                    </Button>
+                    <Button Width="24" Height="24" Margin="1 1"
+                            Command="{Binding DeleteConfigurationCommand}">
+                        <local:AutoGreyableImage Source="../Resources/Delete.png" Height="16" Width="16"
+                               ToolTip="Remove selected configuration"
+                               />
+                    </Button>
+                    <Button Width="24" Height="24" Margin="1 1"
+                            Command="{Binding MoveConfigurationUpCommand}">
+                        <local:AutoGreyableImage Source="../Resources/ArrowUp.png" Height="16" Width="16"
+                           ToolTip="Move selected configuration up (such that it appears earlier in the dropdown list)"
+                           />
+                    </Button>
+                    <Button Width="24" Height="24" Margin="1 1"
+                            Command="{Binding MoveConfigurationDownCommand}">
+                        <local:AutoGreyableImage Source="../Resources/ArrowDown.png" Height="16" Width="16"
+                           ToolTip="Move selected configuration down (such that it appears later in the dropdown list)"
+                           />
+                    </Button>
+                </StackPanel>
+                <ListBox Grid.Row="1" Grid.ColumnSpan="2" Margin="0 0 0 10"
+                         ItemsSource="{Binding Configurations}"
+                         SelectedItem="{Binding SelectedConfiguration}"
+                         SelectionMode="Single"
+                         DisplayMemberPath="Name"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ToolTip="Define multi-project startup configurations which can be activated with the toolbar dropdown box."
+                         />
+                <Grid Grid.Row="2" Grid.ColumnSpan="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Configuration Name:" Grid.Column="0" VerticalAlignment="Center" Margin="0 0 10 0"
+                               IsEnabled="{Binding IsConfigurationSelected}"/>
+                    <TextBox Text="{Binding SelectedConfiguration.Name, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" VerticalAlignment="Center" Width="308"
+                             ToolTip="The name shown in the dropdown box"
+                             IsEnabled="{Binding IsConfigurationSelected}"/>
+                </Grid>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Projects to start:" VerticalAlignment="Center"
+                           IsEnabled="{Binding IsConfigurationSelected}"/>
+                <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            IsEnabled="{Binding IsConfigurationSelected}">
+                    <Button Width="24" Height="24" Margin="1 1"
+                            Command="{Binding AddProjectCommand}">
+                        <local:AutoGreyableImage Source="../Resources/Add.png" Height="16" Width="16"
+                               ToolTip="Add project"
+                               />
+                    </Button>
+                    <Button Width="24" Height="24" Margin="1 1"
+                            Command="{Binding DeleteProjectCommand}">
+                        <local:AutoGreyableImage Source="../Resources/Delete.png" Height="16" Width="16"
+                               ToolTip="Remove project"
+                               />
+                    </Button>
+                    <Button Width="24" Height="24" Margin="1 1"
+                            Command="{Binding MoveProjectUpCommand}">
+                        <local:AutoGreyableImage Source="../Resources/ArrowUp.png" Height="16" Width="16"
+                               ToolTip="Start project earlier"
+                               />
+                    </Button>
+                    <Button Width="24" Height="24" Margin="1 1"
+                            Command="{Binding MoveProjectDownCommand}">
+                        <local:AutoGreyableImage Source="../Resources/ArrowDown.png" Height="16" Width="16"
+                               ToolTip="Start project later"
+                               />
+                    </Button>
+                </StackPanel>
+                <ListView Grid.Row="4" Grid.ColumnSpan="2"
+                          ItemsSource="{Binding Projects}"
+                          SelectedItem="{Binding SelectedProject}"
+                          SelectionMode="Single"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          ToolTip="Define which projects shall be started and in which order. The actual startup action can be modified in each project's debugging properties."
+                          IsEnabled="{Binding IsConfigurationSelected}"
+                          >
+                    <ListView.View>
+                        <GridView>
+                            <GridView.ColumnHeaderContainerStyle>
+                                <Style>
+                                    <Setter Property="FrameworkElement.Visibility" Value="Collapsed" />
+                                </Style>
+                            </GridView.ColumnHeaderContainerStyle>
+                            <GridViewColumn Header="Name" Width="400">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:OptionsView}}, Path=DataContext.AllProjectNames}"
+                                                  SelectedItem="{Binding Name}"
+                                                  MinWidth="300"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+        </GroupBox>        
     </Grid>
 </UserControl>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using EnvDTE;
@@ -20,11 +21,12 @@ namespace LucidConcepts.SwitchStartupProject
 
 
         private readonly Dictionary<IVsHierarchy, string> proj2name = new Dictionary<IVsHierarchy, string>();
-        private readonly Dictionary<string, IVsHierarchy> name2proj = new Dictionary<string, IVsHierarchy>();
+        private readonly Dictionary<string, string> name2projectPath = new Dictionary<string, string>();
 
         private MRUList<string> mruStartupProjects;
         private List<string> typeStartupProjects;
         private List<string> allStartupProjects;
+        private List<MultiProjectConfiguration> multiProjectConfigurations;
 
         private const string sentinel = "";
         private const string configure = "Configure...";
@@ -33,16 +35,16 @@ namespace LucidConcepts.SwitchStartupProject
         private bool openingSolution;
         private bool reactToChangedEvent = true;
 
-        private readonly IVsSolutionBuildManager2 sbm;
+        private readonly DTE dte;
 
 
 
-        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, IVsSolutionBuildManager2 sbm, Package package, int mruCount)
+        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, Package package, int mruCount)
         {
             this.menuSwitchStartupProjectComboCommand = combobox;
             this.options = options;
-            this.sbm = sbm;
-            this.openOptionsPage = () => package.ShowOptionPage(typeof (OptionPage));
+            this.dte = dte;
+            this.openOptionsPage = () => package.ShowOptionPage(typeof(OptionPage));
 
 
             // initialize MRU list
@@ -53,6 +55,8 @@ namespace LucidConcepts.SwitchStartupProject
 
             // initialize all list
             allStartupProjects = new List<string>();
+
+            multiProjectConfigurations = new List<MultiProjectConfiguration>();
 
             settingsPersister = new ConfigurationsPersister(dte, ".startup.suo");
             options.Modified += (s, e) =>
@@ -65,8 +69,14 @@ namespace LucidConcepts.SwitchStartupProject
                 {
                     _ChangeMRUCountInOptions();
                 }
+                else if (e.OptionParameter == EOptionParameter.MultiProjectConfigurations)
+                {
+                    _ChangeMultiProjectConfigurationsInOptions();
+                    _PopulateStartupProjects();
+                }
             };
-            
+            options.GetAllProjectNames = () => allStartupProjects;
+
         }
 
         public string GetCurrentStartupProject()
@@ -133,6 +143,7 @@ namespace LucidConcepts.SwitchStartupProject
             mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetList(mostRecentlyUsedListKey));
             // When solution is open: enable combobox
             menuSwitchStartupProjectComboCommand.Enabled = true;
+            options.EnableMultiProjectConfiguration = true;
             _PopulateStartupProjects();
         }
 
@@ -147,6 +158,8 @@ namespace LucidConcepts.SwitchStartupProject
         {
             // When solution is closed: choose no project, disable combobox
             currentStartupProject = sentinel;
+            options.Configurations.Clear();
+            options.EnableMultiProjectConfiguration = false;
             menuSwitchStartupProjectComboCommand.Enabled = false;
             _ClearProjects();
         }
@@ -207,8 +220,8 @@ namespace LucidConcepts.SwitchStartupProject
                 startupProjects.Remove(projectName);
                 allStartupProjects.Remove(projectName);
                 typeStartupProjects.Remove(projectName);
-                name2proj.Remove(projectName);
                 proj2name.Remove(pHierarchy);
+                name2projectPath.Remove(projectName);
             }
         }
 
@@ -222,12 +235,19 @@ namespace LucidConcepts.SwitchStartupProject
         private void _ChangeStartupProject(string newStartupProject)
         {
             this.currentStartupProject = newStartupProject;
-            if (!name2proj.ContainsKey(newStartupProject)) return;  // An unknown project was chosen
             if (newStartupProject == sentinel) return;  // Sentinel was chosen
-            IVsHierarchy oldStartupProject = null;
-            if (sbm.get_StartupProject(out oldStartupProject) != VSConstants.S_OK) return;  // Can't get old startup project
-            if (proj2name.ContainsKey(oldStartupProject) && newStartupProject == proj2name[oldStartupProject]) return;  // The chosen project was already the startup project
-            _SuspendChangedEvent(() => sbm.set_StartupProject(name2proj[newStartupProject]));
+            if (name2projectPath.ContainsKey(newStartupProject))
+            {
+                // Single startup project
+                _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = name2projectPath[newStartupProject]);
+            }
+            else if (multiProjectConfigurations.Any(c => c.Name == newStartupProject))
+            {
+                // Multiple startup projects
+                var configuration = multiProjectConfigurations.Single(c => c.Name == newStartupProject);
+                _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = configuration.Projects.OfType<object>().ToArray()); // SolutionBuild.StartupProjects expects an array of objects
+            }
+            // An unknown project was chosen
         }
 
         private void _SuspendChangedEvent(Action action)
@@ -246,16 +266,24 @@ namespace LucidConcepts.SwitchStartupProject
             return (project as Project);
         }
 
+        private string _GetPathRelativeToSolution(IVsHierarchy pHierarchy)
+        {
+            var project = _GetProject(pHierarchy);
+            var fullProjectPath = project.FileName;
+            var solutionPath = Path.GetDirectoryName(dte.Solution.FullName) + @"\";
+            return Paths.GetPathRelativeTo(fullProjectPath, solutionPath);
+        }
+
         private void _AddProject(string name, IVsHierarchy pHierarchy)
         {
-            name2proj.Add(name, pHierarchy);
             proj2name.Add(pHierarchy, name);
+            name2projectPath.Add(name, _GetPathRelativeToSolution(pHierarchy));
         }
 
         private void _ClearProjects()
         {
-            name2proj.Clear();
             proj2name.Clear();
+            name2projectPath.Clear();
             allStartupProjects = new List<string>();
             typeStartupProjects = new List<string>();
             startupProjects = new List<string>(new [] { configure });
@@ -277,7 +305,19 @@ namespace LucidConcepts.SwitchStartupProject
                     startupProjects = typeStartupProjects.ToList();
                     break;
             }
+            multiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
             startupProjects.Add(configure);
+        }
+
+        private void _ChangeMultiProjectConfigurationsInOptions()
+        {
+            multiProjectConfigurations.Clear();
+            multiProjectConfigurations = (from configuration in options.Configurations
+                                          let projects = (from project in configuration.Projects
+                                                          where project.Name != null
+                                                          select name2projectPath[project.Name]).ToList()
+                                          select new MultiProjectConfiguration(configuration.Name, projects)).ToList();
+
         }
 
         private void _ChangeMRUCountInOptions()

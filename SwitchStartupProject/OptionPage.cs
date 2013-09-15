@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using LucidConcepts.SwitchStartupProject.OptionsPage;
 using Microsoft.VisualStudio.Shell;
+using System.ComponentModel;
 using Microsoft.Win32;
 
 namespace LucidConcepts.SwitchStartupProject
@@ -11,7 +12,9 @@ namespace LucidConcepts.SwitchStartupProject
     public enum EOptionParameter
     {
         Mode,
-        MruCount
+        MruCount,
+        EnableMultiProjectConfiguration,
+        MultiProjectConfigurations
     }
 
     public enum EMode
@@ -40,10 +43,13 @@ namespace LucidConcepts.SwitchStartupProject
         private bool firstLoad = true;
         private EMode mode = EMode.All;
         private int mruCount = 5;
+        private bool enableMultiProjectConfiguration = false;
 
         public OptionPage()
         {
             view = new OptionsView { DataContext = new OptionsViewModel(this) };
+            Configurations = new BindingList<Configuration>();
+            Configurations.ListChanged += (sender, args) => Modified(this, new OptionsModifiedEventArgs(EOptionParameter.MultiProjectConfigurations));
         }
 
         protected override System.Windows.UIElement Child
@@ -68,6 +74,26 @@ namespace LucidConcepts.SwitchStartupProject
             set { 
                 mruCount = value;
                 Modified(this, new OptionsModifiedEventArgs(EOptionParameter.MruCount));
+            }
+        }
+
+        // Not being stored by automatic persistence mechanism
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public Func<IList<string>> GetAllProjectNames { get; set; }
+
+        // Not being stored by automatic persistence mechanism
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public BindingList<Configuration> Configurations { get; private set; }
+
+        // Not being stored by automatic persistence mechanism
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool EnableMultiProjectConfiguration
+        {
+            get { return enableMultiProjectConfiguration; }
+            set
+            {
+                enableMultiProjectConfiguration = value;
+                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.EnableMultiProjectConfiguration));
             }
         }
 

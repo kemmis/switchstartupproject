@@ -107,9 +107,6 @@ namespace LucidConcepts.SwitchStartupProject
             // get options
             var options = (OptionPage)GetDialogPage(typeof(OptionPage));
 
-            // Get solution build manager
-            var sbm = ServiceProvider.GlobalProvider.GetService(typeof(SVsSolutionBuildManager)) as IVsSolutionBuildManager2;
-
             // Get selection monitor
             ms = ServiceProvider.GlobalProvider.GetService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
             if (ms != null)
@@ -120,7 +117,7 @@ namespace LucidConcepts.SwitchStartupProject
                 ms.AdviseSelectionEvents(this, out selectionEventsCookie);
             }
 
-            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, sbm, this, options.MostRecentlyUsedCount);
+            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, this, options.MostRecentlyUsedCount);
         }
         #endregion
 

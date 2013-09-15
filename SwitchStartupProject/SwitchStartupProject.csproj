@@ -126,16 +126,23 @@
   <ItemGroup>
     <Compile Include="Guids.cs" />
     <Compile Include="ConfigurationsPersister.cs" />
+    <Compile Include="Helpers\EnumerableExtensions.cs" />
+    <Compile Include="Helpers\Paths.cs" />
     <Compile Include="MRUList.cs" />
+    <Compile Include="MultiProjectConfiguration.cs" />
     <Compile Include="OptionPage.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="OptionsPage\AutoGreyableImage.cs" />
+    <Compile Include="OptionsPage\Configuration.cs" />
+    <Compile Include="OptionsPage\DelegateCommand.cs" />
     <Compile Include="OptionsPage\NativeMethods.cs" />
     <Compile Include="OptionsPage\OptionsView.xaml.cs">
       <DependentUpon>OptionsView.xaml</DependentUpon>
     </Compile>
     <Compile Include="OptionsPage\OptionsViewModel.cs" />
+    <Compile Include="OptionsPage\Project.cs" />
     <Compile Include="OptionsPage\UIElemendDialogPage.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -173,6 +180,10 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
+    <Resource Include="Resources\ArrowDown.png" />
+    <Resource Include="Resources\Add.png" />
+    <Resource Include="Resources\ArrowUp.png" />
+    <Resource Include="Resources\Delete.png" />
     <Content Include="Resources\SwitchStartupProject.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>

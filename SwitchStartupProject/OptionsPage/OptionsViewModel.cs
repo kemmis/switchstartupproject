@@ -10,10 +10,17 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
     public class OptionsViewModel : INotifyPropertyChanged
     {
         private readonly OptionPage model;
+        private Configuration selectedConfiguration;
+        private Project selectedProject;
 
         public OptionsViewModel(OptionPage model)
         {
             this.model = model;
+            model.Modified += (sender, args) =>
+            {
+                if (args.OptionParameter == EOptionParameter.EnableMultiProjectConfiguration)
+                    _RaisePropertyChanged("EnableMultiProjectConfiguration");
+            };
         }
 
         #region Mode
@@ -47,6 +54,205 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
                 model.MostRecentlyUsedCount = value;
                 _RaisePropertyChanged("MruCount");
             }
+        }
+
+        #endregion
+
+        #region Configuration
+
+        public BindingList<Configuration> Configurations
+        {
+            get { return model.Configurations; }
+        }
+
+        public Configuration SelectedConfiguration
+        {
+            get { return selectedConfiguration; }
+            set
+            {
+                selectedConfiguration = value;
+                _RaiseConfigurationsPropertyChanged();
+                selectedProject = null;
+                _RaiseProjectsPropertyChanged();
+            }
+        }
+
+        public bool EnableMultiProjectConfiguration
+        {
+            get { return model.EnableMultiProjectConfiguration; }
+        }
+
+        public bool IsConfigurationSelected
+        {
+            get { return SelectedConfiguration != null; }
+        }
+
+        public DelegateCommand AddConfigurationCommand { get { return new DelegateCommand(_AddConfiguration); } }
+        public DelegateCommand DeleteConfigurationCommand { get { return new DelegateCommand(_DeleteConfiguration, _CanDeleteConfiguration); } }
+        public DelegateCommand MoveConfigurationUpCommand { get { return new DelegateCommand(_MoveConfigurationUp, _CanMoveConfigurationUp); } }
+        public DelegateCommand MoveConfigurationDownCommand { get { return new DelegateCommand(_MoveConfigurationDown, _CanMoveConfigurationDown); } }
+
+
+        private void _RaiseConfigurationsPropertyChanged()
+        {
+            _RaisePropertyChanged("Configurations");
+            _RaisePropertyChanged("SelectedConfiguration");
+            _RaisePropertyChanged("SelectedConfigurationName");
+            _RaisePropertyChanged("IsConfigurationSelected");
+            DeleteConfigurationCommand.RaiseCanExecuteChanged();
+            MoveConfigurationUpCommand.RaiseCanExecuteChanged();
+            MoveConfigurationDownCommand.RaiseCanExecuteChanged();
+            _RaisePropertyChanged("AddConfigurationCommand");
+            _RaisePropertyChanged("DeleteConfigurationCommand");
+            _RaisePropertyChanged("MoveConfigurationUpCommand");
+            _RaisePropertyChanged("MoveConfigurationDownCommand");
+        }
+
+        private void _AddConfiguration()
+        {
+            var newConfig = new Configuration(string.Format("Configuration{0}", Configurations.Count + 1));
+            Configurations.Add(newConfig);
+            SelectedConfiguration = newConfig;
+            _RaiseConfigurationsPropertyChanged();
+        }
+
+        private bool _CanDeleteConfiguration()
+        {
+            return SelectedConfiguration != null;
+        }
+
+        private void _DeleteConfiguration()
+        {
+            var index = Configurations.IndexOf(SelectedConfiguration);
+            if (!Configurations.Remove(SelectedConfiguration)) return;
+            // select item that was after the removed one, or the one before if the removed was the last item, or none if the removed one was the only item.
+            var newIndex = Math.Min(index, Configurations.Count - 1);
+            SelectedConfiguration = newIndex >= 0 ? Configurations[newIndex] : null;
+            _RaiseConfigurationsPropertyChanged();
+        }
+
+        private bool _CanMoveConfigurationUp()
+        {
+            return SelectedConfiguration != null && Configurations.IndexOf(SelectedConfiguration) > 0;
+        }
+
+        private void _MoveConfigurationUp()
+        {
+            var configuration = SelectedConfiguration;
+            var oldIndex = Configurations.IndexOf(configuration);
+            Configurations.RemoveAt(oldIndex);
+            Configurations.Insert(oldIndex - 1, configuration);
+            SelectedConfiguration = configuration;
+        }
+
+        private bool _CanMoveConfigurationDown()
+        {
+            return SelectedConfiguration != null && Configurations.IndexOf(SelectedConfiguration) < Configurations.Count - 1;
+        }
+
+        private void _MoveConfigurationDown()
+        {
+            var configuration = selectedConfiguration;
+            var oldIndex = Configurations.IndexOf(configuration);
+            Configurations.RemoveAt(oldIndex);
+            Configurations.Insert(oldIndex + 1, configuration);
+            SelectedConfiguration = configuration;
+        }
+
+        #endregion
+
+        #region Project
+
+        public BindingList<Project> Projects
+        {
+            get
+            {
+                if (selectedConfiguration == null) return null;
+                return selectedConfiguration.Projects;
+            }
+        }
+
+        public Project SelectedProject
+        {
+            get { return selectedProject; }
+            set
+            {
+                selectedProject = value;
+                _RaiseProjectsPropertyChanged();
+            }
+        }
+
+        public IList<string> AllProjectNames
+        {
+            get { return model.GetAllProjectNames(); }
+        }
+
+        public DelegateCommand AddProjectCommand { get { return new DelegateCommand(_AddProject); } }
+        public DelegateCommand DeleteProjectCommand { get { return new DelegateCommand(_DeleteProject, _CanDeleteProject); } }
+        public DelegateCommand MoveProjectUpCommand { get { return new DelegateCommand(_MoveProjectUp, _CanMoveProjectUp); } }
+        public DelegateCommand MoveProjectDownCommand { get { return new DelegateCommand(_MoveProjectDown, _CanMoveProjectDown); } }
+
+        private void _RaiseProjectsPropertyChanged()
+        {
+            _RaisePropertyChanged("Projects");
+            _RaisePropertyChanged("SelectedProject");
+            DeleteProjectCommand.RaiseCanExecuteChanged();
+            MoveProjectUpCommand.RaiseCanExecuteChanged();
+            MoveProjectDownCommand.RaiseCanExecuteChanged();
+            _RaisePropertyChanged("AddProjectCommand");
+            _RaisePropertyChanged("DeleteProjectCommand");
+            _RaisePropertyChanged("MoveProjectUpCommand");
+            _RaisePropertyChanged("MoveProjectDownCommand");
+        }
+
+        private void _AddProject()
+        {
+            var newProject = new Project(null);
+            Projects.Add(newProject);
+            SelectedProject = newProject;
+            _RaiseProjectsPropertyChanged();
+        }
+
+        private bool _CanDeleteProject()
+        {
+            return SelectedProject != null;
+        }
+        private void _DeleteProject()
+        {
+            var index = Projects.IndexOf(SelectedProject);
+            if (!Projects.Remove(SelectedProject)) return;
+            // select item that was after the removed one, or the one before if the removed was the last item, or none if the removed one was the only item.
+            var newIndex = Math.Min(index, Projects.Count - 1);
+            SelectedProject = newIndex >= 0 ? Projects[newIndex] : null;
+            _RaiseProjectsPropertyChanged();
+        }
+
+        private bool _CanMoveProjectUp()
+        {
+            return SelectedProject != null && Projects.IndexOf(SelectedProject) > 0;
+        }
+
+        private void _MoveProjectUp()
+        {
+            var project = SelectedProject;
+            var oldIndex = Projects.IndexOf(project);
+            Projects.RemoveAt(oldIndex);
+            Projects.Insert(oldIndex - 1, project);
+            SelectedProject = project;
+        }
+
+        private bool _CanMoveProjectDown()
+        {
+            return SelectedProject != null && Projects != null && Projects.IndexOf(SelectedProject) < Projects.Count - 1;
+        }
+
+        private void _MoveProjectDown()
+        {
+            var project = SelectedProject;
+            var oldIndex = Projects.IndexOf(project);
+            Projects.RemoveAt(oldIndex);
+            Projects.Insert(oldIndex + 1, project);
+            SelectedProject = project;
         }
 
         #endregion

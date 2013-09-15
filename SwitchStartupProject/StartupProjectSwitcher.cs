@@ -13,6 +13,7 @@ namespace LucidConcepts.SwitchStartupProject
     public class StartupProjectSwitcher
     {
         private const string mostRecentlyUsedListKey = "MRU";
+        private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
 
         private readonly ConfigurationsPersister settingsPersister;
         private readonly OptionPage options;
@@ -141,6 +142,8 @@ namespace LucidConcepts.SwitchStartupProject
         {
             openingSolution = false;
             mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetList(mostRecentlyUsedListKey));
+            options.Configurations.Clear();
+            settingsPersister.GetMultiProjectConfigurations(multiProjectConfigurationsKey).ForEach(options.Configurations.Add);
             // When solution is open: enable combobox
             menuSwitchStartupProjectComboCommand.Enabled = true;
             options.EnableMultiProjectConfiguration = true;
@@ -151,6 +154,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             // When solution is about to be closed, store MRU list to settings
             settingsPersister.StoreList(mostRecentlyUsedListKey, mruStartupProjects);
+            settingsPersister.StoreMultiProjectConfigurations(multiProjectConfigurationsKey, options.Configurations);
             settingsPersister.Persist();
         }
 

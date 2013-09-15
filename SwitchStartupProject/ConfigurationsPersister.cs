@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using EnvDTE;
 using Newtonsoft.Json.Linq;
+using Configuration = LucidConcepts.SwitchStartupProject.OptionsPage.Configuration;
+using Project = LucidConcepts.SwitchStartupProject.OptionsPage.Project;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -70,6 +72,23 @@ namespace LucidConcepts.SwitchStartupProject
         {
             _EnsureSettingsLoaded();
             settings[key] = JArray.FromObject(list);
+        }
+
+        public IEnumerable<Configuration> GetMultiProjectConfigurations(string key)
+        {
+            _EnsureSettingsLoaded();
+            return from configuration in settings[key].Cast<JProperty>()
+                   let projects = (from project in configuration.Value
+                                   select new Project(project.Value<string>()))
+                   select new Configuration(configuration.Name, projects);
+        }
+
+        public void StoreMultiProjectConfigurations(string key, IList<Configuration> configurations)
+        {
+            _EnsureSettingsLoaded();
+            settings[key] = new JObject(from c in configurations
+                                        select new JProperty(c.Name, new JArray(from p in c.Projects
+                                                                                select p.Name)));
         }
 
         private void _EnsureSettingsLoaded()

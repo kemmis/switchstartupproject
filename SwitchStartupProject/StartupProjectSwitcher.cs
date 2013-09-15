@@ -239,8 +239,12 @@ namespace LucidConcepts.SwitchStartupProject
         private void _ChangeStartupProject(string newStartupProject)
         {
             this.currentStartupProject = newStartupProject;
-            if (newStartupProject == sentinel) return;  // Sentinel was chosen
-            if (name2projectPath.ContainsKey(newStartupProject))
+            if (newStartupProject == sentinel)
+            {
+                // No startup project
+                _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = null);
+            }
+            else if (name2projectPath.ContainsKey(newStartupProject))
             {
                 // Single startup project
                 _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = name2projectPath[newStartupProject]);
@@ -314,6 +318,11 @@ namespace LucidConcepts.SwitchStartupProject
             }
             multiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
             startupProjects.Add(configure);
+
+            if (currentStartupProject != sentinel && !startupProjects.Contains(currentStartupProject))
+            {
+                _ChangeStartupProject(sentinel);
+            }
         }
 
         private void _ChangeMultiProjectConfigurationsInOptions()

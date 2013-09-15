@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Runtime.InteropServices;
+using LucidConcepts.SwitchStartupProject.OptionsPage;
 using Microsoft.VisualStudio.Shell;
-using System.ComponentModel;
 using Microsoft.Win32;
 
 namespace LucidConcepts.SwitchStartupProject
@@ -34,20 +33,26 @@ namespace LucidConcepts.SwitchStartupProject
 
     public delegate void OptionsModifiedEventHandler(object sender, OptionsModifiedEventArgs e);
 
-    [ClassInterface(ClassInterfaceType.AutoDual)]
-    [CLSCompliant(false), ComVisible(true)]
-    public class OptionPage : DialogPage
+    public class OptionPage : UIElementDialogPage
     {
         const string schemeValueName = "Scheme";
+        private readonly OptionsView view;
         private bool firstLoad = true;
         private EMode mode = EMode.All;
         private int mruCount = 5;
 
+        public OptionPage()
+        {
+            view = new OptionsView { DataContext = new OptionsViewModel(this) };
+        }
+
+        protected override System.Windows.UIElement Child
+        {
+            get { return view; }
+        }
+
         public event OptionsModifiedEventHandler Modified = (s, e) => { };
 
-        [Category("Mode")]
-        [DisplayName("Choose which projects are listed")]
-        [Description("All (default): All projects are listed. Smart: Projects are chosen according to their type. MostRecentlyUsed: The most recently used startup projects are listed.")]
         public EMode Mode
         {
             get { return mode; }
@@ -57,9 +62,6 @@ namespace LucidConcepts.SwitchStartupProject
             }
         }
 
-        [Category("Most Recently Used")]
-        [DisplayName("Count")]
-        [Description("Choose how many projects are listed in MostRecentlyUsed mode. Has only effect if MostRecentlyUsed mode is active.")]
         public int MostRecentlyUsedCount
         {
             get { return mruCount; }

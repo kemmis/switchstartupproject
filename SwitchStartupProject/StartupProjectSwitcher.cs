@@ -31,6 +31,7 @@ namespace LucidConcepts.SwitchStartupProject
         private List<string> startupProjects = new List<string>(new [] { configure });
         private string currentStartupProject = sentinel;
         private bool openingSolution;
+        private bool reactToChangedEvent = true;
 
         private readonly IVsSolutionBuildManager2 sbm;
 
@@ -103,6 +104,9 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void UpdateStartupProject(IVsHierarchy startupProject)
         {
+            // When startup project is set through dropdown, don't do anything
+            if (!reactToChangedEvent) return;
+
             // When startup project is set in solution explorer, update combobox
             if (null != startupProject && proj2name.ContainsKey(startupProject))
             {
@@ -223,7 +227,14 @@ namespace LucidConcepts.SwitchStartupProject
             IVsHierarchy oldStartupProject = null;
             if (sbm.get_StartupProject(out oldStartupProject) != VSConstants.S_OK) return;  // Can't get old startup project
             if (proj2name.ContainsKey(oldStartupProject) && newStartupProject == proj2name[oldStartupProject]) return;  // The chosen project was already the startup project
-            sbm.set_StartupProject(name2proj[newStartupProject]);
+            _SuspendChangedEvent(() => sbm.set_StartupProject(name2proj[newStartupProject]));
+        }
+
+        private void _SuspendChangedEvent(Action action)
+        {
+            reactToChangedEvent = false;
+            action();
+            reactToChangedEvent = true;
         }
 
         private Project GetProject(IVsHierarchy pHierarchy)

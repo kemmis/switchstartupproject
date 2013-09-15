@@ -15,6 +15,7 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly string settingsFileExtension;
         private readonly DTE dte;
         private string settingsForSolutionFilename;
+        private bool settingsForSolutionFileExists;
         private JObject settings;
 
         public ConfigurationsPersister(DTE dte, string settingsFileExtension)
@@ -40,13 +41,13 @@ namespace LucidConcepts.SwitchStartupProject
 
         public bool Exists(string key)
         {
-            _EnsureSettingsLoaded();
+            if (!_EnsureSettingsLoaded()) return false;
             return settings.Children<JProperty>().Any(child => child.Name == key);
         }
 
         public string Get(string key)
         {
-            _EnsureSettingsLoaded();
+            if (!_EnsureSettingsLoaded()) return null;
             return settings[key].Value<string>();
         }
 
@@ -58,13 +59,13 @@ namespace LucidConcepts.SwitchStartupProject
 
         public bool ExistsList(string key)
         {
-            _EnsureSettingsLoaded();
+            if (!_EnsureSettingsLoaded()) return false;
             return settings.Children<JProperty>().Any(child => child.Name == key);
         }
 
         public IEnumerable<string> GetList(string key)
         {
-            _EnsureSettingsLoaded();
+            if (!_EnsureSettingsLoaded()) return Enumerable.Empty<string>();
             return settings[key].Values<string>();
         }
 
@@ -76,7 +77,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public IEnumerable<Configuration> GetMultiProjectConfigurations(string key)
         {
-            _EnsureSettingsLoaded();
+            if (!_EnsureSettingsLoaded()) return Enumerable.Empty<Configuration>();
             return from configuration in settings[key].Cast<JProperty>()
                    let projects = (from project in configuration.Value
                                    select new Project(project.Value<string>()))
@@ -91,15 +92,15 @@ namespace LucidConcepts.SwitchStartupProject
                                                                                 select p.Name)));
         }
 
-        private void _EnsureSettingsLoaded()
+        private bool _EnsureSettingsLoaded()
         {
             var currentSolutionFilename = dte.Solution.FullName;
-            if (settingsForSolutionFilename != currentSolutionFilename)
-            {
-                var settingsFilename = _GetSettingsFilename(currentSolutionFilename);
-                settings = File.Exists(settingsFilename) ? JObject.Parse(File.ReadAllText(settingsFilename)) : new JObject();
-                settingsForSolutionFilename = currentSolutionFilename;
-            }
+            if (settingsForSolutionFilename == currentSolutionFilename) return settingsForSolutionFileExists;
+            var settingsFilename = _GetSettingsFilename(currentSolutionFilename);
+            settingsForSolutionFilename = currentSolutionFilename;
+            settingsForSolutionFileExists = File.Exists(settingsFilename);
+            settings = settingsForSolutionFileExists ? JObject.Parse(File.ReadAllText(settingsFilename)) : new JObject();
+            return settingsForSolutionFileExists;
         }
 
         private string _GetSettingsFilename(string currentSolutionFilename)

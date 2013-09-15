@@ -22,6 +22,7 @@ namespace LucidConcepts.SwitchStartupProject
         All,
         Smart,
         MostRecentlyUsed,
+        None,
     }
 
     public class OptionsModifiedEventArgs : EventArgs

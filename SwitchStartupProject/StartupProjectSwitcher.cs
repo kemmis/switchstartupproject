@@ -308,6 +308,9 @@ namespace LucidConcepts.SwitchStartupProject
                     typeStartupProjects.Sort();
                     startupProjects = typeStartupProjects.ToList();
                     break;
+                case EMode.None:
+                    startupProjects = new List<string>();
+                    break;
             }
             multiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
             startupProjects.Add(configure);

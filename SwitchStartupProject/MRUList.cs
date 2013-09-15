@@ -22,7 +22,7 @@ namespace LucidConcepts.SwitchStartupProject
             if (size < 0) throw new ArgumentException("Negative size not allowed", "size");
             this.size = size;
             this.list = new List<T>(items);
-            Resize();
+            _Resize();
         }
 
         public void Touch(T item)
@@ -32,7 +32,7 @@ namespace LucidConcepts.SwitchStartupProject
                 list.Remove(item);
             }
             list.Insert(0, item);
-            Resize();
+            _Resize();
         }
 
         public void Clear()
@@ -50,7 +50,7 @@ namespace LucidConcepts.SwitchStartupProject
             return GetEnumerator();
         }
 
-        private void Resize()
+        private void _Resize()
         {
             while (list.Count > size)
             {

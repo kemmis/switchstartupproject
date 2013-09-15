@@ -172,7 +172,7 @@ namespace LucidConcepts.SwitchStartupProject
                 // Only add local (not web) C# projects with OutputType of either Exe (command line tool) or WinExe (windows application)
                 if (typeName == "Microsoft Visual C# 2010")
                 {
-                    var project = GetProject(pHierarchy);
+                    var project = _GetProject(pHierarchy);
                     var projectType = project.Properties.Item("ProjectType");
                     var eProjectType = (VSLangProj.prjProjectType)projectType.Value;
                     if (eProjectType == VSLangProj.prjProjectType.prjProjectTypeLocal)
@@ -237,7 +237,7 @@ namespace LucidConcepts.SwitchStartupProject
             reactToChangedEvent = true;
         }
 
-        private Project GetProject(IVsHierarchy pHierarchy)
+        private Project _GetProject(IVsHierarchy pHierarchy)
         {
             object project;
             ErrorHandler.ThrowOnFailure(pHierarchy.GetProperty(VSConstants.VSITEMID_ROOT,

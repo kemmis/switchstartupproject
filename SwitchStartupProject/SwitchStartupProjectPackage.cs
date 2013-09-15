@@ -62,7 +62,7 @@ namespace LucidConcepts.SwitchStartupProject
         /// </summary>
         protected override void Initialize()
         {
-            LogStart();
+            _LogStart();
             base.Initialize();
 
             OleMenuCommand menuSwitchStartupProjectComboCommand = null;
@@ -82,14 +82,14 @@ namespace LucidConcepts.SwitchStartupProject
                 //
                 //     The second command (cmdidMyComboGetList) is used to retrieve this list of choices for the combo box.
                 CommandID menuSwitchStartupProjectComboCommandID = new CommandID(GuidList.guidSwitchStartupProjectCmdSet, (int)PkgCmdIDList.cmdidSwitchStartupProjectCombo);
-                menuSwitchStartupProjectComboCommand = new OleMenuCommand(new EventHandler(OnMenuSwitchStartupProjectCombo), menuSwitchStartupProjectComboCommandID);
+                menuSwitchStartupProjectComboCommand = new OleMenuCommand(new EventHandler(_OnMenuSwitchStartupProjectCombo), menuSwitchStartupProjectComboCommandID);
                 menuSwitchStartupProjectComboCommand.ParametersDescription = "$"; // accept any argument string
                 mcs.AddCommand(menuSwitchStartupProjectComboCommand);
                 menuSwitchStartupProjectComboCommand.Enabled = false;
 
 
                 CommandID menuSwitchStartupProjectComboGetListCommandID = new CommandID(GuidList.guidSwitchStartupProjectCmdSet, (int)PkgCmdIDList.cmdidSwitchStartupProjectComboGetList);
-                MenuCommand menuSwitchStartupProjectComboGetListCommand = new OleMenuCommand(new EventHandler(OnMenuSwitchStartupProjectComboGetList), menuSwitchStartupProjectComboGetListCommandID);
+                MenuCommand menuSwitchStartupProjectComboGetListCommand = new OleMenuCommand(new EventHandler(_OnMenuSwitchStartupProjectComboGetList), menuSwitchStartupProjectComboGetListCommandID);
                 mcs.AddCommand(menuSwitchStartupProjectComboGetListCommand);
             }
 
@@ -136,7 +136,7 @@ namespace LucidConcepts.SwitchStartupProject
         //     makes a choice in the combo box.
         //
         //     The second command is used to retrieve this list of choices for the combo box.
-        private void OnMenuSwitchStartupProjectCombo(object sender, EventArgs e)
+        private void _OnMenuSwitchStartupProjectCombo(object sender, EventArgs e)
         {
             if ((null == e) || (e == EventArgs.Empty))
             {
@@ -190,7 +190,7 @@ namespace LucidConcepts.SwitchStartupProject
         // two commands to retrieve this information. The main command id for the command is used to 
         // retrieve the current value and the second command is used to retrieve the full list of 
         // choices to be displayed as an array of strings.
-        private void OnMenuSwitchStartupProjectComboGetList(object sender, EventArgs e)
+        private void _OnMenuSwitchStartupProjectComboGetList(object sender, EventArgs e)
         {
             if (e == EventArgs.Empty)
             {
@@ -354,7 +354,7 @@ namespace LucidConcepts.SwitchStartupProject
         #region helper methods
 
 
-        private void LogStart()
+        private void _LogStart()
         {
             IVsActivityLog log = GetService(typeof(SVsActivityLog)) as IVsActivityLog;
             if (log == null) return;

@@ -4,3 +4,4 @@ glob:_ReSharper.*
 *.user
 *.suo
 **/bin/
+packages/

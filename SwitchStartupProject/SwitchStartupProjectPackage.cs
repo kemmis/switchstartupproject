@@ -62,7 +62,8 @@ namespace LucidConcepts.SwitchStartupProject
         /// </summary>
         protected override void Initialize()
         {
-            _LogStart();
+            Logger = new ActivityLogger(this);
+            Logger.LogInfo("Entering initializer for: {0}", this.ToString());
             base.Initialize();
 
             OleMenuCommand menuSwitchStartupProjectComboCommand = null;
@@ -106,6 +107,7 @@ namespace LucidConcepts.SwitchStartupProject
 
             // get options
             var options = (OptionPage)GetDialogPage(typeof(OptionPage));
+            options.Logger = Logger;
 
             // Get selection monitor
             ms = ServiceProvider.GlobalProvider.GetService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
@@ -117,7 +119,7 @@ namespace LucidConcepts.SwitchStartupProject
                 ms.AdviseSelectionEvents(this, out selectionEventsCookie);
             }
 
-            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, this, options.MostRecentlyUsedCount);
+            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, this, options.MostRecentlyUsedCount, Logger);
         }
         #endregion
 
@@ -348,18 +350,40 @@ namespace LucidConcepts.SwitchStartupProject
 
         #endregion
 
-        #region helper methods
+        #region Activity Log
 
+        public ActivityLogger Logger { get; set; }
 
-        private void _LogStart()
+        public class ActivityLogger
         {
-            IVsActivityLog log = GetService(typeof(SVsActivityLog)) as IVsActivityLog;
-            if (log == null) return;
-            var name = this.ToString();
-            int hr = log.LogEntry((UInt32)__ACTIVITYLOG_ENTRYTYPE.ALE_INFORMATION,
-                name,
-                string.Format(CultureInfo.CurrentCulture,
-                "Entering initializer for: {0}", name));
+            private readonly SwitchStartupProjectPackage package;
+
+            public ActivityLogger(SwitchStartupProjectPackage package)
+            {
+                this.package = package;
+            }
+
+            public void LogInfo(string message, params object[] arguments)
+            {
+                Log(__ACTIVITYLOG_ENTRYTYPE.ALE_INFORMATION, message, arguments);
+            }
+
+            public void LogWarning(string message, params object[] arguments)
+            {
+                Log(__ACTIVITYLOG_ENTRYTYPE.ALE_WARNING, message, arguments);
+            }
+
+            public void LogError(string message, params object[] arguments)
+            {
+                Log(__ACTIVITYLOG_ENTRYTYPE.ALE_ERROR, message, arguments);
+            }
+
+            private void Log(__ACTIVITYLOG_ENTRYTYPE type, string message, params object[] arguments)
+            {
+                var log = package.GetService(typeof (SVsActivityLog)) as IVsActivityLog;
+                if (log == null) return;
+                log.LogEntry((UInt32)type, "SwitchStartupProject", string.Format(CultureInfo.CurrentCulture, message, arguments));
+            }
         }
 
         #endregion

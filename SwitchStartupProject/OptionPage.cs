@@ -108,6 +108,14 @@ namespace LucidConcepts.SwitchStartupProject
             base.LoadSettingsFromStorage();
         }
 
+        public SwitchStartupProjectPackage.ActivityLogger Logger { get; set; }
+        public void LogInfo(string message, params object[] arguments)
+        {
+            if (Logger == null) return;
+            Logger.LogInfo(message, arguments);
+        }
+
+
         private void _MigrateOptions()
         {
 
@@ -132,6 +140,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _MigrateTo1(RegistryKey registryKey)
         {
+            LogInfo("Migrating options to schema 1");
             const string valueMruMode = "MruMode";
             const string valueMruCount = "MruCount";
             const string valueMostRecentlyUsedCount = "MostRecentlyUsedCount";

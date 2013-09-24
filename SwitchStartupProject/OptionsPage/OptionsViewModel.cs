@@ -19,7 +19,10 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
             model.Modified += (sender, args) =>
             {
                 if (args.OptionParameter == EOptionParameter.EnableMultiProjectConfiguration)
+                {
+                    model.LogInfo("OptionsViewModel: {0} multi project configuration UI", model.EnableMultiProjectConfiguration ? "Enabled" : "Disabled");
                     _RaisePropertyChanged("EnableMultiProjectConfiguration");
+                }
             };
         }
 

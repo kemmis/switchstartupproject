@@ -19,7 +19,7 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly OptionPage options;
         private readonly OleMenuCommand menuSwitchStartupProjectComboCommand;
         private readonly Action openOptionsPage;
-
+        private readonly SwitchStartupProjectPackage.ActivityLogger logger;
 
         private readonly Dictionary<IVsHierarchy, string> proj2name = new Dictionary<IVsHierarchy, string>();
         private readonly Dictionary<string, string> name2projectPath = new Dictionary<string, string>();
@@ -40,13 +40,14 @@ namespace LucidConcepts.SwitchStartupProject
 
 
 
-        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, Package package, int mruCount)
+        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
         {
+            logger.LogInfo("Entering constructor of StartupProjectSwitcher");
             this.menuSwitchStartupProjectComboCommand = combobox;
             this.options = options;
             this.dte = dte;
             this.openOptionsPage = () => package.ShowOptionPage(typeof(OptionPage));
-
+            this.logger = logger;
 
             // initialize MRU list
             mruStartupProjects = new MRUList<string>(mruCount);
@@ -96,6 +97,7 @@ namespace LucidConcepts.SwitchStartupProject
             // see if it is the configuration item
             if (String.Compare(configure, name, StringComparison.CurrentCultureIgnoreCase) == 0)
             {
+                logger.LogInfo("Selected configure... in combobox");
                 openOptionsPage();
                 return;
 
@@ -106,6 +108,7 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 if (String.Compare(project, name, StringComparison.CurrentCultureIgnoreCase) == 0)
                 {
+                    logger.LogInfo("Selected or typed new entry in combobox: {0}", project);
                     _ChangeStartupProject(project);
                     return;
                 }
@@ -122,12 +125,14 @@ namespace LucidConcepts.SwitchStartupProject
             if (null != startupProject && proj2name.ContainsKey(startupProject))
             {
                 var newStartupProjectName = proj2name[startupProject];
+                logger.LogInfo("New startup project was activated outside of combobox: {0}", newStartupProjectName);
                 mruStartupProjects.Touch(newStartupProjectName);
                 _PopulateStartupProjects();
                 currentStartupProject = newStartupProjectName;
             }
             else
             {
+                logger.LogInfo("New unknown startup project was activated outside of combobox");
                 currentStartupProject = sentinel;
             }
             
@@ -135,23 +140,30 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void BeforeOpenSolution(string solutionFileName)
         {
+            logger.LogInfo("Starting to open solution: {0}", solutionFileName);
             openingSolution = true;
         }
 
         public void AfterOpenSolution()
         {
             openingSolution = false;
+            logger.LogInfo("Finished to open solution");
             mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetList(mostRecentlyUsedListKey));
             options.Configurations.Clear();
+            logger.LogInfo("Loading multi project configuration for solution");
             settingsPersister.GetMultiProjectConfigurations(multiProjectConfigurationsKey).ForEach(options.Configurations.Add);
             // When solution is open: enable combobox
+            logger.LogInfo("Enable combobox");
             menuSwitchStartupProjectComboCommand.Enabled = true;
+            logger.LogInfo("Enable multi project configuration");
             options.EnableMultiProjectConfiguration = true;
             _PopulateStartupProjects();
         }
 
         public void BeforeCloseSolution()
         {
+            logger.LogInfo("Starting to close solution");
+            logger.LogInfo("Storing solution specific configuration.");
             // When solution is about to be closed, store MRU list to settings
             settingsPersister.StoreList(mostRecentlyUsedListKey, mruStartupProjects);
             settingsPersister.StoreMultiProjectConfigurations(multiProjectConfigurationsKey, options.Configurations);
@@ -160,10 +172,13 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void AfterCloseSolution()
         {
+            logger.LogInfo("Finished to close solution");
             // When solution is closed: choose no project, disable combobox
             currentStartupProject = sentinel;
             options.Configurations.Clear();
+            logger.LogInfo("Disable multi project configuration");
             options.EnableMultiProjectConfiguration = false;
+            logger.LogInfo("Disable combobox");
             menuSwitchStartupProjectComboCommand.Enabled = false;
             _ClearProjects();
         }
@@ -182,6 +197,8 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 var name = (string)nameObj;
                 var typeName = (string)typeNameObj;
+
+                logger.LogInfo("Opening project: {0}", name);
 
                 _AddProject(name, pHierarchy);
                 allStartupProjects.Add(name);
@@ -214,6 +231,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void CloseProject(IVsHierarchy pHierarchy, string projectName)
         {
+            logger.LogInfo("Closing project: {0}", projectName);
             // When project is closed: remove it from list of startup projects (if it was in there)
             if (startupProjects.Contains(projectName))
             {
@@ -231,6 +249,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void ToggleDebuggingActive(bool active)
         {
+            logger.LogInfo(active ? "Start debugging, disable combobox" : "Stop debugging, enable combobox");
             // When debugging command UI context is activated, disable combobox, otherwise enable combobox
             menuSwitchStartupProjectComboCommand.Enabled = !active;
         }

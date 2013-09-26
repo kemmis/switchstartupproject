@@ -349,7 +349,7 @@ namespace LucidConcepts.SwitchStartupProject
             multiProjectConfigurations.Clear();
             multiProjectConfigurations = (from configuration in options.Configurations
                                           let projects = (from project in configuration.Projects
-                                                          where project.Name != null
+                                                          where project.Name != null && name2projectPath.ContainsKey(project.Name)
                                                           select name2projectPath[project.Name]).ToList()
                                           select new MultiProjectConfiguration(configuration.Name, projects)).ToList();
 

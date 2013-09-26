@@ -244,7 +244,6 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterOpenSolution(object pUnkReserved, int fNewSolution)
         {
-            switcher.AfterOpenSolution();
             return VSConstants.S_OK;
         }
 
@@ -291,6 +290,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterBackgroundSolutionLoadComplete()
         {
+            switcher.AfterOpenSolution();
             return VSConstants.S_OK;
         }
 

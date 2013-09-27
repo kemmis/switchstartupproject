@@ -3,8 +3,18 @@ Are you often working with solutions that contain multiple startup projects? The
 **Switch Startup Project provides a toolbar dropdown box to easily switch between startup projects.**  
 So you don't need to scroll up and down the solution explorer tree anymore just for switching to another startup project!  
 
-## Version 2.0
-The latest version has now **support for multiple startup projects**.
+## Release notes
+### Version 2.1
+
+* Fix issue #6: Enable dropdown after installation and restart
+* Fix issue #7: Support VS 2012 projects loading in background
+
+### Version 2.0
+
+* Support for **multiple startup projects**.
+
+## Download:
+Please find the latest official version of [SwitchStartupProject in the Visual Studio Gallery](http://visualstudiogallery.msdn.microsoft.com/f4e1be8c-b2dd-4dec-b273-dd88f8818571).
 
 ## Installation:
 1. Download the latest SwitchStartupProject.vsix file
@@ -14,20 +24,24 @@ The latest version has now **support for multiple startup projects**.
 
 ## Configuration:
 To configure the tool select the last entry *Configure...* in the dropdown list.
+
 ### Single-Project List Mode
 The mode determines which single projects are listed in the dropdown list:
+
 * All: The tool lists all projects of the current solution (default)
 * Smart: The tool detects potential startup projects by their type and properties (currently C# Projects with output type Exe or WinExe only) 
 * MostRecentlyUsed: The tool remembers the most recently used startup projects for each solution
 * None: The tool lists no single projects (useful if you only want to see multi-project configurations)
+
 ### Multi-Project Startup Configurations
 Create different startup configurations where each configuration can involve multiple startup projects.
+
 * Each solution has its own ordered list of configurations.
 * Each configuration has a name and appears in the dropdown list.
 * Each configuration defines an ordered list of projects to be started.
 
 ## Source Code:
 You can get the source code of this tool:
-> hg clone [https://bitbucket.org/thirteen/switchstartupproject](https://bitbucket.org/thirteen/switchstartupproject)
+`hg clone https://bitbucket.org/thirteen/switchstartupproject`
 
 If you have suggestions or questions, please let me know.

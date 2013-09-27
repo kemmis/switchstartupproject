@@ -6,8 +6,8 @@ So you don't need to scroll up and down the solution explorer tree anymore just 
 ## Release notes
 ### Version 2.1
 
-* Fix issue #6: Enable dropdown after installation and restart
-* Fix issue #7: Support VS 2012 projects loading in background
+* Fix [issue #6](https://bitbucket.org/thirteen/switchstartupproject/issue/6/dropdown-is-disabled-when-opening-a): Enable dropdown after installation and restart
+* Fix [issue #7](https://bitbucket.org/thirteen/switchstartupproject/issue/7/cant-use-switchstartupproject-with-svn): Support VS 2012 projects loading in background
 
 ### Version 2.0
 

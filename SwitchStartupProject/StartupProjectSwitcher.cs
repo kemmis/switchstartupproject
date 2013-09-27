@@ -78,7 +78,7 @@ namespace LucidConcepts.SwitchStartupProject
                 }
             };
             options.GetAllProjectNames = () => allStartupProjects;
-
+            menuSwitchStartupProjectComboCommand.Enabled = true;
         }
 
         public string GetCurrentStartupProject()
@@ -152,9 +152,7 @@ namespace LucidConcepts.SwitchStartupProject
             options.Configurations.Clear();
             logger.LogInfo("Loading multi project configuration for solution");
             settingsPersister.GetMultiProjectConfigurations(multiProjectConfigurationsKey).ForEach(options.Configurations.Add);
-            // When solution is open: enable combobox
-            logger.LogInfo("Enable combobox");
-            menuSwitchStartupProjectComboCommand.Enabled = true;
+            // When solution is open: enable multi-project configuration
             logger.LogInfo("Enable multi project configuration");
             options.EnableMultiProjectConfiguration = true;
             _PopulateStartupProjects();
@@ -173,13 +171,11 @@ namespace LucidConcepts.SwitchStartupProject
         public void AfterCloseSolution()
         {
             logger.LogInfo("Finished to close solution");
-            // When solution is closed: choose no project, disable combobox
+            // When solution is closed: choose no project
             currentStartupProject = sentinel;
             options.Configurations.Clear();
             logger.LogInfo("Disable multi project configuration");
             options.EnableMultiProjectConfiguration = false;
-            logger.LogInfo("Disable combobox");
-            menuSwitchStartupProjectComboCommand.Enabled = false;
             _ClearProjects();
         }
 

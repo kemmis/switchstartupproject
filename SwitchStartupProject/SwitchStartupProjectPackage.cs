@@ -40,6 +40,7 @@ namespace LucidConcepts.SwitchStartupProject
         private uint selectionEventsCookie;
         private IVsMonitorSelection ms = null;
         private uint debuggingCookie;
+        private bool projectsAreLoadedInBatches = false;
 
         private StartupProjectSwitcher switcher;
 
@@ -244,6 +245,10 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterOpenSolution(object pUnkReserved, int fNewSolution)
         {
+            if (!projectsAreLoadedInBatches)
+            {
+                switcher.AfterOpenSolution();
+            }
             return VSConstants.S_OK;
         }
 
@@ -306,11 +311,13 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnBeforeLoadProjectBatch(bool fIsBackgroundIdleBatch)
         {
+            projectsAreLoadedInBatches = true;
             return VSConstants.S_OK;
         }
 
         public int OnBeforeOpenSolution(string pszSolutionFilename)
         {
+            projectsAreLoadedInBatches = false;
             switcher.BeforeOpenSolution(pszSolutionFilename);
             return VSConstants.S_OK;
         }

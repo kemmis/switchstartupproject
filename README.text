@@ -4,6 +4,10 @@ Are you often working with solutions that contain multiple startup projects? The
 So you don't need to scroll up and down the solution explorer tree anymore just for switching to another startup project!  
 
 ## Release notes
+### Version 2.2
+
+* Fix [issue #8](https://bitbucket.org/thirteen/switchstartupproject/issue/8/multi-project-startup-configurations): Fix multi project configurations in VS 2010
+
 ### Version 2.1
 
 * Fix [issue #6](https://bitbucket.org/thirteen/switchstartupproject/issue/6/dropdown-is-disabled-when-opening-a): Enable dropdown after installation and restart

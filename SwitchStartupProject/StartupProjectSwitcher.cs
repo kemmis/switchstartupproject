@@ -292,7 +292,7 @@ namespace LucidConcepts.SwitchStartupProject
         private string _GetPathRelativeToSolution(IVsHierarchy pHierarchy)
         {
             var project = _GetProject(pHierarchy);
-            var fullProjectPath = project.FileName;
+            var fullProjectPath = project.FullName;
             var solutionPath = Path.GetDirectoryName(dte.Solution.FullName) + @"\";
             return Paths.GetPathRelativeTo(fullProjectPath, solutionPath);
         }

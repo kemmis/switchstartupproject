@@ -200,7 +200,7 @@ namespace LucidConcepts.SwitchStartupProject
                 allStartupProjects.Add(name);
 
                 // Only add local (not web) C# projects with OutputType of either Exe (command line tool) or WinExe (windows application)
-                if (typeName == "Microsoft Visual C# 2010")
+                if (typeName == "Microsoft Visual C# 2010" || typeName == "Visual C# 2013")
                 {
                     var project = _GetProject(pHierarchy);
                     var projectType = project.Properties.Item("ProjectType");

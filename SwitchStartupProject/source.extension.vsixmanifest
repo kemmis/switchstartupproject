@@ -3,7 +3,7 @@
   <Identifier Id="894b6873-138b-4e5f-ac68-6863cf312f7b">
     <Name>SwitchStartupProject</Name>
     <Author>Lucid Concepts</Author>
-    <Version>2.3</Version>
+    <Version>2.4</Version>
     <Description xml:space="preserve">Provides a toolbar dropdown box to switch between startup projects.</Description>
     <Locale>1033</Locale>
     <License>Resources\license.txt</License>

@@ -333,11 +333,6 @@ namespace LucidConcepts.SwitchStartupProject
             }
             multiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
             startupProjects.Add(configure);
-
-            if (currentStartupProject != sentinel && !startupProjects.Contains(currentStartupProject))
-            {
-                _ChangeStartupProject(sentinel);
-            }
         }
 
         private void _ChangeMultiProjectConfigurationsInOptions()

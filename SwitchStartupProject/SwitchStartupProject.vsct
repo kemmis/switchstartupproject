@@ -7,26 +7,50 @@
   <!--This header contains the command ids for the menus provided by the shell. -->
   <Extern href="vsshlids.h"/>
 
-  
+  <!-- Include some debug guids and menu ids -->
+  <Extern href="VSDbgCmd.h"/>
+  <Extern href="VsDebugGuids.h"/>
+   
   <!--The Commands section is where we the commands, menus and menu groups are defined.
       This section uses a Guid to identify the package that provides the command defined inside it. -->
   <Commands package="guidSwitchStartupProjectPkg">
+
+    <!-- The definition of the SwitchStartupProject toolbar group.
+         Placing it into the Visual Studio 'Debug' main menu will organize the contained commands into the 'Debug' command well.
+         The 'CommandWellOnly' flag will make the combo box command hidden on the main menu by default.
+         But if the user customizes the commands onto the main menu, then they will be visible. -->
+    <Groups>
+      <Group guid="guidSwitchStartupProjectCmdSet" id="SwitchStartupProjectToolbarGroup" priority="0xFF45">
+        <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
+      </Group>
+    </Groups>
+    
+    <!-- The definition of the dropdown combobox command -->
     <Combos>
-      <Combo guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" priority="0x0150" type="DropDownCombo" defaultWidth="150" idCommandList="cmdidSwitchStartupProjectComboGetList">
-        <Parent guid="guidSHLMainMenu" id="IDG_VS_TOOLSB_RUNBUILD"/>
-        <CommandFlag>IconAndText</CommandFlag>
+      <Combo guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" type="DropDownCombo" defaultWidth="150" idCommandList="cmdidSwitchStartupProjectComboGetList">
         <CommandFlag>CommandWellOnly</CommandFlag>
         <Strings>
-          <ButtonText></ButtonText>
-          <MenuText>MenuText: </MenuText>
+          <ButtonText>Startup Project</ButtonText>
           <ToolTipText>Startup Project</ToolTipText>
-          <CommandName>Switch Startup Project</CommandName>
-          <CanonicalName>Switch Startup Project Combo</CanonicalName>
-          <LocCanonicalName>Switch Startup Project Combo</LocCanonicalName>
+          <CommandName>Startup Project</CommandName>
+          <CanonicalName>Startup Project Combo</CanonicalName>
+          <LocCanonicalName>Startup Project Combo</LocCanonicalName>
         </Strings>
       </Combo>
     </Combos>
   </Commands>
+  
+  <!-- Place the combo command into two parents: -->
+  <CommandPlacements>
+    <!-- First parent: The Visual Studio 'Run/Build' standard toolbar group -->
+    <CommandPlacement guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" priority="0x0150">
+      <Parent guid="guidSHLMainMenu" id="IDG_VS_TOOLSB_RUNBUILD" />
+    </CommandPlacement>
+    <!-- Second parent: The SwitchStartupProject toolbar group (defined further above) -->
+    <CommandPlacement guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" priority="0">
+      <Parent guid="guidSwitchStartupProjectCmdSet" id="SwitchStartupProjectToolbarGroup" />
+    </CommandPlacement>
+  </CommandPlacements>
 
   <Symbols>
     <!-- This is the package guid. -->

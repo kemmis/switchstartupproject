@@ -4,6 +4,12 @@ Are you often working with solutions that contain multiple startup projects? The
 So you don't need to scroll up and down the solution explorer tree anymore just for switching to another startup project!  
 
 ## Release notes
+### Version 2.3
+
+* Fix [issue #10](https://bitbucket.org/thirteen/switchstartupproject/issue/10/dropdown-is-sometimes-empty-when-selecting): Improve behavior with projects that are not in dropdown list
+* Fix [issue #9](https://bitbucket.org/thirteen/switchstartupproject/issue/9/extension-has-trouble-with-windows-azure): Support Azure projects
+* Fix [issue #5](https://bitbucket.org/thirteen/switchstartupproject/issue/5/smart-mode-not-working-in-vs-2013-preview): Support VS 2013 projects in smart mode
+
 ### Version 2.2
 
 * Fix [issue #8](https://bitbucket.org/thirteen/switchstartupproject/issue/8/multi-project-startup-configurations): Fix multi project configurations in VS 2010
@@ -25,6 +31,8 @@ Please find the latest official version of [SwitchStartupProject in the Visual S
 2. Close any VisualStudio instances
 3. Double-click the downloaded file. A dialog may appear that asks for which Visual Studio versions you want to install the package. Answer appropriately.
 4. After successful installation, the "Switch Startup Project" dropdown is available in the standard toolbar to the right of the start debugging button.
+
+If you prefer to have the dropdown in a custom toolbar you can [add the `Startup Project` command from the `Debug` category](http://msdn.microsoft.com/en-us/library/wdee4yb6.aspx#bkmk_customize).
 
 ## Configuration:
 To configure the tool select the last entry *Configure...* in the dropdown list.

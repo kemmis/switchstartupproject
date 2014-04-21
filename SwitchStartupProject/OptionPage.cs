@@ -27,12 +27,14 @@ namespace LucidConcepts.SwitchStartupProject
 
     public class OptionsModifiedEventArgs : EventArgs
     {
-        public OptionsModifiedEventArgs(EOptionParameter optionParameter)
+        public OptionsModifiedEventArgs(EOptionParameter optionParameter, ListChangedEventArgs listChangedEventArgs)
         {
             this.OptionParameter = optionParameter;
+            this.ListChangedEventArgs = listChangedEventArgs;
         }
 
         public EOptionParameter OptionParameter { get; private set; }
+        public ListChangedEventArgs ListChangedEventArgs { get; private set; }
     }
 
     public delegate void OptionsModifiedEventHandler(object sender, OptionsModifiedEventArgs e);
@@ -50,7 +52,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             view = new OptionsView { DataContext = new OptionsViewModel(this) };
             Configurations = new BindingList<Configuration>();
-            Configurations.ListChanged += (sender, args) => Modified(this, new OptionsModifiedEventArgs(EOptionParameter.MultiProjectConfigurations));
+            Configurations.ListChanged += (sender, args) => Modified(this, new OptionsModifiedEventArgs(EOptionParameter.MultiProjectConfigurations, args));
         }
 
         protected override System.Windows.UIElement Child
@@ -65,7 +67,7 @@ namespace LucidConcepts.SwitchStartupProject
             get { return mode; }
             set {
                 mode = value;
-                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.Mode));
+                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.Mode, null));
             }
         }
 
@@ -74,7 +76,7 @@ namespace LucidConcepts.SwitchStartupProject
             get { return mruCount; }
             set { 
                 mruCount = value;
-                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.MruCount));
+                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.MruCount, null));
             }
         }
 
@@ -94,7 +96,7 @@ namespace LucidConcepts.SwitchStartupProject
             set
             {
                 enableMultiProjectConfiguration = value;
-                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.EnableMultiProjectConfiguration));
+                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.EnableMultiProjectConfiguration, null));
             }
         }
 

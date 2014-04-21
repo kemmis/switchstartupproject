@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -73,7 +74,7 @@ namespace LucidConcepts.SwitchStartupProject
                 }
                 else if (e.OptionParameter == EOptionParameter.MultiProjectConfigurations)
                 {
-                    _ChangeMultiProjectConfigurationsInOptions();
+                    _ChangeMultiProjectConfigurationsInOptions(e.ListChangedEventArgs);
                     _PopulateStartupProjects();
                 }
             };
@@ -335,8 +336,20 @@ namespace LucidConcepts.SwitchStartupProject
             startupProjects.Add(configure);
         }
 
-        private void _ChangeMultiProjectConfigurationsInOptions()
+        private void _ChangeMultiProjectConfigurationsInOptions(ListChangedEventArgs listChangedEventArgs)
         {
+            // If the currently selected multi-project startup configuration is changed, adjust its name
+            if (listChangedEventArgs != null &&
+                listChangedEventArgs.ListChangedType == ListChangedType.ItemChanged)
+            {
+                var index = listChangedEventArgs.NewIndex;
+                if (index < multiProjectConfigurations.Count &&
+                    multiProjectConfigurations[index].Name == currentStartupProject)
+                {
+                    currentStartupProject = options.Configurations[index].Name;
+                }
+            }
+
             multiProjectConfigurations.Clear();
             multiProjectConfigurations = (from configuration in options.Configurations
                                           let projects = (from project in configuration.Projects

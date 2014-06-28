@@ -16,7 +16,6 @@ namespace LucidConcepts.SwitchStartupProject
         private const string mostRecentlyUsedListKey = "MRU";
         private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
 
-        private readonly ConfigurationsPersister settingsPersister;
         private readonly OptionPage options;
         private readonly OleMenuCommand menuSwitchStartupProjectComboCommand;
         private readonly Action openOptionsPage;
@@ -25,6 +24,7 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly Dictionary<IVsHierarchy, string> proj2name = new Dictionary<IVsHierarchy, string>();
         private readonly Dictionary<string, string> name2projectPath = new Dictionary<string, string>();
 
+        private ConfigurationsPersister settingsPersister;
         private MRUList<string> mruStartupProjects;
         private List<string> typeStartupProjects;
         private List<string> allStartupProjects;
@@ -61,7 +61,6 @@ namespace LucidConcepts.SwitchStartupProject
 
             multiProjectConfigurations = new List<MultiProjectConfiguration>();
 
-            settingsPersister = new ConfigurationsPersister(dte, ".startup.suo");
             options.Modified += (s, e) =>
             {
                 if (e.OptionParameter == EOptionParameter.Mode)
@@ -142,6 +141,7 @@ namespace LucidConcepts.SwitchStartupProject
         public void BeforeOpenSolution(string solutionFileName)
         {
             logger.LogInfo("Starting to open solution: {0}", solutionFileName);
+            settingsPersister = new ConfigurationsPersister(dte, solutionFileName, ".startup.suo");
             openingSolution = true;
         }
 

@@ -187,6 +187,11 @@ namespace LucidConcepts.SwitchStartupProject
             _LoadSettings();
         }
 
+        public void OnSolutionSaved()
+        {
+            _StoreSettings();
+        }
+
         public void OpenProject(IVsHierarchy pHierarchy)
         {
             // When project is opened: register it and its name

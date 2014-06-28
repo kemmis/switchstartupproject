@@ -32,7 +32,7 @@ namespace LucidConcepts.SwitchStartupProject
     // This attribute says that this package exposes an options page of the given type.
     [ProvideOptionPage(typeof(OptionPage), "Switch Startup Project", "General", 0, 0, true)]
     [Guid(GuidList.guidSwitchStartupProjectPkgString)]
-    public sealed class SwitchStartupProjectPackage : Package, IVsSolutionEvents, IVsSolutionLoadEvents, IVsSelectionEvents
+    public sealed class SwitchStartupProjectPackage : Package, IVsSolutionEvents, IVsSolutionLoadEvents, IVsSelectionEvents, IVsPersistSolutionOpts
     {
 
         private uint solutionEventsCookie;
@@ -359,6 +359,16 @@ namespace LucidConcepts.SwitchStartupProject
 
         #endregion
 
+        #region IVsPersistSolutionOpts Members
+
+        public int SaveUserOptions(IVsSolutionPersistence pPersistence)
+        {
+            switcher.OnSolutionSaved();
+            return VSConstants.S_OK;
+        }
+
+        #endregion
+
         #region Activity Log
 
         public ActivityLogger Logger { get; set; }
@@ -396,6 +406,5 @@ namespace LucidConcepts.SwitchStartupProject
         }
 
         #endregion
-
     }
 }

@@ -3,22 +3,42 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json.Linq;
 using Configuration = LucidConcepts.SwitchStartupProject.OptionsPage.Configuration;
 using Project = LucidConcepts.SwitchStartupProject.OptionsPage.Project;
 
 namespace LucidConcepts.SwitchStartupProject
 {
-    public class ConfigurationsPersister
+    public class SettingsFileModifiedEventArgs : EventArgs
+    {
+        public SettingsFileModifiedEventArgs(string settingsFilename)
+        {
+            this.SettingsFilename = settingsFilename;
+        }
+
+        public string SettingsFilename { get; private set; }
+    }
+
+    public delegate void SettingsFileModifiedEventHandler(object sender, SettingsFileModifiedEventArgs e);
+
+    public class ConfigurationsPersister : IVsFileChangeEvents
     {
         private readonly string settingsFilename;
         private JObject settings;
+        private IVsFileChangeEx fileChangeService;
+        private uint fileChangeCookie;
 
-        public ConfigurationsPersister(string solutionFilename, string settingsFileExtension)
+        public ConfigurationsPersister(string solutionFilename, string settingsFileExtension, IVsFileChangeEx fileChangeService)
         {
             this.settingsFilename = _GetSettingsFilename(solutionFilename, settingsFileExtension);
+            this.fileChangeService = fileChangeService;
+            _StartTrackingSettingsFile();
             Load();
         }
+
+        public event SettingsFileModifiedEventHandler SettingsFileModified = (s, e) => { };
 
         public void Load()
         {
@@ -27,7 +47,9 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void Persist()
         {
+            _StopTrackingSettingsFile();
             File.WriteAllText(settingsFilename, settings.ToString());
+            _StartTrackingSettingsFile();
         }
 
         public bool Exists(string key)
@@ -89,5 +111,34 @@ namespace LucidConcepts.SwitchStartupProject
             return settings.Children<JProperty>().Any(child => child.Name == key);
         }
 
+        private void _StartTrackingSettingsFile()
+        {
+            fileChangeService.AdviseFileChange(
+                settingsFilename,
+                (uint)(_VSFILECHANGEFLAGS.VSFILECHG_Add | _VSFILECHANGEFLAGS.VSFILECHG_Del | _VSFILECHANGEFLAGS.VSFILECHG_Size | _VSFILECHANGEFLAGS.VSFILECHG_Time),
+                this,
+                out fileChangeCookie);
+        }
+
+        private void _StopTrackingSettingsFile()
+        {
+            fileChangeService.UnadviseFileChange(fileChangeCookie);
+        }
+
+        #region IVsFileChangeEvents Members
+
+        public int DirectoryChanged(string pszDirectory)
+        {
+            return VSConstants.S_OK;
+        }
+
+        public int FilesChanged(uint cChanges, string[] rgpszFile, uint[] rggrfChange)
+        {
+            // Don't need to check the arguments since we ever only track the settings file
+            SettingsFileModified(this, new SettingsFileModifiedEventArgs(settingsFilename));
+            return VSConstants.S_OK;
+        }
+
+        #endregion
     }
 }

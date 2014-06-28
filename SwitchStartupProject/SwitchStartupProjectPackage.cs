@@ -120,7 +120,9 @@ namespace LucidConcepts.SwitchStartupProject
                 ms.AdviseSelectionEvents(this, out selectionEventsCookie);
             }
 
-            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, this, options.MostRecentlyUsedCount, Logger);
+            var fileChangeService = ServiceProvider.GlobalProvider.GetService(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
+
+            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, fileChangeService, this, options.MostRecentlyUsedCount, Logger);
         }
         #endregion
 

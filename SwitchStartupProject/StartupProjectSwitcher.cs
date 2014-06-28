@@ -38,15 +38,17 @@ namespace LucidConcepts.SwitchStartupProject
         private bool reactToChangedEvent = true;
 
         private readonly DTE dte;
+        private readonly IVsFileChangeEx fileChangeService;
 
 
 
-        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
+        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, IVsFileChangeEx fileChangeService, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
         {
             logger.LogInfo("Entering constructor of StartupProjectSwitcher");
             this.menuSwitchStartupProjectComboCommand = combobox;
             this.options = options;
             this.dte = dte;
+            this.fileChangeService = fileChangeService;
             this.openOptionsPage = () => package.ShowOptionPage(typeof(OptionPage));
             this.logger = logger;
 
@@ -138,21 +140,23 @@ namespace LucidConcepts.SwitchStartupProject
             
         }
 
+        // Is called before a solution and its projects are loaded.
+        // Is NOT called when a new solution and project are created.
         public void BeforeOpenSolution(string solutionFileName)
         {
             logger.LogInfo("Starting to open solution: {0}", solutionFileName);
-            settingsPersister = new ConfigurationsPersister(dte, solutionFileName, ".startup.suo");
             openingSolution = true;
         }
 
+        // Is called after a solution and its projects have been loaded.
+        // Is also called when a new solution and project have been created.
         public void AfterOpenSolution()
         {
             openingSolution = false;
             logger.LogInfo("Finished to open solution");
-            mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetList(mostRecentlyUsedListKey));
-            options.Configurations.Clear();
-            logger.LogInfo("Loading multi project configuration for solution");
-            settingsPersister.GetMultiProjectConfigurations(multiProjectConfigurationsKey).ForEach(options.Configurations.Add);
+            settingsPersister = new ConfigurationsPersister(dte.Solution.FullName, ".startup.suo", fileChangeService);
+            settingsPersister.SettingsFileModified += OnSettingsFileModified;
+            _LoadSettings();
             // When solution is open: enable multi-project configuration
             logger.LogInfo("Enable multi project configuration");
             options.EnableMultiProjectConfiguration = true;
@@ -162,11 +166,8 @@ namespace LucidConcepts.SwitchStartupProject
         public void BeforeCloseSolution()
         {
             logger.LogInfo("Starting to close solution");
-            logger.LogInfo("Storing solution specific configuration.");
-            // When solution is about to be closed, store MRU list to settings
-            settingsPersister.StoreList(mostRecentlyUsedListKey, mruStartupProjects);
-            settingsPersister.StoreMultiProjectConfigurations(multiProjectConfigurationsKey, options.Configurations);
-            settingsPersister.Persist();
+            _StoreSettings();
+            settingsPersister.SettingsFileModified -= OnSettingsFileModified;
         }
 
         public void AfterCloseSolution()
@@ -178,6 +179,12 @@ namespace LucidConcepts.SwitchStartupProject
             logger.LogInfo("Disable multi project configuration");
             options.EnableMultiProjectConfiguration = false;
             _ClearProjects();
+        }
+
+        public void OnSettingsFileModified(object sender, SettingsFileModifiedEventArgs args)
+        {
+            settingsPersister.Load();
+            _LoadSettings();
         }
 
         public void OpenProject(IVsHierarchy pHierarchy)
@@ -249,6 +256,22 @@ namespace LucidConcepts.SwitchStartupProject
             logger.LogInfo(active ? "Start debugging, disable combobox" : "Stop debugging, enable combobox");
             // When debugging command UI context is activated, disable combobox, otherwise enable combobox
             menuSwitchStartupProjectComboCommand.Enabled = !active;
+        }
+
+        private void _LoadSettings()
+        {
+            logger.LogInfo("Loading configuration for solution");
+            mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetList(mostRecentlyUsedListKey));
+            options.Configurations.Clear();
+            settingsPersister.GetMultiProjectConfigurations(multiProjectConfigurationsKey).ForEach(options.Configurations.Add);
+        }
+
+        private void _StoreSettings()
+        {
+            logger.LogInfo("Storing solution specific configuration.");
+            settingsPersister.StoreList(mostRecentlyUsedListKey, mruStartupProjects);
+            settingsPersister.StoreMultiProjectConfigurations(multiProjectConfigurationsKey, options.Configurations);
+            settingsPersister.Persist();
         }
 
 

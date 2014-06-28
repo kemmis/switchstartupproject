@@ -202,33 +202,51 @@ namespace LucidConcepts.SwitchStartupProject
             valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Name, out nameObj) == VSConstants.S_OK;
             valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_TypeName, out typeNameObj) == VSConstants.S_OK;
             valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Caption, out captionObj) == VSConstants.S_OK;
+            
             if (valid)
             {
                 var name = (string)nameObj;
-                var typeName = (string)typeNameObj;
-
                 logger.LogInfo("Opening project: {0}", name);
 
                 _AddProject(name, pHierarchy);
                 allStartupProjects.Add(name);
 
-                // Only add local (not web) C# projects with OutputType of either Exe (command line tool) or WinExe (windows application)
-                if (typeName == "Microsoft Visual C# 2010" || typeName == "Visual C# 2013")
+                var project = _GetProject(pHierarchy);
+
+                var aggregatableProject = pHierarchy as IVsAggregatableProject;
+                string projectTypeGuidString;
+                aggregatableProject.GetAggregateProjectTypeGuids(out projectTypeGuidString);
+                var projectTypeGuids = projectTypeGuidString.Split(';')
+                    .Where(guid => !string.IsNullOrEmpty(guid))
+                    .Select(guid => new Guid(guid));
+
+                VSLangProj.prjOutputType? projectOutputType = null;
+                if (!projectTypeGuids.Contains(GuidList.guidCPlusPlus))
                 {
-                    var project = _GetProject(pHierarchy);
-                    var projectType = project.Properties.Item("ProjectType");
-                    var eProjectType = (VSLangProj.prjProjectType)projectType.Value;
-                    if (eProjectType == VSLangProj.prjProjectType.prjProjectTypeLocal)
+                    try
                     {
                         var outputType = project.Properties.Item("OutputType");
-                        var eOutputType = (VSLangProj.prjOutputType)outputType.Value;
-                        if (eOutputType == VSLangProj.prjOutputType.prjOutputTypeWinExe ||
-                            eOutputType == VSLangProj.prjOutputType.prjOutputTypeExe)
+                        if (outputType != null && outputType.Value is int)
                         {
-                            typeStartupProjects.Add(name);
+                            projectOutputType = (VSLangProj.prjOutputType) outputType.Value;
                         }
                     }
+                    catch (Exception e)
+                    {
+                    }
                 }
+
+                // Smart mode: Add executables, windows executables, web applications, Visual Studio extension packages and database projects
+                if (projectOutputType == VSLangProj.prjOutputType.prjOutputTypeExe ||
+                    projectOutputType == VSLangProj.prjOutputType.prjOutputTypeWinExe ||
+                    projectOutputType == VSLangProj.prjOutputType.prjOutputTypeLibrary && (
+                        projectTypeGuids.Contains(GuidList.guidWebApp) ||
+                        projectTypeGuids.Contains(GuidList.guidVsPackage)) ||
+                    projectOutputType == null && projectTypeGuids.Contains(GuidList.guidDatabase))
+                {
+                    typeStartupProjects.Add(name);
+                }
+
                 if (!openingSolution)
                 {
                     _PopulateStartupProjects(); // when reopening a single project, refresh list

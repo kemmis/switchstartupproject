@@ -260,7 +260,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             logger.LogInfo("Closing project: {0}", projectName);
             // When project is closed: remove it from list of startup projects (if it was in there)
-            if (startupProjects.Contains(projectName))
+            if (allStartupProjects.Contains(projectName))
             {
                 if (currentStartupProject == projectName)
                 {

@@ -4,6 +4,14 @@ Are you often working with solutions that contain multiple startup projects? The
 So you don't need to scroll up and down the solution explorer tree anymore just for switching to another startup project!  
 
 ## Release notes
+### Version 2.4
+
+* Track configuration file and reload settings upon change
+* Save configuration file whenever solution gets saved
+* Smart mode: Improve detection of startable projects
+* Support for Visual Studio 2014
+* Migrate source code to Visual Studio 2013
+
 ### Version 2.3
 
 * Fix [issue #10](https://bitbucket.org/thirteen/switchstartupproject/issue/10/dropdown-is-sometimes-empty-when-selecting): Improve behavior with projects that are not in dropdown list

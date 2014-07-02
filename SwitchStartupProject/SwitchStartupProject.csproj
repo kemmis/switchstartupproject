@@ -15,7 +15,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>LucidConcepts.SwitchStartupProject</RootNamespace>
-    <AssemblyName>SwitchStartupProject</AssemblyName>
+    <AssemblyName>SwitchStartupProject_VS2014CTP</AssemblyName>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>Key.snk</AssemblyOriginatorKeyFile>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>

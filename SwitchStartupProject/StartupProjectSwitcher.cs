@@ -208,9 +208,6 @@ namespace LucidConcepts.SwitchStartupProject
                 var name = (string)nameObj;
                 logger.LogInfo("Opening project: {0}", name);
 
-                _AddProject(name, pHierarchy);
-                allStartupProjects.Add(name);
-
                 var project = _GetProject(pHierarchy);
 
                 var aggregatableProject = pHierarchy as IVsAggregatableProject;
@@ -219,6 +216,10 @@ namespace LucidConcepts.SwitchStartupProject
                 var projectTypeGuids = projectTypeGuidString.Split(';')
                     .Where(guid => !string.IsNullOrEmpty(guid))
                     .Select(guid => new Guid(guid));
+                var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
+
+                _AddProject(name, pHierarchy, isWebSiteProject);
+                allStartupProjects.Add(name);
 
                 VSLangProj.prjOutputType? projectOutputType = null;
                 if (!projectTypeGuids.Contains(GuidList.guidCPlusPlus))
@@ -338,16 +339,23 @@ namespace LucidConcepts.SwitchStartupProject
 
         private string _GetPathRelativeToSolution(IVsHierarchy pHierarchy)
         {
-            var project = _GetProject(pHierarchy);
-            var fullProjectPath = project.FullName;
+            var fullProjectPath = _GetAbsolutePath(pHierarchy);
             var solutionPath = Path.GetDirectoryName(dte.Solution.FullName) + @"\";
             return Paths.GetPathRelativeTo(fullProjectPath, solutionPath);
         }
 
-        private void _AddProject(string name, IVsHierarchy pHierarchy)
+        private string _GetAbsolutePath(IVsHierarchy pHierarchy)
+        {
+            var project = _GetProject(pHierarchy);
+            return project.FullName;
+        }
+
+
+        private void _AddProject(string name, IVsHierarchy pHierarchy, bool isWebSiteProject)
         {
             proj2name.Add(pHierarchy, name);
-            name2projectPath.Add(name, _GetPathRelativeToSolution(pHierarchy));
+            // Website projects need to be set using the full path
+            name2projectPath.Add(name, isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy));
         }
 
         private void _ClearProjects()

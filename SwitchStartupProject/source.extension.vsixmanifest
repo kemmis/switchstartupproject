@@ -3,7 +3,7 @@
   <Identifier Id="a0aaae10-8ac3-48ca-8cae-3fa9fd5ad22b">
     <Name>SwitchStartupProject for VS2014CTP</Name>
     <Author>Lucid Concepts</Author>
-    <Version>2.4.1</Version>
+    <Version>2.6</Version>
     <Description xml:space="preserve">Provides a toolbar dropdown box to switch between startup projects. (Visual Studio 2014 CTP)</Description>
     <Locale>1033</Locale>
     <License>Resources\license.txt</License>

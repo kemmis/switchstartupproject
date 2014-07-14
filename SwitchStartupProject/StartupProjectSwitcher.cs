@@ -199,9 +199,11 @@ namespace LucidConcepts.SwitchStartupProject
             object nameObj = null;
             object typeNameObj = null;
             object captionObj = null;
+            Guid guid = Guid.Empty;
             valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Name, out nameObj) == VSConstants.S_OK;
             valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_TypeName, out typeNameObj) == VSConstants.S_OK;
             valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Caption, out captionObj) == VSConstants.S_OK;
+            valid &= pHierarchy.GetGuidProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_TypeGuid, out guid) == VSConstants.S_OK;
             
             if (valid)
             {
@@ -210,12 +212,20 @@ namespace LucidConcepts.SwitchStartupProject
 
                 var project = _GetProject(pHierarchy);
 
+                IEnumerable<Guid> projectTypeGuids;
                 var aggregatableProject = pHierarchy as IVsAggregatableProject;
-                string projectTypeGuidString;
-                aggregatableProject.GetAggregateProjectTypeGuids(out projectTypeGuidString);
-                var projectTypeGuids = projectTypeGuidString.Split(';')
-                    .Where(guid => !string.IsNullOrEmpty(guid))
-                    .Select(guid => new Guid(guid));
+                if (aggregatableProject != null)
+                {
+                    string projectTypeGuidString;
+                    aggregatableProject.GetAggregateProjectTypeGuids(out projectTypeGuidString);
+                    projectTypeGuids = projectTypeGuidString.Split(';')
+                        .Where(guidString => !string.IsNullOrEmpty(guidString))
+                        .Select(guidString => new Guid(guidString));
+                }
+                else
+                {
+                    projectTypeGuids = new[] { new Guid(project.Kind) };
+                }
                 var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
 
                 _AddProject(name, pHierarchy, isWebSiteProject);

@@ -35,6 +35,11 @@ namespace LucidConcepts.SwitchStartupProject
             _Resize();
         }
 
+        public void Remove(T item)
+        {
+            list.Remove(item);
+        }
+
         public void Clear()
         {
             list.Clear();

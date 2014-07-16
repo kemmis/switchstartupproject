@@ -4,6 +4,11 @@ Are you often working with solutions that contain multiple startup projects? The
 So you don't need to scroll up and down the solution explorer tree anymore just for switching to another startup project!  
 
 ## Release notes
+### Version 2.6
+
+* Fix [issue #16](https://bitbucket.org/thirteen/switchstartupproject/issue/16/startup-projects-list-should-be-filtered): Fix MRU mode: Most recently used projects should only show projects that are in the solution
+* Fix [issue #14](https://bitbucket.org/thirteen/switchstartupproject/issue/14/missing-support-for-intel-visual-fortran): Add support for visual fortran projects (and other project types that don't implement IVsAggregatableProject)
+
 ### Version 2.5
 
 * Fix [issue #12](https://bitbucket.org/thirteen/switchstartupproject/issue/12/exception-when-selecting-a-website-project): Fix web site projects support

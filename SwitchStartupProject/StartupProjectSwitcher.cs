@@ -280,6 +280,7 @@ namespace LucidConcepts.SwitchStartupProject
                 startupProjects.Remove(projectName);
                 allStartupProjects.Remove(projectName);
                 typeStartupProjects.Remove(projectName);
+                mruStartupProjects.Remove(projectName);
                 proj2name.Remove(pHierarchy);
                 name2projectPath.Remove(projectName);
             }
@@ -295,7 +296,7 @@ namespace LucidConcepts.SwitchStartupProject
         private void _LoadSettings()
         {
             logger.LogInfo("Loading configuration for solution");
-            mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetList(mostRecentlyUsedListKey));
+            mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetList(mostRecentlyUsedListKey).Intersect(allStartupProjects));
             options.Configurations.Clear();
             settingsPersister.GetMultiProjectConfigurations(multiProjectConfigurationsKey).ForEach(options.Configurations.Add);
         }

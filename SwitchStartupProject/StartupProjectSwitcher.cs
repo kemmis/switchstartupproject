@@ -154,6 +154,11 @@ namespace LucidConcepts.SwitchStartupProject
         {
             openingSolution = false;
             logger.LogInfo("Finished to open solution");
+            if (string.IsNullOrEmpty(dte.Solution.FullName))  // This happens e.g. when creating a new website
+            {
+                logger.LogInfo("Solution path not yet known. Skipping initialization of configuration persister and loading of settings.");
+                return;
+            }
             settingsPersister = new ConfigurationsPersister(dte.Solution.FullName, ".startup.suo", fileChangeService);
             settingsPersister.SettingsFileModified += OnSettingsFileModified;
             _LoadSettings();
@@ -166,6 +171,11 @@ namespace LucidConcepts.SwitchStartupProject
         public void BeforeCloseSolution()
         {
             logger.LogInfo("Starting to close solution");
+            if (settingsPersister == null)  // This happens e.g. when creating a new website
+            {
+                logger.LogInfo("Cannot store solution specific configuration because configuration persister has not yet been set up.");
+                return;
+            }
             _StoreSettings();
             settingsPersister.SettingsFileModified -= OnSettingsFileModified;
         }
@@ -189,6 +199,11 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void OnSolutionSaved()
         {
+            if (settingsPersister == null)  // This happens e.g. when creating a new website
+            {
+                logger.LogInfo("Cannot store solution specific configuration because configuration persister has not yet been set up.");
+                return;
+            }
             _StoreSettings();
         }
 

@@ -4,6 +4,11 @@ Are you often working with solutions that contain multiple startup projects? The
 So you don't need to scroll up and down the solution explorer tree anymore just for switching to another startup project!  
 
 ## Release notes
+### Version 2.7
+
+* Fix [issue #17](https://bitbucket.org/thirteen/switchstartupproject/issue/17/solution-path-empty-on-first-call-of): Prevent exceptions when creating a new website.
+* Re-enable support for Visual Studio 2014 (see [issue #13](https://bitbucket.org/thirteen/switchstartupproject/issue/13/release-24-can-not-be-found-in-vs-2013)).
+
 ### Version 2.6
 
 * Fix [issue #16](https://bitbucket.org/thirteen/switchstartupproject/issue/16/startup-projects-list-should-be-filtered): Fix MRU mode: Most recently used projects should only show projects that are in the solution

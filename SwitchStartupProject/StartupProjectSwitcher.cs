@@ -342,7 +342,15 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 // Multiple startup projects
                 var configuration = multiProjectConfigurations.Single(c => c.Name == newStartupProject);
-                _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = configuration.Projects.OfType<object>().ToArray()); // SolutionBuild.StartupProjects expects an array of objects
+                if (configuration.Projects.Count == 1)
+                {
+                    // If the multi-project startup configuration contains a single project only, handle it as if it was a single-project configuration
+                    _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = configuration.Projects.Single());
+                }
+                else
+                {
+                    _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = configuration.Projects.OfType<object>().ToArray()); // SolutionBuild.StartupProjects expects an array of objects
+                }
             }
             // An unknown project was chosen
         }

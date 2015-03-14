@@ -55,6 +55,12 @@
                                 />
                     </Button>
                     <Button Width="24" Height="24" Margin="1 1"
+                            Command="{Binding CloneConfigurationCommand}">
+                        <local:AutoGreyableImage Source="../Resources/Clone.png" Height="16" Width="16"
+                                ToolTip="Clone selected configuration"
+                                />
+                    </Button>
+                    <Button Width="24" Height="24" Margin="1 1"
                             Command="{Binding DeleteConfigurationCommand}">
                         <local:AutoGreyableImage Source="../Resources/Delete.png" Height="16" Width="16"
                                ToolTip="Remove selected configuration"

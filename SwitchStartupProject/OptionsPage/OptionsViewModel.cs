@@ -91,6 +91,7 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
         }
 
         public DelegateCommand AddConfigurationCommand { get { return new DelegateCommand(_AddConfiguration); } }
+        public DelegateCommand CloneConfigurationCommand { get { return new DelegateCommand(_CloneConfiguration, _CanCloneConfiguration); } }
         public DelegateCommand DeleteConfigurationCommand { get { return new DelegateCommand(_DeleteConfiguration, _CanDeleteConfiguration); } }
         public DelegateCommand MoveConfigurationUpCommand { get { return new DelegateCommand(_MoveConfigurationUp, _CanMoveConfigurationUp); } }
         public DelegateCommand MoveConfigurationDownCommand { get { return new DelegateCommand(_MoveConfigurationDown, _CanMoveConfigurationDown); } }
@@ -102,10 +103,12 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
             _RaisePropertyChanged("SelectedConfiguration");
             _RaisePropertyChanged("SelectedConfigurationName");
             _RaisePropertyChanged("IsConfigurationSelected");
+            CloneConfigurationCommand.RaiseCanExecuteChanged();
             DeleteConfigurationCommand.RaiseCanExecuteChanged();
             MoveConfigurationUpCommand.RaiseCanExecuteChanged();
             MoveConfigurationDownCommand.RaiseCanExecuteChanged();
             _RaisePropertyChanged("AddConfigurationCommand");
+            _RaisePropertyChanged("CloneConfigurationCommand");
             _RaisePropertyChanged("DeleteConfigurationCommand");
             _RaisePropertyChanged("MoveConfigurationUpCommand");
             _RaisePropertyChanged("MoveConfigurationDownCommand");
@@ -114,6 +117,20 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
         private void _AddConfiguration()
         {
             var newConfig = new Configuration(string.Format("Configuration{0}", Configurations.Count + 1));
+            Configurations.Add(newConfig);
+            SelectedConfiguration = newConfig;
+            _RaiseConfigurationsPropertyChanged();
+        }
+
+        private bool _CanCloneConfiguration()
+        {
+            return SelectedConfiguration != null;
+        }
+
+        private void _CloneConfiguration()
+        {
+            var newConfig = new Configuration(string.Format("{0} Clone", SelectedConfiguration.Name));
+            SelectedConfiguration.Projects.ForEach(p => newConfig.Projects.Add(new Project(p.Name)));
             Configurations.Add(newConfig);
             SelectedConfiguration = newConfig;
             _RaiseConfigurationsPropertyChanged();

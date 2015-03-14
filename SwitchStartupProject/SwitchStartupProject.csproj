@@ -179,6 +179,7 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Resources\Clone.png" />
     <Content Include="Resources\license.txt">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>

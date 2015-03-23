@@ -252,9 +252,26 @@ namespace LucidConcepts.SwitchStartupProject
                     try
                     {
                         var outputType = project.Properties.Item("OutputType");
-                        if (outputType != null && outputType.Value is int)
+                        if (outputType != null)
                         {
-                            projectOutputType = (VSLangProj.prjOutputType) outputType.Value;
+                            if (outputType.Value is int)
+                            {
+                                projectOutputType = (VSLangProj.prjOutputType) outputType.Value;
+                            }
+                            else if (outputType.Value.GetType().FullName == "Microsoft.VisualStudio.FSharp.ProjectSystem.OutputType")
+                            {
+                                switch (outputType.Value.ToString())
+                                {
+                                    case "WinExe":
+                                        projectOutputType = VSLangProj.prjOutputType.prjOutputTypeWinExe;
+                                        break;
+
+                                    case "Exe":
+                                        projectOutputType = VSLangProj.prjOutputType.prjOutputTypeExe;
+                                        break;
+                                }
+                            }
+                                    
                         }
                     }
                     catch (Exception e)

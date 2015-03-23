@@ -347,7 +347,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             if (elementid == (uint)VSConstants.VSSELELEMID.SEID_StartupProject)
             {
-                switcher.UpdateStartupProject((IVsHierarchy) varValueNew);
+                switcher.UpdateStartupProject();
             }
             return VSConstants.S_OK;
         }

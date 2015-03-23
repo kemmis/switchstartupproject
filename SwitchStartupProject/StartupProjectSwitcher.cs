@@ -23,6 +23,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private readonly Dictionary<IVsHierarchy, string> proj2name = new Dictionary<IVsHierarchy, string>();
         private readonly Dictionary<string, string> name2projectPath = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> projectPath2name = new Dictionary<string, string>();
 
         private ConfigurationsPersister settingsPersister;
         private MRUList<string> mruStartupProjects;
@@ -118,26 +119,57 @@ namespace LucidConcepts.SwitchStartupProject
             throw (new ArgumentException("ParamNotValidStringInList")); // force an exception to be thrown
         }
 
-        public void UpdateStartupProject(IVsHierarchy startupProject)
+        public void UpdateStartupProject()
         {
             // When startup project is set through dropdown, don't do anything
             if (!reactToChangedEvent) return;
+            // Don't react to startup project changes while opening the solution or when multi-project configurations have not yet been loaded.
+            if (openingSolution || !options.EnableMultiProjectConfiguration) return;
 
             // When startup project is set in solution explorer, update combobox
-            if (null != startupProject && proj2name.ContainsKey(startupProject))
+            var newStartupProjects = dte.Solution.SolutionBuild.StartupProjects as Array;
+            if (newStartupProjects == null) return;
+            if (newStartupProjects.Length == 1)
             {
-                var newStartupProjectName = proj2name[startupProject];
-                logger.LogInfo("New startup project was activated outside of combobox: {0}", newStartupProjectName);
-                mruStartupProjects.Touch(newStartupProjectName);
-                _PopulateStartupProjects();
-                currentStartupProject = newStartupProjectName;
-            }
-            else
-            {
+                var startupProject = (string)newStartupProjects.GetValue(0);
+                if (projectPath2name.ContainsKey(startupProject))
+                {
+                    var newStartupProjectName = projectPath2name[startupProject];
+                    logger.LogInfo("New startup project was activated outside of combobox: {0}", newStartupProjectName);
+                    mruStartupProjects.Touch(newStartupProjectName);
+                    _PopulateStartupProjects();
+                    currentStartupProject = newStartupProjectName;
+                    return;
+                }
                 logger.LogInfo("New unknown startup project was activated outside of combobox");
                 currentStartupProject = sentinel;
+                return;
             }
-            
+            _SelectMultiProjectConfigInDropdown(newStartupProjects,
+                success: newStartupProjectName => logger.LogInfo("New multi-project startup config was activated outside of combobox: {0}", newStartupProjectName),
+                failure: () =>
+                {
+                    logger.LogInfo("New unknown multi-project startup config was activated outside of combobox");
+                    currentStartupProject = sentinel;
+                });
+        }
+
+        private void _SelectMultiProjectConfigInDropdown(Array newStartupProjects, Action<string> success, Action failure)
+        {
+            foreach (var configuration in multiProjectConfigurations.Where(configuration => _AreEqual(configuration.Projects, newStartupProjects)))
+            {
+                var newStartupProjectName = configuration.Name;
+                currentStartupProject = newStartupProjectName;
+                success(newStartupProjectName);
+                return;
+            }
+            failure();
+        }
+
+        private bool _AreEqual(IList<string> configurationProjects, Array newStartupProjects)
+        {
+            if (configurationProjects.Count != newStartupProjects.Length) return false;
+            return !configurationProjects.Where((path, i) => path != (string)newStartupProjects.GetValue(i)).Any();
         }
 
         // Is called before a solution and its projects are loaded.
@@ -166,6 +198,8 @@ namespace LucidConcepts.SwitchStartupProject
             logger.LogInfo("Enable multi project configuration");
             options.EnableMultiProjectConfiguration = true;
             _PopulateStartupProjects();
+            // Select the currently active startup configuration in the dropdown
+            UpdateStartupProject();
         }
 
         public void BeforeCloseSolution()
@@ -315,7 +349,9 @@ namespace LucidConcepts.SwitchStartupProject
                 typeStartupProjects.Remove(projectName);
                 mruStartupProjects.Remove(projectName);
                 proj2name.Remove(pHierarchy);
+                var projectPath = name2projectPath[projectName];
                 name2projectPath.Remove(projectName);
+                projectPath2name.Remove(projectPath);
             }
         }
 
@@ -408,12 +444,14 @@ namespace LucidConcepts.SwitchStartupProject
             proj2name.Add(pHierarchy, name);
             // Website projects need to be set using the full path
             name2projectPath.Add(name, isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy));
+            projectPath2name.Add(isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy), name);
         }
 
         private void _ClearProjects()
         {
             proj2name.Clear();
             name2projectPath.Clear();
+            projectPath2name.Clear();
             allStartupProjects = new List<string>();
             typeStartupProjects = new List<string>();
             startupProjects = new List<string>(new [] { configure });

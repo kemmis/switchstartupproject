@@ -188,6 +188,7 @@ namespace LucidConcepts.SwitchStartupProject
             options.Configurations.Clear();
             logger.LogInfo("Disable multi project configuration");
             options.EnableMultiProjectConfiguration = false;
+            settingsPersister = null;
             _ClearProjects();
         }
 

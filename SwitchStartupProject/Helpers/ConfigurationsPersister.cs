@@ -26,6 +26,8 @@ namespace LucidConcepts.SwitchStartupProject
     public class ConfigurationsPersister : IVsFileChangeEvents
     {
         private const string versionKey = "Version";
+        private const string singleProjectModeKey = "SingleProjectMode";
+        private const string singleProjectMruCountKey = "SingleProjectMruCount";
         private const string mostRecentlyUsedListKey = "MRU";
         private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
         private const string projectsKey = "Projects";
@@ -63,6 +65,26 @@ namespace LucidConcepts.SwitchStartupProject
             settings[versionKey] = 2;
             File.WriteAllText(settingsFilename, settings.ToString());
             _StartTrackingSettingsFile();
+        }
+
+        public EMode GetSingleProjectMode()
+        {
+            return _ExistsKey(singleProjectModeKey) ? (EMode)settings[singleProjectModeKey].Value<int>() : EMode.All;
+        }
+
+        public void StoreSingleProjectMode(EMode mode)
+        {
+            settings[singleProjectModeKey] = (int)mode;
+        }
+
+        public int GetSingleProjectMruCount()
+        {
+            return _ExistsKey(singleProjectMruCountKey) ? settings[singleProjectMruCountKey].Value<int>() : 5;
+        }
+
+        public void StoreSingleProjectMruCount(int count)
+        {
+            settings[singleProjectMruCountKey] = count;
         }
 
         public IEnumerable<string> GetSingleProjectMruList()

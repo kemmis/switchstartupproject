@@ -140,15 +140,22 @@
     <Compile Include="OptionPage.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="OptionsPage\DefaultOptionsView.xaml.cs">
+      <DependentUpon>DefaultOptionsView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="OptionsPage\DefaultOptionsViewModel.cs" />
+    <Compile Include="SolutionOptionPage.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Helpers\GlobalSuppressions.cs" />
     <Compile Include="OptionsPage\AutoGreyableImage.cs" />
     <Compile Include="OptionsPage\Configuration.cs" />
     <Compile Include="OptionsPage\DelegateCommand.cs" />
     <Compile Include="OptionsPage\NativeMethods.cs" />
-    <Compile Include="OptionsPage\OptionsView.xaml.cs">
-      <DependentUpon>OptionsView.xaml</DependentUpon>
+    <Compile Include="OptionsPage\SolutionOptionsView.xaml.cs">
+      <DependentUpon>SolutionOptionsView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="OptionsPage\OptionsViewModel.cs" />
+    <Compile Include="OptionsPage\SolutionOptionsViewModel.cs" />
     <Compile Include="OptionsPage\Project.cs" />
     <Compile Include="OptionsPage\UIElemendDialogPage.cs">
       <SubType>Component</SubType>
@@ -199,7 +206,11 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="OptionsPage\OptionsView.xaml">
+    <Page Include="OptionsPage\DefaultOptionsView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="OptionsPage\SolutionOptionsView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

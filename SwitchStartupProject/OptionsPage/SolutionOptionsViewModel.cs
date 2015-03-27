@@ -9,26 +9,31 @@ using System.Windows.Input;
 
 namespace LucidConcepts.SwitchStartupProject.OptionsPage
 {
-    public class OptionsViewModel : INotifyPropertyChanged
+    public class SolutionOptionsViewModel : INotifyPropertyChanged
     {
-        private readonly OptionPage model;
+        private readonly SolutionOptionPage model;
         private Configuration selectedConfiguration;
         private Project selectedProject;
 
-        public OptionsViewModel(OptionPage model)
+        public SolutionOptionsViewModel(SolutionOptionPage model)
         {
             this.model = model;
             model.Modified += (sender, args) =>
             {
-                if (args.OptionParameter == EOptionParameter.EnableMultiProjectConfiguration)
+                switch (args.OptionParameter)
                 {
-                    model.LogInfo("OptionsViewModel: {0} multi project configuration UI", model.EnableMultiProjectConfiguration ? "Enabled" : "Disabled");
-                    _RaisePropertyChanged("EnableMultiProjectConfiguration");
-                }
-                else if (args.OptionParameter == EOptionParameter.ActivateCommandLineArguments)
-                {
-                    model.LogInfo("OptionsViewModel: {0} command line arguments", model.ActivateCommandLineArguments ? "Activated" : "Deactivated");
-                    _RaisePropertyChanged("ActivateCommandLineArguments");
+                    case EOptionParameter.MruCount:
+                    case EOptionParameter.Mode:
+                        _RaiseSingleProjectPropertyChanged();
+                        break;
+                    case EOptionParameter.EnableSolutionConfiguration:
+                        model.LogInfo("OptionsViewModel: {0} multi project configuration UI", model.EnableSolutionConfiguration ? "Enabled" : "Disabled");
+                        _RaiseSolutionPropertyChanged();
+                        break;
+                    case EOptionParameter.ActivateCommandLineArguments:
+                        model.LogInfo("OptionsViewModel: {0} command line arguments", model.ActivateCommandLineArguments ? "Activated" : "Deactivated");
+                        _RaiseSolutionPropertyChanged();
+                        break;
                 }
             };
             LinkUrl = "https://bitbucket.org/thirteen/switchstartupproject";
@@ -48,8 +53,7 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
             set
             {
                 model.Mode = value;
-                _RaisePropertyChanged("SelectedMode");
-                _RaisePropertyChanged("MruVisibility");
+                _RaiseSingleProjectPropertyChanged();
             }
         }
 
@@ -64,13 +68,30 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
             set
             {
                 model.MostRecentlyUsedCount = value;
-                _RaisePropertyChanged("MruCount");
+                _RaiseSingleProjectPropertyChanged();
             }
+        }
+
+        private void _RaiseSingleProjectPropertyChanged()
+        {
+            _RaisePropertyChanged("SelectedMode");
+            _RaisePropertyChanged("MruVisibility");
+            _RaisePropertyChanged("MruCount");
         }
 
         #endregion
 
         #region Solution
+
+        public bool EnableSolutionConfiguration
+        {
+            get { return model.EnableSolutionConfiguration; }
+        }
+
+        public Visibility SolutionConfigurationHintVisibility
+        {
+            get { return EnableSolutionConfiguration ? Visibility.Collapsed : Visibility.Visible; }
+        }
 
         public bool ActivateCommandLineArguments
         {
@@ -84,6 +105,8 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
 
         private void _RaiseSolutionPropertyChanged()
         {
+            _RaisePropertyChanged("EnableSolutionConfiguration");
+            _RaisePropertyChanged("SolutionConfigurationHintVisibility");
             _RaisePropertyChanged("ActivateCommandLineArguments");
         }
 
@@ -106,11 +129,6 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
                 selectedProject = null;
                 _RaiseProjectsPropertyChanged();
             }
-        }
-
-        public bool EnableMultiProjectConfiguration
-        {
-            get { return model.EnableMultiProjectConfiguration; }
         }
 
         public bool IsConfigurationSelected

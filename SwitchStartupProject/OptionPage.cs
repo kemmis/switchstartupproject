@@ -4,57 +4,21 @@ using System.Linq;
 using System.Text;
 using LucidConcepts.SwitchStartupProject.OptionsPage;
 using Microsoft.VisualStudio.Shell;
-using System.ComponentModel;
 using Microsoft.Win32;
 
 namespace LucidConcepts.SwitchStartupProject
 {
-    public enum EOptionParameter
-    {
-        Mode,
-        MruCount,
-        EnableMultiProjectConfiguration,
-        MultiProjectConfigurations,
-        ActivateCommandLineArguments
-    }
-
-    public enum EMode
-    {
-        All,
-        Smart,
-        MostRecentlyUsed,
-        None,
-    }
-
-    public class OptionsModifiedEventArgs : EventArgs
-    {
-        public OptionsModifiedEventArgs(EOptionParameter optionParameter, ListChangedEventArgs listChangedEventArgs)
-        {
-            this.OptionParameter = optionParameter;
-            this.ListChangedEventArgs = listChangedEventArgs;
-        }
-
-        public EOptionParameter OptionParameter { get; private set; }
-        public ListChangedEventArgs ListChangedEventArgs { get; private set; }
-    }
-
-    public delegate void OptionsModifiedEventHandler(object sender, OptionsModifiedEventArgs e);
-
     public class OptionPage : UIElementDialogPage
     {
         const string schemeValueName = "Scheme";
-        private readonly OptionsView view;
+        private readonly DefaultOptionsView view;
         private bool firstLoad = true;
         private EMode mode = EMode.All;
         private int mruCount = 5;
-        private bool enableMultiProjectConfiguration = false;
-        private bool activateCommandLineArguments = false;
 
         public OptionPage()
         {
-            view = new OptionsView { DataContext = new OptionsViewModel(this) };
-            Configurations = new BindingList<Configuration>();
-            Configurations.ListChanged += (sender, args) => Modified(this, new OptionsModifiedEventArgs(EOptionParameter.MultiProjectConfigurations, args));
+            view = new DefaultOptionsView { DataContext = new DefaultOptionsViewModel(this) };
         }
 
         protected override System.Windows.UIElement Child
@@ -62,14 +26,11 @@ namespace LucidConcepts.SwitchStartupProject
             get { return view; }
         }
 
-        public event OptionsModifiedEventHandler Modified = (s, e) => { };
-
         public EMode Mode
         {
             get { return mode; }
             set {
                 mode = value;
-                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.Mode, null));
             }
         }
 
@@ -78,39 +39,6 @@ namespace LucidConcepts.SwitchStartupProject
             get { return mruCount; }
             set { 
                 mruCount = value;
-                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.MruCount, null));
-            }
-        }
-
-        // Not being stored by automatic persistence mechanism
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public Func<IList<string>> GetAllProjectNames { get; set; }
-
-        // Not being stored by automatic persistence mechanism
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public BindingList<Configuration> Configurations { get; private set; }
-
-        // Not being stored by automatic persistence mechanism
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public bool ActivateCommandLineArguments
-        {
-            get { return activateCommandLineArguments; }
-            set
-            {
-                activateCommandLineArguments = value;
-                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.ActivateCommandLineArguments, null));
-            }
-        }
-
-        // Not being stored by automatic persistence mechanism
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public bool EnableMultiProjectConfiguration
-        {
-            get { return enableMultiProjectConfiguration; }
-            set
-            {
-                enableMultiProjectConfiguration = value;
-                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.EnableMultiProjectConfiguration, null));
             }
         }
 

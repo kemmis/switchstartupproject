@@ -29,8 +29,9 @@ namespace LucidConcepts.SwitchStartupProject
     [InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)]
     // This attribute is needed to let the shell know that this package exposes some menus.
     [ProvideMenuResource("Menus.ctmenu", 1)]
-    // This attribute says that this package exposes an options page of the given type.
-    [ProvideOptionPage(typeof(OptionPage), "Switch Startup Project", "General", 0, 0, true)]
+    // This attribute says that this package exposes options pages of the given type.
+    [ProvideOptionPage(typeof(SolutionOptionPage), "SwitchStartupProject", "Current Solution", 0, 0, false)]
+    [ProvideOptionPage(typeof(OptionPage), "SwitchStartupProject", "Defaults", 0, 0, true)]
     [Guid(GuidList.guidSwitchStartupProjectPkgString)]
     public sealed class SwitchStartupProjectPackage : Package, IVsSolutionEvents, IVsSolutionEvents4, IVsSolutionLoadEvents, IVsSelectionEvents, IVsPersistSolutionOpts
     {
@@ -106,9 +107,12 @@ namespace LucidConcepts.SwitchStartupProject
                 solution.AdviseSolutionEvents(this, out solutionEventsCookie);
             }
 
-            // get options
-            var options = (OptionPage)GetDialogPage(typeof(OptionPage));
-            options.Logger = Logger;
+            // get options dialogs
+            var solutionOptions = (SolutionOptionPage)GetDialogPage(typeof(SolutionOptionPage));
+            var defaultOptions = (OptionPage)GetDialogPage(typeof(OptionPage));
+            solutionOptions.Logger = Logger;
+            defaultOptions.Logger = Logger;
+
 
             // Get selection monitor
             ms = ServiceProvider.GlobalProvider.GetService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
@@ -123,7 +127,7 @@ namespace LucidConcepts.SwitchStartupProject
             var fileChangeService = ServiceProvider.GlobalProvider.GetService(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
             var projectHierarchyHelper = new ProjectHierarchyHelper(solution);
 
-            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, options, dte, fileChangeService, projectHierarchyHelper, this, options.MostRecentlyUsedCount, Logger);
+            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, solutionOptions, defaultOptions, dte, fileChangeService, projectHierarchyHelper, this, solutionOptions.MostRecentlyUsedCount, Logger);
         }
         #endregion
 

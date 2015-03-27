@@ -15,11 +15,11 @@ using System.Windows.Shapes;
 namespace LucidConcepts.SwitchStartupProject.OptionsPage
 {
     /// <summary>
-    /// Interaction logic for OptionsView.xaml
+    /// Interaction logic for DefaultOptionsView.xaml
     /// </summary>
-    public partial class OptionsView : UserControl
+    public partial class DefaultOptionsView : UserControl
     {
-        public OptionsView()
+        public DefaultOptionsView()
         {
             InitializeComponent();
         }

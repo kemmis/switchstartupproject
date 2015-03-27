@@ -38,6 +38,7 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -154,7 +155,12 @@
                                             />
                     </DataGrid.Columns>
                 </DataGrid>
-                
+                <CheckBox Grid.Row="4" Grid.Column="0" Margin="0 5 0 0"
+                          ToolTip="Check to activate configured command line arguments (also empty ones)"
+                          IsChecked="{Binding ActivateCommandLineArguments}"
+                          >
+                    Activate Command Line Arguments
+                </CheckBox>
             </Grid>
         </GroupBox>
         <TextBlock Grid.Row="2" HorizontalAlignment="Right" ToolTip="{Binding LinkUrl}">

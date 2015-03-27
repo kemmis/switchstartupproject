@@ -14,7 +14,8 @@ namespace LucidConcepts.SwitchStartupProject
         Mode,
         MruCount,
         EnableMultiProjectConfiguration,
-        MultiProjectConfigurations
+        MultiProjectConfigurations,
+        ActivateCommandLineArguments
     }
 
     public enum EMode
@@ -47,6 +48,7 @@ namespace LucidConcepts.SwitchStartupProject
         private EMode mode = EMode.All;
         private int mruCount = 5;
         private bool enableMultiProjectConfiguration = false;
+        private bool activateCommandLineArguments = false;
 
         public OptionPage()
         {
@@ -87,6 +89,18 @@ namespace LucidConcepts.SwitchStartupProject
         // Not being stored by automatic persistence mechanism
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public BindingList<Configuration> Configurations { get; private set; }
+
+        // Not being stored by automatic persistence mechanism
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool ActivateCommandLineArguments
+        {
+            get { return activateCommandLineArguments; }
+            set
+            {
+                activateCommandLineArguments = value;
+                Modified(this, new OptionsModifiedEventArgs(EOptionParameter.ActivateCommandLineArguments, null));
+            }
+        }
 
         // Not being stored by automatic persistence mechanism
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]

@@ -360,6 +360,7 @@ namespace LucidConcepts.SwitchStartupProject
             mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetSingleProjectMruList().Intersect(allStartupProjects));
             options.Configurations.Clear();
             settingsPersister.GetMultiProjectConfigurations().ForEach(options.Configurations.Add);
+            options.ActivateCommandLineArguments = settingsPersister.GetActivateCommandLineArguments();
         }
 
         private void _StoreSettings()
@@ -367,6 +368,7 @@ namespace LucidConcepts.SwitchStartupProject
             logger.LogInfo("Storing solution specific configuration.");
             settingsPersister.StoreSingleProjectMruList(mruStartupProjects);
             settingsPersister.StoreMultiProjectConfigurations(options.Configurations);
+            settingsPersister.StoreActivateCommandLineArguments(options.ActivateCommandLineArguments);
             settingsPersister.Persist();
         }
 
@@ -415,7 +417,10 @@ namespace LucidConcepts.SwitchStartupProject
                 dte.Solution.SolutionBuild.StartupProjects = projectPath;
                 
                 // Clear CLA
-                _SetStartArgumentsOfProject(projectName, string.Empty);
+                if (options.ActivateCommandLineArguments)
+                {
+                    _SetStartArgumentsOfProject(projectName, string.Empty);
+                }
             });
         }
 
@@ -437,9 +442,12 @@ namespace LucidConcepts.SwitchStartupProject
                 }
 
                 // Set CLA
-                foreach (var projectConfig in configuration.Projects)
+                if (options.ActivateCommandLineArguments)
                 {
-                    _SetStartArgumentsOfProject(projectConfig.Name, projectConfig.CommandLineArguments);
+                    foreach (var projectConfig in configuration.Projects)
+                    {
+                        _SetStartArgumentsOfProject(projectConfig.Name, projectConfig.CommandLineArguments);
+                    }
                 }
             });
         }

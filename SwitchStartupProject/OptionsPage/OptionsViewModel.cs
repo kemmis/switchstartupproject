@@ -25,6 +25,11 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
                     model.LogInfo("OptionsViewModel: {0} multi project configuration UI", model.EnableMultiProjectConfiguration ? "Enabled" : "Disabled");
                     _RaisePropertyChanged("EnableMultiProjectConfiguration");
                 }
+                else if (args.OptionParameter == EOptionParameter.ActivateCommandLineArguments)
+                {
+                    model.LogInfo("OptionsViewModel: {0} command line arguments", model.ActivateCommandLineArguments ? "Activated" : "Deactivated");
+                    _RaisePropertyChanged("ActivateCommandLineArguments");
+                }
             };
             LinkUrl = "https://bitbucket.org/thirteen/switchstartupproject";
             LinkCommand = new DelegateCommand(() => Process.Start(new ProcessStartInfo(new Uri(LinkUrl).AbsoluteUri)));
@@ -61,6 +66,25 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
                 model.MostRecentlyUsedCount = value;
                 _RaisePropertyChanged("MruCount");
             }
+        }
+
+        #endregion
+
+        #region Solution
+
+        public bool ActivateCommandLineArguments
+        {
+            get { return model.ActivateCommandLineArguments; }
+            set
+            {
+                model.ActivateCommandLineArguments = value;
+                _RaiseSolutionPropertyChanged();
+            }
+        }
+
+        private void _RaiseSolutionPropertyChanged()
+        {
+            _RaisePropertyChanged("ActivateCommandLineArguments");
         }
 
         #endregion

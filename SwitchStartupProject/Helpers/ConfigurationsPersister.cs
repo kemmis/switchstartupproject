@@ -30,6 +30,7 @@ namespace LucidConcepts.SwitchStartupProject
         private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
         private const string projectsKey = "Projects";
         private const string claKey = "CommandLineArguments";
+        private const string activateCommandLineArgumentsKey = "ActivateCommandLineArguments";
 
         private readonly string settingsFilename;
         private JObject settings;
@@ -101,6 +102,16 @@ namespace LucidConcepts.SwitchStartupProject
                         from p in c.Projects
                         select new JProperty(p.Name, new JObject(
                             new JProperty(claKey, p.CommandLineArguments))))))));
+        }
+
+        public bool GetActivateCommandLineArguments()
+        {
+            return _ExistsKey(activateCommandLineArgumentsKey) && settings[activateCommandLineArgumentsKey].Value<bool>();
+        }
+
+        public void StoreActivateCommandLineArguments(bool value)
+        {
+            settings[activateCommandLineArgumentsKey] = value;
         }
 
         private string _GetSettingsFilename(string solutionFilename, string settingsFileExtension)

@@ -236,6 +236,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterLoadProject(IVsHierarchy pStubHierarchy, IVsHierarchy pRealHierarchy)
         {
+            switcher.UpdateStartupProject();
             return VSConstants.S_OK;
         }
 

@@ -37,7 +37,6 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
@@ -77,29 +76,25 @@
                            />
                     </Button>
                 </StackPanel>
-                <ListBox Grid.Row="1" Grid.ColumnSpan="2" Margin="0 0 0 10"
-                         ItemsSource="{Binding Configurations}"
-                         SelectedItem="{Binding SelectedConfiguration}"
-                         SelectionMode="Single"
-                         DisplayMemberPath="Name"
-                         ScrollViewer.VerticalScrollBarVisibility="Auto"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         ToolTip="Define multi-project startup configurations which can be activated with the toolbar dropdown box."
-                         />
-                <Grid Grid.Row="2" Grid.ColumnSpan="2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="Configuration Name:" Grid.Column="0" VerticalAlignment="Center" Margin="0 0 10 0"
-                               IsEnabled="{Binding IsConfigurationSelected}"/>
-                    <TextBox Text="{Binding SelectedConfiguration.Name, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" VerticalAlignment="Center" Width="308"
-                             ToolTip="The name shown in the dropdown box"
-                             IsEnabled="{Binding IsConfigurationSelected}"/>
-                </Grid>
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="Projects to start:" VerticalAlignment="Center"
+                <DataGrid Grid.Row="1" Grid.ColumnSpan="2" Grid.Column="0" Margin="0 0 0 10"
+                          AutoGenerateColumns="False"
+                          ItemsSource="{Binding Configurations}"
+                          SelectedItem="{Binding SelectedConfiguration}"
+                          SelectionMode="Single"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          ToolTip="Define multi-project startup configurations which can be activated with the toolbar dropdown box. Double-click an entry to edit it."
+                          >
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Configuration Name"
+                                            Binding="{Binding Name}"
+                                            Width="*"
+                                            />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Projects to start:" VerticalAlignment="Center"
                            IsEnabled="{Binding IsConfigurationSelected}"/>
-                <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
                             IsEnabled="{Binding IsConfigurationSelected}">
                     <Button Width="24" Height="24" Margin="1 1"
                             Command="{Binding AddProjectCommand}">
@@ -127,14 +122,14 @@
                     </Button>
                 </StackPanel>
                 
-                <DataGrid Grid.Row="4" Grid.ColumnSpan="2" Grid.Column="0"
+                <DataGrid Grid.Row="3" Grid.ColumnSpan="2" Grid.Column="0"
                           AutoGenerateColumns="False"
                           ItemsSource="{Binding Projects}"
                           SelectedItem="{Binding SelectedProject}"
                           SelectionMode="Single"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
-                          ToolTip="Define which projects shall be started and in which order. Optionally set command line arguments."
+                          ToolTip="Define which projects shall be started and in which order. Optionally set command line arguments. Double-click an entry to edit it."
                           IsEnabled="{Binding IsConfigurationSelected}"
                           >
                     <DataGrid.Columns>

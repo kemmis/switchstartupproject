@@ -35,6 +35,13 @@ namespace LucidConcepts.SwitchStartupProject
             _Resize();
         }
 
+        public void Replace(T oldItem, T newItem)
+        {
+            var index = list.FindIndex(p => p.Equals(oldItem));
+            if (index < 0) return;
+            list[index] = newItem;
+        }
+
         public void Remove(T item)
         {
             list.Remove(item);

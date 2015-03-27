@@ -251,80 +251,93 @@ namespace LucidConcepts.SwitchStartupProject
         public void OpenProject(IVsHierarchy pHierarchy)
         {
             // When project is opened: register it and its name
-            bool valid = true;
-            object nameObj = null;
-            object typeNameObj = null;
-            object captionObj = null;
-            Guid guid = Guid.Empty;
-            valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Name, out nameObj) == VSConstants.S_OK;
-            valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_TypeName, out typeNameObj) == VSConstants.S_OK;
-            valid &= pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Caption, out captionObj) == VSConstants.S_OK;
-            valid &= pHierarchy.GetGuidProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_TypeGuid, out guid) == VSConstants.S_OK;
+            var name = _GetProjectStringProperty(pHierarchy, __VSHPROPID.VSHPROPID_Name);
+            var typeName = _GetProjectStringProperty(pHierarchy, __VSHPROPID.VSHPROPID_TypeName);
+            var caption = _GetProjectStringProperty(pHierarchy, __VSHPROPID.VSHPROPID_Caption);
+            var guid = _GetProjectGuidProperty(pHierarchy, __VSHPROPID.VSHPROPID_TypeGuid);
+
+            // Filter out hierarchy elements that don't represent projects
+            if (name == null || typeName == null || caption == null || guid == null) return;
             
-            if (valid)
+            logger.LogInfo("Opening project: {0}", name);
+
+            var project = projectHierarchyHelper.GetProjectFromHierarchy(pHierarchy);
+            var projectTypeGuids = _GetProjectTypeGuids(pHierarchy);
+
+            var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
+
+            _AddProject(name, pHierarchy, isWebSiteProject);
+            allStartupProjects.Add(name);
+
+            VSLangProj.prjOutputType? projectOutputType = null;
+            if (!projectTypeGuids.Contains(GuidList.guidCPlusPlus))
             {
-                var name = (string)nameObj;
-                logger.LogInfo("Opening project: {0}", name);
-
-                var project = projectHierarchyHelper.GetProjectFromHierarchy(pHierarchy);
-                var projectTypeGuids = _GetProjectTypeGuids(pHierarchy);
-
-                var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
-
-                _AddProject(name, pHierarchy, isWebSiteProject);
-                allStartupProjects.Add(name);
-
-                VSLangProj.prjOutputType? projectOutputType = null;
-                if (!projectTypeGuids.Contains(GuidList.guidCPlusPlus))
+                try
                 {
-                    try
+                    var outputType = project.Properties.Item("OutputType");
+                    if (outputType != null)
                     {
-                        var outputType = project.Properties.Item("OutputType");
-                        if (outputType != null)
+                        if (outputType.Value is int)
                         {
-                            if (outputType.Value is int)
+                            projectOutputType = (VSLangProj.prjOutputType) outputType.Value;
+                        }
+                        else if (outputType.Value.GetType().FullName == "Microsoft.VisualStudio.FSharp.ProjectSystem.OutputType")
+                        {
+                            switch (outputType.Value.ToString())
                             {
-                                projectOutputType = (VSLangProj.prjOutputType) outputType.Value;
+                                case "WinExe":
+                                    projectOutputType = VSLangProj.prjOutputType.prjOutputTypeWinExe;
+                                    break;
+                        
+                                case "Exe":
+                                    projectOutputType = VSLangProj.prjOutputType.prjOutputTypeExe;
+                                    break;
                             }
-                            else if (outputType.Value.GetType().FullName == "Microsoft.VisualStudio.FSharp.ProjectSystem.OutputType")
-                            {
-                                switch (outputType.Value.ToString())
-                                {
-                                    case "WinExe":
-                                        projectOutputType = VSLangProj.prjOutputType.prjOutputTypeWinExe;
-                                        break;
-
-                                    case "Exe":
-                                        projectOutputType = VSLangProj.prjOutputType.prjOutputTypeExe;
-                                        break;
-                                }
-                            }
-                                    
                         }
                     }
-                    catch (Exception)
-                    {
-                    }
                 }
-
-                // Smart mode: Add executables, windows executables, web applications, Visual Studio extension packages and database projects
-                if (projectOutputType == VSLangProj.prjOutputType.prjOutputTypeExe ||
-                    projectOutputType == VSLangProj.prjOutputType.prjOutputTypeWinExe ||
-                    projectOutputType == VSLangProj.prjOutputType.prjOutputTypeLibrary && (
-                        projectTypeGuids.Contains(GuidList.guidWebApp) ||
-                        projectTypeGuids.Contains(GuidList.guidVsPackage)) ||
-                    projectOutputType == null && projectTypeGuids.Contains(GuidList.guidDatabase))
+                catch (Exception)
                 {
-                    typeStartupProjects.Add(name);
                 }
+            }
 
-                if (!openingSolution)
-                {
-                    _PopulateStartupProjects(); // when reopening a single project, refresh list
-                }
+            // Smart mode: Add executables, windows executables, web applications, Visual Studio extension packages and database projects
+            if (projectOutputType == VSLangProj.prjOutputType.prjOutputTypeExe ||
+                projectOutputType == VSLangProj.prjOutputType.prjOutputTypeWinExe ||
+                projectOutputType == VSLangProj.prjOutputType.prjOutputTypeLibrary && (
+                    projectTypeGuids.Contains(GuidList.guidWebApp) ||
+                    projectTypeGuids.Contains(GuidList.guidVsPackage)) ||
+                projectOutputType == null && projectTypeGuids.Contains(GuidList.guidDatabase))
+            {
+                typeStartupProjects.Add(name);
+            }
+
+            if (!openingSolution)
+            {
+                _PopulateStartupProjects(); // when reopening a single project, refresh list
             }
         }
 
+        public void RenameProject(IVsHierarchy pHierarchy)
+        {
+            var newName = _GetProjectName(pHierarchy);
+            if (newName == null) return;
+            if (!name2hierarchy.ContainsValue(pHierarchy)) return;
+            var oldName = name2hierarchy.Single(kvp => kvp.Value == pHierarchy).Key;
+            var oldPath = name2projectPath[oldName];
+            var projectTypeGuids = _GetProjectTypeGuids(pHierarchy);
+            var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
+            // Website projects need to be set using the full path
+            var newPath = isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy);
+
+            logger.LogInfo("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
+            var reselectRenamedProject = currentStartupProject == oldName;
+            _RenameProject(pHierarchy, oldName, oldPath, newName, newPath);
+            if (reselectRenamedProject)
+            {
+                currentStartupProject = newName;
+            }
+        }
 
         public void CloseProject(IVsHierarchy pHierarchy, string projectName)
         {
@@ -372,6 +385,30 @@ namespace LucidConcepts.SwitchStartupProject
             settingsPersister.Persist();
         }
 
+        private void _RenameProject(IVsHierarchy pHierarchy, string oldName, string oldPath, string newName, string newPath)
+        {
+
+            _RenameEntryInList(startupProjects, oldName, newName);
+            _RenameEntryInList(allStartupProjects, oldName, newName);
+            _RenameEntryInList(typeStartupProjects, oldName, newName);
+            mruStartupProjects.Replace(oldName, newName);
+
+            name2hierarchy.Remove(oldName);
+            name2hierarchy.Add(newName, pHierarchy);
+            name2projectPath.Remove(oldName);
+            name2projectPath.Add(newName, newPath);
+            projectPath2name.Remove(oldPath);
+            projectPath2name.Add(newPath, newName);
+
+
+            options.Configurations.ForEach(config => config.Projects.ForEach(project =>
+            {
+                if (project.Name == oldName)
+                {
+                    project.Name = newName;
+                }
+            }));
+        }
 
         private void _ChangeStartupProject(string newStartupProject)
         {
@@ -507,6 +544,26 @@ namespace LucidConcepts.SwitchStartupProject
             reactToChangedEvent = true;
         }
 
+        private string _GetProjectName(IVsHierarchy pHierarchy)
+        {
+            object nameObj = null;
+            return pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Name, out nameObj) == VSConstants.S_OK ?
+                (string)nameObj :
+                null;
+        }
+
+        private string _GetProjectStringProperty(IVsHierarchy pHierarchy, __VSHPROPID property)
+        {
+            object valueObject = null;
+            return pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)property, out valueObject) == VSConstants.S_OK ? (string)valueObject : null;
+        }
+
+        private Guid? _GetProjectGuidProperty(IVsHierarchy pHierarchy, __VSHPROPID property)
+        {
+            Guid guid = Guid.Empty;
+            return pHierarchy.GetGuidProperty((uint)VSConstants.VSITEMID.Root, (int)property, out guid) == VSConstants.S_OK ? guid : (Guid?)null;
+        }
+
         private IEnumerable<Guid> _GetProjectTypeGuids(IVsHierarchy pHierarchy)
         {
             IEnumerable<Guid> projectTypeGuids;
@@ -557,6 +614,13 @@ namespace LucidConcepts.SwitchStartupProject
             allStartupProjects = new List<string>();
             typeStartupProjects = new List<string>();
             startupProjects = new List<string>(new [] { configure });
+        }
+
+        private void _RenameEntryInList(List<string> list, string oldName, string newName)
+        {
+            var index = list.FindIndex(p => p == oldName);
+            if (index < 0) return;
+            list[index] = newName;
         }
 
         private void _PopulateStartupProjects()

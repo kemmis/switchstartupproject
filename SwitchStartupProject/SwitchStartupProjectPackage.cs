@@ -32,7 +32,7 @@ namespace LucidConcepts.SwitchStartupProject
     // This attribute says that this package exposes an options page of the given type.
     [ProvideOptionPage(typeof(OptionPage), "Switch Startup Project", "General", 0, 0, true)]
     [Guid(GuidList.guidSwitchStartupProjectPkgString)]
-    public sealed class SwitchStartupProjectPackage : Package, IVsSolutionEvents, IVsSolutionLoadEvents, IVsSelectionEvents, IVsPersistSolutionOpts
+    public sealed class SwitchStartupProjectPackage : Package, IVsSolutionEvents, IVsSolutionEvents4, IVsSolutionLoadEvents, IVsSelectionEvents, IVsPersistSolutionOpts
     {
 
         private uint solutionEventsCookie;
@@ -288,6 +288,31 @@ namespace LucidConcepts.SwitchStartupProject
         }
 
         public int OnQueryUnloadProject(IVsHierarchy pRealHierarchy, ref int pfCancel)
+        {
+            return VSConstants.S_OK;
+        }
+
+        #endregion
+
+        #region IVsSolutionEvents4
+
+        public int OnAfterAsynchOpenProject(IVsHierarchy pHierarchy, int fAdded)
+        {
+            return VSConstants.S_OK;
+        }
+
+        public int OnAfterChangeProjectParent(IVsHierarchy pHierarchy)
+        {
+            return VSConstants.S_OK;
+        }
+
+        public int OnAfterRenameProject(IVsHierarchy pHierarchy)
+        {
+            switcher.RenameProject(pHierarchy);
+            return VSConstants.S_OK;
+        }
+
+        public int OnQueryChangeProjectParent(IVsHierarchy pHierarchy, IVsHierarchy pNewParentHier, ref int pfCancel)
         {
             return VSConstants.S_OK;
         }

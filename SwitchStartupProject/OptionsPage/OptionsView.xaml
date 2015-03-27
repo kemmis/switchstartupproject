@@ -14,22 +14,20 @@
         </Grid.RowDefinitions>
         <GroupBox Header="Single-Project List Mode" Grid.Row="0" Padding="10 0" BorderThickness="1" BorderBrush="DarkGray">
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="30" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Mode:" Margin="0 2 5 2" />
-                <ComboBox Grid.Row="0" Grid.Column="1"
+                <TextBlock Grid.Column="0" Text="Mode:" Margin="0 2 5 2" />
+                <ComboBox Grid.Column="1" Margin="0 0 5 0"
                           ToolTip="Choose which projects are listed"
                           ItemsSource="{Binding ModeValues}"
                           SelectedItem="{Binding SelectedMode}"
                           />
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Number of displayed projects:" Margin="0 2 5 2" Visibility="{Binding MruVisibility}"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Visibility="{Binding MruVisibility}" Text="{Binding MruCount}"/>
+                <TextBlock Grid.Column="2" Text="Number of displayed projects:" Margin="0 2 5 2" Visibility="{Binding MruVisibility}"/>
+                <TextBox Grid.Column="3" Visibility="{Binding MruVisibility}" Text="{Binding MruCount}"/>
             </Grid>
         </GroupBox>
         <GroupBox Header="Multi-Project Startup Configurations" Grid.Row="1" Padding="10 0" BorderThickness="1" BorderBrush="DarkGray"

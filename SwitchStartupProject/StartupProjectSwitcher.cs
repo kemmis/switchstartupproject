@@ -392,7 +392,6 @@ namespace LucidConcepts.SwitchStartupProject
                 var configuration = multiProjectConfigurations.Single(c => c.Name == newStartupProject);
                 _ActivateMultiProjectConfiguration(configuration);
             }
-            // An unknown project was chosen
         }
 
         private MultiProjectConfiguration _GetCurrentlyActiveConfiguration()

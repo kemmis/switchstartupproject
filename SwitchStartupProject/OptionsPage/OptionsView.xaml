@@ -10,8 +10,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        
         <GroupBox Header="Single-Project List Mode" Grid.Row="0" Padding="10 0" BorderThickness="1" BorderBrush="DarkGray">
             <Grid>
                 <Grid.RowDefinitions>
@@ -163,6 +163,9 @@
                 </DataGrid>
                 
             </Grid>
-        </GroupBox>        
+        </GroupBox>
+        <TextBlock Grid.Row="2" HorizontalAlignment="Right" ToolTip="{Binding LinkUrl}">
+            <Hyperlink Command="{Binding LinkCommand}"><TextBlock>SwitchStartupProject Website</TextBlock></Hyperlink>
+        </TextBlock>
     </Grid>
 </UserControl>

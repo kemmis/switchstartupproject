@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using System.Windows.Input;
 
 namespace LucidConcepts.SwitchStartupProject.OptionsPage
 {
@@ -24,6 +26,8 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
                     _RaisePropertyChanged("EnableMultiProjectConfiguration");
                 }
             };
+            LinkUrl = "https://bitbucket.org/thirteen/switchstartupproject";
+            LinkCommand = new DelegateCommand(() => Process.Start(new ProcessStartInfo(new Uri(LinkUrl).AbsoluteUri)));
         }
 
         #region Mode
@@ -285,6 +289,13 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
         }
 
         public event PropertyChangedEventHandler PropertyChanged = (s, e) => { };
+
+        #endregion
+
+        #region Hyperlink
+
+        public ICommand LinkCommand { get; private set; }
+        public string LinkUrl { get; private set; }
 
         #endregion
     }

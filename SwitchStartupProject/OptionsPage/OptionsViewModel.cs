@@ -120,7 +120,7 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
 
         private void _AddConfiguration()
         {
-            var newConfig = new Configuration(string.Format("Configuration{0}", Configurations.Count + 1));
+            var newConfig = new Configuration("New Configuration");
             Configurations.Add(newConfig);
             SelectedConfiguration = newConfig;
             _RaiseConfigurationsPropertyChanged();

@@ -231,7 +231,7 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
 
         private void _AddProject()
         {
-            var newProject = new Project(null, null);
+            var newProject = new Project(AllProjectNames.FirstOrDefault(), "");
             Projects.Add(newProject);
             SelectedProject = newProject;
             _RaiseProjectsPropertyChanged();

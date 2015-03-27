@@ -9,10 +9,12 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
     public class Project : INotifyPropertyChanged
     {
         private string name;
+        private string commandLineArguments;
 
-        public Project(string name)
+        public Project(string name, string commandLineArguments)
         {
             this.name = name;
+            this.commandLineArguments = commandLineArguments;
         }
 
         public string Name
@@ -22,6 +24,16 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
             {
                 name = value;
                 _RaisePropertyChanged("Name");
+            }
+        }
+
+        public string CommandLineArguments
+        {
+            get { return commandLineArguments; }
+            set
+            {
+                commandLineArguments = value;
+                _RaisePropertyChanged("CommandLineArguments");
             }
         }
 

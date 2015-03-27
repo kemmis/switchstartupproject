@@ -7,13 +7,13 @@ namespace LucidConcepts.SwitchStartupProject
 {
     public class MultiProjectConfiguration
     {
-        public MultiProjectConfiguration(string name, IList<string> projects)
+        public MultiProjectConfiguration(string name, IList<MultiProjectConfigurationProject> projects)
         {
             this.Name = name;
             this.Projects = projects;
         }
 
         public string Name { get; private set; }
-        public IList<string> Projects { get; private set; }
+        public IList<MultiProjectConfigurationProject> Projects { get; private set; }
     }
 }

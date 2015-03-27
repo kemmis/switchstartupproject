@@ -25,9 +25,15 @@ namespace LucidConcepts.SwitchStartupProject
 
     public class ConfigurationsPersister : IVsFileChangeEvents
     {
+        private const string versionKey = "Version";
+        private const string mostRecentlyUsedListKey = "MRU";
+        private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
+        private const string projectsKey = "Projects";
+        private const string claKey = "CommandLineArguments";
+
         private readonly string settingsFilename;
         private JObject settings;
-        private IVsFileChangeEx fileChangeService;
+        private readonly IVsFileChangeEx fileChangeService;
         private uint fileChangeCookie;
 
         public ConfigurationsPersister(string solutionFilename, string settingsFileExtension, IVsFileChangeEx fileChangeService)
@@ -40,64 +46,61 @@ namespace LucidConcepts.SwitchStartupProject
 
         public event SettingsFileModifiedEventHandler SettingsFileModified = (s, e) => { };
 
+        public bool ConfigurationFileExists()
+        {
+            return File.Exists(settingsFilename);
+        }
+
         public void Load()
         {
-            settings = File.Exists(settingsFilename) ? JObject.Parse(File.ReadAllText(settingsFilename)) : new JObject();
+            settings = ConfigurationFileExists() ? JObject.Parse(File.ReadAllText(settingsFilename)) : new JObject();
         }
 
         public void Persist()
         {
             _StopTrackingSettingsFile();
+            settings[versionKey] = 2;
             File.WriteAllText(settingsFilename, settings.ToString());
             _StartTrackingSettingsFile();
         }
 
-        public bool Exists(string key)
+        public IEnumerable<string> GetSingleProjectMruList()
         {
-            return _ExistsKey(key);
+             return _ExistsKey(mostRecentlyUsedListKey) ? settings[mostRecentlyUsedListKey].Values<string>() : Enumerable.Empty<string>();
         }
 
-        public string Get(string key)
+        public void StoreSingleProjectMruList(IEnumerable<string> list)
         {
-            if (!_ExistsKey(key)) return null;
-            return settings[key].Value<string>();
+            settings[mostRecentlyUsedListKey] = JArray.FromObject(list);
         }
 
-        public void Store(string key, string value)
+        public IEnumerable<Configuration> GetMultiProjectConfigurations()
         {
-            settings[key] = value;
-        }
-
-        public bool ExistsList(string key)
-        {
-            return _ExistsKey(key);
-        }
-
-        public IEnumerable<string> GetList(string key)
-        {
-            if (!_ExistsKey(key)) return Enumerable.Empty<string>();
-            return settings[key].Values<string>();
-        }
-
-        public void StoreList(string key, IEnumerable<string> list)
-        {
-            settings[key] = JArray.FromObject(list);
-        }
-
-        public IEnumerable<Configuration> GetMultiProjectConfigurations(string key)
-        {
-            if (!_ExistsKey(key)) return Enumerable.Empty<Configuration>();
-            return from configuration in settings[key].Cast<JProperty>()
-                   let projects = (from project in configuration.Value
-                                   select new Project(project.Value<string>()))
+            var version = _GetVersion();
+            if (!_ExistsKey(multiProjectConfigurationsKey)) return Enumerable.Empty<Configuration>();
+            if (version == 1)
+            {
+                return from configuration in settings[multiProjectConfigurationsKey].Cast<JProperty>()
+                       let projects = (from project in configuration.Value
+                                       select new Project(project.Value<string>(), ""))
+                       select new Configuration(configuration.Name, projects);
+            }
+            return from configuration in settings[multiProjectConfigurationsKey].Cast<JProperty>()
+                   let projects = (from project in configuration.Value[projectsKey].Cast<JProperty>()
+                                   select new Project(project.Name, project.Value[claKey].Value<string>()))
                    select new Configuration(configuration.Name, projects);
+
         }
 
-        public void StoreMultiProjectConfigurations(string key, IList<Configuration> configurations)
+        public void StoreMultiProjectConfigurations(IList<Configuration> configurations)
         {
-            settings[key] = new JObject(from c in configurations
-                                        select new JProperty(c.Name, new JArray(from p in c.Projects
-                                                                                select p.Name)));
+            settings[multiProjectConfigurationsKey] = new JObject(
+                from c in configurations
+                select new JProperty(c.Name, new JObject(
+                    new JProperty(projectsKey, new JObject(
+                        from p in c.Projects
+                        select new JProperty(p.Name, new JObject(
+                            new JProperty(claKey, p.CommandLineArguments))))))));
         }
 
         private string _GetSettingsFilename(string solutionFilename, string settingsFileExtension)
@@ -105,6 +108,12 @@ namespace LucidConcepts.SwitchStartupProject
             var solutionPath = Path.GetDirectoryName(solutionFilename);
             return Path.Combine(solutionPath, Path.GetFileNameWithoutExtension(solutionFilename) + settingsFileExtension);
         }
+
+        private int _GetVersion()
+        {
+            return _ExistsKey(versionKey) ? settings[versionKey].Value<int>() : 1;
+        }
+
 
         private bool _ExistsKey(string key)
         {

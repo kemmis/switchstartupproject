@@ -128,34 +128,40 @@
                                />
                     </Button>
                 </StackPanel>
-                <ListView Grid.Row="4" Grid.ColumnSpan="2"
+                
+                <DataGrid Grid.Row="4" Grid.ColumnSpan="2" Grid.Column="0"
+                          AutoGenerateColumns="False"
                           ItemsSource="{Binding Projects}"
                           SelectedItem="{Binding SelectedProject}"
                           SelectionMode="Single"
-                          ScrollViewer.VerticalScrollBarVisibility="Auto"
-                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                          ToolTip="Define which projects shall be started and in which order. The actual startup action can be modified in each project's debugging properties."
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          ToolTip="Define which projects shall be started and in which order. Optionally set command line arguments."
                           IsEnabled="{Binding IsConfigurationSelected}"
                           >
-                    <ListView.View>
-                        <GridView>
-                            <GridView.ColumnHeaderContainerStyle>
-                                <Style>
-                                    <Setter Property="FrameworkElement.Visibility" Value="Collapsed" />
+                    <DataGrid.Columns>
+                        <DataGridComboBoxColumn Header="Project Name"
+                                                SelectedValueBinding="{Binding Name}"
+                                                Width="*"
+                                                >
+                            <DataGridComboBoxColumn.ElementStyle>
+                                <Style TargetType="{x:Type ComboBox}">
+                                    <Setter Property="ItemsSource" Value="{Binding Path=DataContext.AllProjectNames, RelativeSource={RelativeSource AncestorLevel=1, AncestorType={x:Type UserControl}}}" />
                                 </Style>
-                            </GridView.ColumnHeaderContainerStyle>
-                            <GridViewColumn Header="Name" Width="400">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <ComboBox ItemsSource="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:OptionsView}}, Path=DataContext.AllProjectNames}"
-                                                  SelectedItem="{Binding Name}"
-                                                  MinWidth="300"/>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                        </GridView>
-                    </ListView.View>
-                </ListView>
+                            </DataGridComboBoxColumn.ElementStyle>
+                            <DataGridComboBoxColumn.EditingElementStyle>
+                                <Style TargetType="{x:Type ComboBox}">
+                                    <Setter Property="ItemsSource" Value="{Binding Path=DataContext.AllProjectNames, RelativeSource={RelativeSource AncestorLevel=1, AncestorType={x:Type UserControl}}}" />
+                                </Style>
+                            </DataGridComboBoxColumn.EditingElementStyle>
+                        </DataGridComboBoxColumn>
+                        <DataGridTextColumn Header="Command Line Arguments"
+                                            Binding="{Binding CommandLineArguments}"
+                                            Width="*"
+                                            />
+                    </DataGrid.Columns>
+                </DataGrid>
+                
             </Grid>
         </GroupBox>        
     </Grid>

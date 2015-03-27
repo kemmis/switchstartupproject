@@ -134,7 +134,9 @@
     <Compile Include="Helpers\EnumerableExtensions.cs" />
     <Compile Include="Helpers\Paths.cs" />
     <Compile Include="Helpers\MRUList.cs" />
+    <Compile Include="Helpers\ProjectHierarchyHelper.cs" />
     <Compile Include="MultiProjectConfiguration.cs" />
+    <Compile Include="MultiProjectConfigurationProject.cs" />
     <Compile Include="OptionPage.cs">
       <SubType>Component</SubType>
     </Compile>

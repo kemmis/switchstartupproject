@@ -130,7 +130,7 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
         private void _CloneConfiguration()
         {
             var newConfig = new Configuration(string.Format("{0} Clone", SelectedConfiguration.Name));
-            SelectedConfiguration.Projects.ForEach(p => newConfig.Projects.Add(new Project(p.Name)));
+            SelectedConfiguration.Projects.ForEach(p => newConfig.Projects.Add(new Project(p.Name, p.CommandLineArguments)));
             Configurations.Add(newConfig);
             SelectedConfiguration = newConfig;
             _RaiseConfigurationsPropertyChanged();
@@ -227,7 +227,7 @@ namespace LucidConcepts.SwitchStartupProject.OptionsPage
 
         private void _AddProject()
         {
-            var newProject = new Project(null);
+            var newProject = new Project(null, null);
             Projects.Add(newProject);
             SelectedProject = newProject;
             _RaiseProjectsPropertyChanged();

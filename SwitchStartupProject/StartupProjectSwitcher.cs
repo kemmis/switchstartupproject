@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using EnvDTE;
+
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -13,15 +14,12 @@ namespace LucidConcepts.SwitchStartupProject
 {
     public class StartupProjectSwitcher
     {
-        private const string mostRecentlyUsedListKey = "MRU";
-        private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
-
         private readonly OptionPage options;
         private readonly OleMenuCommand menuSwitchStartupProjectComboCommand;
         private readonly Action openOptionsPage;
         private readonly SwitchStartupProjectPackage.ActivityLogger logger;
 
-        private readonly Dictionary<IVsHierarchy, string> proj2name = new Dictionary<IVsHierarchy, string>();
+        private readonly Dictionary<string, IVsHierarchy> name2hierarchy = new Dictionary<string, IVsHierarchy>();
         private readonly Dictionary<string, string> name2projectPath = new Dictionary<string, string>();
         private readonly Dictionary<string, string> projectPath2name = new Dictionary<string, string>();
 
@@ -40,16 +38,18 @@ namespace LucidConcepts.SwitchStartupProject
 
         private readonly DTE dte;
         private readonly IVsFileChangeEx fileChangeService;
+        private readonly ProjectHierarchyHelper projectHierarchyHelper;
 
 
 
-        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, IVsFileChangeEx fileChangeService, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
+        public StartupProjectSwitcher(OleMenuCommand combobox, OptionPage options, DTE dte, IVsFileChangeEx fileChangeService, ProjectHierarchyHelper project2Hierarchy, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
         {
             logger.LogInfo("Entering constructor of StartupProjectSwitcher");
             this.menuSwitchStartupProjectComboCommand = combobox;
             this.options = options;
             this.dte = dte;
             this.fileChangeService = fileChangeService;
+            this.projectHierarchyHelper = project2Hierarchy;
             this.openOptionsPage = () => package.ShowOptionPage(typeof(OptionPage));
             this.logger = logger;
 
@@ -145,7 +145,9 @@ namespace LucidConcepts.SwitchStartupProject
                 currentStartupProject = sentinel;
                 return;
             }
-            _SelectMultiProjectConfigInDropdown(newStartupProjects,
+
+            var newConfig = _GetCurrentlyActiveConfiguration();
+            _SelectMultiProjectConfigInDropdown(newConfig,
                 success: newStartupProjectName => logger.LogInfo("New multi-project startup config was activated outside of combobox: {0}", newStartupProjectName),
                 failure: () =>
                 {
@@ -154,23 +156,27 @@ namespace LucidConcepts.SwitchStartupProject
                 });
         }
 
-        private void _SelectMultiProjectConfigInDropdown(Array newStartupProjects, Action<string> success, Action failure)
+        private void _SelectMultiProjectConfigInDropdown(MultiProjectConfiguration newStartupProjects, Action<string> success, Action failure)
         {
-            foreach (var configuration in multiProjectConfigurations.Where(configuration => _AreEqual(configuration.Projects, newStartupProjects)))
+            foreach (var configuration in multiProjectConfigurations.Where(configuration => _AreEqual(configuration.Projects, newStartupProjects.Projects)))
             {
                 var newStartupProjectName = configuration.Name;
                 currentStartupProject = newStartupProjectName;
                 success(newStartupProjectName);
-                return;
+                return; // take first match only
             }
             failure();
         }
 
-        private bool _AreEqual(IList<string> configurationProjects, Array newStartupProjects)
+        private bool _AreEqual(IList<MultiProjectConfigurationProject> existingConfigurationProjects, IList<MultiProjectConfigurationProject> newConfigurationProjects)
         {
-            if (configurationProjects.Count != newStartupProjects.Length) return false;
-            return !configurationProjects.Where((path, i) => path != (string)newStartupProjects.GetValue(i)).Any();
+            if (existingConfigurationProjects.Count != newConfigurationProjects.Count) return false;
+            return existingConfigurationProjects.Zip(newConfigurationProjects,
+                (existingProj, newProj) => existingProj.Name == newProj.Name &&
+                                           existingProj.CommandLineArguments == newProj.CommandLineArguments
+                ).All(areEqual => areEqual);
         }
+
 
         // Is called before a solution and its projects are loaded.
         // Is NOT called when a new solution and project are created.
@@ -260,22 +266,9 @@ namespace LucidConcepts.SwitchStartupProject
                 var name = (string)nameObj;
                 logger.LogInfo("Opening project: {0}", name);
 
-                var project = _GetProject(pHierarchy);
+                var project = projectHierarchyHelper.GetProjectFromHierarchy(pHierarchy);
+                var projectTypeGuids = _GetProjectTypeGuids(pHierarchy);
 
-                IEnumerable<Guid> projectTypeGuids;
-                var aggregatableProject = pHierarchy as IVsAggregatableProject;
-                if (aggregatableProject != null)
-                {
-                    string projectTypeGuidString;
-                    aggregatableProject.GetAggregateProjectTypeGuids(out projectTypeGuidString);
-                    projectTypeGuids = projectTypeGuidString.Split(';')
-                        .Where(guidString => !string.IsNullOrEmpty(guidString))
-                        .Select(guidString => new Guid(guidString));
-                }
-                else
-                {
-                    projectTypeGuids = new[] { new Guid(project.Kind) };
-                }
                 var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
 
                 _AddProject(name, pHierarchy, isWebSiteProject);
@@ -309,7 +302,7 @@ namespace LucidConcepts.SwitchStartupProject
                                     
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                 }
@@ -333,7 +326,6 @@ namespace LucidConcepts.SwitchStartupProject
         }
 
 
-
         public void CloseProject(IVsHierarchy pHierarchy, string projectName)
         {
             logger.LogInfo("Closing project: {0}", projectName);
@@ -348,7 +340,7 @@ namespace LucidConcepts.SwitchStartupProject
                 allStartupProjects.Remove(projectName);
                 typeStartupProjects.Remove(projectName);
                 mruStartupProjects.Remove(projectName);
-                proj2name.Remove(pHierarchy);
+                name2hierarchy.Remove(projectName);
                 var projectPath = name2projectPath[projectName];
                 name2projectPath.Remove(projectName);
                 projectPath2name.Remove(projectPath);
@@ -365,16 +357,16 @@ namespace LucidConcepts.SwitchStartupProject
         private void _LoadSettings()
         {
             logger.LogInfo("Loading configuration for solution");
-            mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetList(mostRecentlyUsedListKey).Intersect(allStartupProjects));
+            mruStartupProjects = new MRUList<string>(options.MostRecentlyUsedCount, settingsPersister.GetSingleProjectMruList().Intersect(allStartupProjects));
             options.Configurations.Clear();
-            settingsPersister.GetMultiProjectConfigurations(multiProjectConfigurationsKey).ForEach(options.Configurations.Add);
+            settingsPersister.GetMultiProjectConfigurations().ForEach(options.Configurations.Add);
         }
 
         private void _StoreSettings()
         {
             logger.LogInfo("Storing solution specific configuration.");
-            settingsPersister.StoreList(mostRecentlyUsedListKey, mruStartupProjects);
-            settingsPersister.StoreMultiProjectConfigurations(multiProjectConfigurationsKey, options.Configurations);
+            settingsPersister.StoreSingleProjectMruList(mruStartupProjects);
+            settingsPersister.StoreMultiProjectConfigurations(options.Configurations);
             settingsPersister.Persist();
         }
 
@@ -385,28 +377,120 @@ namespace LucidConcepts.SwitchStartupProject
             if (newStartupProject == sentinel)
             {
                 // No startup project
-                _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = null);
+                _ActivateSingleProjectConfiguration(null);
             }
             else if (name2projectPath.ContainsKey(newStartupProject))
             {
                 // Single startup project
-                _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = name2projectPath[newStartupProject]);
+                _ActivateSingleProjectConfiguration(newStartupProject);
             }
             else if (multiProjectConfigurations.Any(c => c.Name == newStartupProject))
             {
                 // Multiple startup projects
                 var configuration = multiProjectConfigurations.Single(c => c.Name == newStartupProject);
+                _ActivateMultiProjectConfiguration(configuration);
+            }
+            // An unknown project was chosen
+        }
+
+        private MultiProjectConfiguration _GetCurrentlyActiveConfiguration()
+        {
+            var newStartupProjects = dte.Solution.SolutionBuild.StartupProjects as Array;
+            if (newStartupProjects == null) return null;
+            if (projectPath2name.Count == 0) return null;
+
+            return new MultiProjectConfiguration(null, newStartupProjects.Cast<string>().Select(projectPath =>
+            {
+                var projectName = projectPath2name[projectPath];
+                var cla = _GetStartArgumentsOfProject(projectName);
+                return new MultiProjectConfigurationProject(projectName, cla);
+            }).ToList());
+        }
+
+        private void _ActivateSingleProjectConfiguration(string projectName)
+        {
+            _SuspendChangedEvent(() =>
+            {
+                var projectPath = name2projectPath[projectName];
+                dte.Solution.SolutionBuild.StartupProjects = projectPath;
+                
+                // Clear CLA
+                _SetStartArgumentsOfProject(projectName, string.Empty);
+            });
+        }
+
+        private void _ActivateMultiProjectConfiguration(MultiProjectConfiguration configuration)
+        {
+            _SuspendChangedEvent(() =>
+            {
                 if (configuration.Projects.Count == 1)
                 {
                     // If the multi-project startup configuration contains a single project only, handle it as if it was a single-project configuration
-                    _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = configuration.Projects.Single());
+                    var projectPath = name2projectPath[configuration.Projects.Single().Name];
+                    dte.Solution.SolutionBuild.StartupProjects = projectPath;
                 }
                 else
                 {
-                    _SuspendChangedEvent(() => dte.Solution.SolutionBuild.StartupProjects = configuration.Projects.OfType<object>().ToArray()); // SolutionBuild.StartupProjects expects an array of objects
+                    // SolutionBuild.StartupProjects expects an array of objects
+                    var projectPathArray = configuration.Projects.Select(projectConfig => (object)name2projectPath[projectConfig.Name]).ToArray();
+                    dte.Solution.SolutionBuild.StartupProjects = projectPathArray;
                 }
+
+                // Set CLA
+                foreach (var projectConfig in configuration.Projects)
+                {
+                    _SetStartArgumentsOfProject(projectConfig.Name, projectConfig.CommandLineArguments);
+                }
+            });
+        }
+
+        private string _GetStartArgumentsOfProject(string projectName)
+        {
+            if (!name2hierarchy.ContainsKey(projectName)) return null;
+            var hierarchy = name2hierarchy[projectName];
+            var project = projectHierarchyHelper.GetProjectFromHierarchy(hierarchy);
+            var configuration = _GetActiveConfigurationOfProject(project);
+            var property = _GetStartArgumentsPropertyOfConfiguration(configuration, hierarchy);
+            if (property == null) return null;
+            return (string)property.Value;
+        }
+
+        private void _SetStartArgumentsOfProject(string projectName, string commandLineArguments)
+        {
+            if (!name2hierarchy.ContainsKey(projectName)) return;
+            var hierarchy = name2hierarchy[projectName];
+            var project = projectHierarchyHelper.GetProjectFromHierarchy(hierarchy);
+            var configurations = _GetAllConfigurationsOfProject(project);
+            foreach (var configuration in configurations)
+            {
+                var property = _GetStartArgumentsPropertyOfConfiguration(configuration, hierarchy);
+                if (property == null) continue;
+                property.Value = commandLineArguments;
             }
-            // An unknown project was chosen
+        }
+
+        private Configuration _GetActiveConfigurationOfProject(Project project)
+        {
+            if (project == null) return null;
+            var configurationManager = project.ConfigurationManager;
+            return configurationManager == null ? null : configurationManager.ActiveConfiguration;
+        }
+
+        private IEnumerable<Configuration> _GetAllConfigurationsOfProject(Project project)
+        {
+            if (project == null) return null;
+            var configurationManager = project.ConfigurationManager;
+            return configurationManager.Cast<Configuration>();
+        }
+
+        private Property _GetStartArgumentsPropertyOfConfiguration(Configuration configuration, IVsHierarchy projectHierarchy)
+        {
+            if (configuration == null || projectHierarchy == null) return null;
+            var properties = configuration.Properties;
+            if (properties == null) return null;
+            var projectTypeGuids = _GetProjectTypeGuids(projectHierarchy);
+            var startArgumentsPropertyName = projectTypeGuids.Contains(GuidList.guidCPlusPlus) ? "CommandArguments" : "StartArguments";
+            return properties.Cast<Property>().FirstOrDefault(property => property.Name == startArgumentsPropertyName);
         }
 
         private void _SuspendChangedEvent(Action action)
@@ -416,13 +500,24 @@ namespace LucidConcepts.SwitchStartupProject
             reactToChangedEvent = true;
         }
 
-        private Project _GetProject(IVsHierarchy pHierarchy)
+        private IEnumerable<Guid> _GetProjectTypeGuids(IVsHierarchy pHierarchy)
         {
-            object project;
-            ErrorHandler.ThrowOnFailure(pHierarchy.GetProperty(VSConstants.VSITEMID_ROOT,
-                                                               (int)__VSHPROPID.VSHPROPID_ExtObject,
-                                                               out project));
-            return (project as Project);
+            IEnumerable<Guid> projectTypeGuids;
+            var aggregatableProject = pHierarchy as IVsAggregatableProject;
+            if (aggregatableProject != null)
+            {
+                string projectTypeGuidString;
+                aggregatableProject.GetAggregateProjectTypeGuids(out projectTypeGuidString);
+                projectTypeGuids = projectTypeGuidString.Split(';')
+                    .Where(guidString => !string.IsNullOrEmpty(guidString))
+                    .Select(guidString => new Guid(guidString));
+            }
+            else
+            {
+                var project = projectHierarchyHelper.GetProjectFromHierarchy(pHierarchy);
+                projectTypeGuids = new[] { new Guid(project.Kind) };
+            }
+            return projectTypeGuids;
         }
 
         private string _GetPathRelativeToSolution(IVsHierarchy pHierarchy)
@@ -434,14 +529,14 @@ namespace LucidConcepts.SwitchStartupProject
 
         private string _GetAbsolutePath(IVsHierarchy pHierarchy)
         {
-            var project = _GetProject(pHierarchy);
+            var project = projectHierarchyHelper.GetProjectFromHierarchy(pHierarchy);
             return project.FullName;
         }
 
 
         private void _AddProject(string name, IVsHierarchy pHierarchy, bool isWebSiteProject)
         {
-            proj2name.Add(pHierarchy, name);
+            name2hierarchy.Add(name, pHierarchy);
             // Website projects need to be set using the full path
             name2projectPath.Add(name, isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy));
             projectPath2name.Add(isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy), name);
@@ -449,7 +544,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _ClearProjects()
         {
-            proj2name.Clear();
+            name2hierarchy.Clear();
             name2projectPath.Clear();
             projectPath2name.Clear();
             allStartupProjects = new List<string>();
@@ -498,7 +593,7 @@ namespace LucidConcepts.SwitchStartupProject
             multiProjectConfigurations = (from configuration in options.Configurations
                                           let projects = (from project in configuration.Projects
                                                           where project.Name != null && name2projectPath.ContainsKey(project.Name)
-                                                          select name2projectPath[project.Name]).ToList()
+                                                          select new MultiProjectConfigurationProject(project.Name, project.CommandLineArguments)).ToList()
                                           select new MultiProjectConfiguration(configuration.Name, projects)).ToList();
 
         }

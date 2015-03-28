@@ -82,7 +82,12 @@ namespace LucidConcepts.SwitchStartupProject
                     _PopulateStartupProjects();
                 }
             };
-            solutionOptions.GetAllProjectNames = () => allStartupProjects;
+            solutionOptions.GetAllProjectNames = () =>
+            {
+                var projects = allStartupProjects;
+                projects.Sort();
+                return projects;
+            };
             menuSwitchStartupProjectComboCommand.Enabled = true;
         }
 

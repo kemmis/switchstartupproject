@@ -189,7 +189,8 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\Clone.png" />
-    <Content Include="Resources\license.txt">
+    <Content Include="..\LICENSE.txt">
+      <Link>Resources\LICENSE.txt</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Content Include="Resources\preview.png">

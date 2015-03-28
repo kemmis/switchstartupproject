@@ -18,10 +18,10 @@ namespace LucidConcepts.SwitchStartupProject
 
     public enum EMode
     {
-        All,
-        Smart,
-        MostRecentlyUsed,
-        None,
+        All = 0,
+        Smart = 1,
+        MostRecentlyUsed = 2,
+        None = 3,
     }
 
     public class OptionsModifiedEventArgs : EventArgs

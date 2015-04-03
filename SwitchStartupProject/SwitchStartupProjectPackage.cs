@@ -68,33 +68,14 @@ namespace LucidConcepts.SwitchStartupProject
             Logger.LogInfo("Entering initializer for: {0}", this.ToString());
             base.Initialize();
 
-            OleMenuCommand menuSwitchStartupProjectComboCommand = null;
-
             // Add our command handlers for menu (commands must exist in the .vsct file)
-            OleMenuCommandService mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
-            if ( null != mcs )
+            var mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
+            if ( null == mcs )
             {
-                // DropDownCombo
-                //	 a DROPDOWNCOMBO does not let the user type into the combo box; they can only pick from the list.
-                //   The string value of the element selected is returned.
-                //	 For example, this type of combo could be used for the "Solution Configurations" on the "Standard" toolbar.
-                //
-                //   A DropDownCombo box requires two commands:
-                //     One command (cmdidMyCombo) is used to ask for the current value of the combo box and to 
-                //     set the new value when the user makes a choice in the combo box.
-                //
-                //     The second command (cmdidMyComboGetList) is used to retrieve this list of choices for the combo box.
-                CommandID menuSwitchStartupProjectComboCommandID = new CommandID(GuidList.guidSwitchStartupProjectCmdSet, (int)PkgCmdIDList.cmdidSwitchStartupProjectCombo);
-                menuSwitchStartupProjectComboCommand = new OleMenuCommand(new EventHandler(_OnMenuSwitchStartupProjectCombo), menuSwitchStartupProjectComboCommandID);
-                menuSwitchStartupProjectComboCommand.ParametersDescription = "$"; // accept any argument string
-                mcs.AddCommand(menuSwitchStartupProjectComboCommand);
-                menuSwitchStartupProjectComboCommand.Enabled = false;
-
-
-                CommandID menuSwitchStartupProjectComboGetListCommandID = new CommandID(GuidList.guidSwitchStartupProjectCmdSet, (int)PkgCmdIDList.cmdidSwitchStartupProjectComboGetList);
-                MenuCommand menuSwitchStartupProjectComboGetListCommand = new OleMenuCommand(new EventHandler(_OnMenuSwitchStartupProjectComboGetList), menuSwitchStartupProjectComboGetListCommandID);
-                mcs.AddCommand(menuSwitchStartupProjectComboGetListCommand);
+                Logger.LogInfo("Could not get OleMenuCommandService");
+                return;
             }
+            var dropdownService = new DropdownService(mcs);
 
             // Get VS Automation object
             var dte = (EnvDTE.DTE)GetGlobalService(typeof(EnvDTE.DTE));
@@ -127,107 +108,8 @@ namespace LucidConcepts.SwitchStartupProject
             var fileChangeService = ServiceProvider.GlobalProvider.GetService(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
             var projectHierarchyHelper = new ProjectHierarchyHelper(solution);
 
-            switcher = new StartupProjectSwitcher(menuSwitchStartupProjectComboCommand, solutionOptions, defaultOptions, dte, fileChangeService, projectHierarchyHelper, this, solutionOptions.MostRecentlyUsedCount, Logger);
+            switcher = new StartupProjectSwitcher(dropdownService, solutionOptions, defaultOptions, dte, fileChangeService, projectHierarchyHelper, this, solutionOptions.MostRecentlyUsedCount, Logger);
         }
-        #endregion
-
-        #region ComboBoxHandlers
-
-        // IndexCombo
-        //	 An INDEXCOMBO is the same as a DROPDOWNCOMBO in that it is a "pick from list" only combo.
-        //	 The difference is an INDEXCOMBO returns the selected value as an index into the list (0 based).
-        //	 For example, this type of combo could be used for the "Solution Configurations" on the "Standard" toolbar.
-        //
-        //   An IndexCombo box requires two commands:
-        //     One command is used to ask for the current value of the combo box and to set the new value when the user
-        //     makes a choice in the combo box.
-        //
-        //     The second command is used to retrieve this list of choices for the combo box.
-        private void _OnMenuSwitchStartupProjectCombo(object sender, EventArgs e)
-        {
-            if ((null == e) || (e == EventArgs.Empty))
-            {
-                // We should never get here; EventArgs are required.
-                throw (new ArgumentException("EventArgs are required")); // force an exception to be thrown
-            }
-
-            OleMenuCmdEventArgs eventArgs = e as OleMenuCmdEventArgs;
-
-            if (eventArgs != null)
-            {
-                string newChoice = eventArgs.InValue as string;
-                IntPtr vOut = eventArgs.OutValue;
-
-                if (vOut != IntPtr.Zero && newChoice != null)
-                {
-                    throw (new ArgumentException("Both in and out parameters should not be specified")); // force an exception to be thrown
-                }
-                if (vOut != IntPtr.Zero)
-                {
-                    // when vOut is non-NULL, the IDE is requesting the current value for the combo
-                    Marshal.GetNativeVariantForObject(switcher.GetCurrentStartupProject(), vOut);
-                }
-
-                else if (newChoice != null)
-                {
-                    switcher.ChooseStartupProject(newChoice);
-                }
-                else
-                {
-                    // We should never get here
-                    throw (new ArgumentException("InOutParamCantBeNULL")); // force an exception to be thrown
-                }
-            }
-            else
-            {
-                // We should never get here; EventArgs are required.
-                throw (new ArgumentException("EventArgs are required")); // force an exception to be thrown
-            }
-        }
-
-        // An IndexCombo box requires two commands:
-        //    This command is used to retrieve this list of choices for the combo box.
-        // 
-        // Normally IOleCommandTarget::QueryStatus is used to determine the state of a command, e.g.
-        // enable vs. disable, shown vs. hidden, etc. The QueryStatus method does not have any way to 
-        // control the statue of a combo box, e.g. what list of items should be shown and what is the 
-        // current value. In order to communicate this information actually IOleCommandTarget::Exec
-        // is used with a non-NULL varOut parameter. You can think of these Exec calls as extended 
-        // QueryStatus calls. There are two pieces of information needed for a combo, thus it takes
-        // two commands to retrieve this information. The main command id for the command is used to 
-        // retrieve the current value and the second command is used to retrieve the full list of 
-        // choices to be displayed as an array of strings.
-        private void _OnMenuSwitchStartupProjectComboGetList(object sender, EventArgs e)
-        {
-            if (e == EventArgs.Empty)
-            {
-                // We should never get here; EventArgs are required.
-                throw (new ArgumentException("EventArgs are required")); // force an exception to be thrown
-            }
-
-            OleMenuCmdEventArgs eventArgs = e as OleMenuCmdEventArgs;
-
-            if (eventArgs != null)
-            {
-                object inParam = eventArgs.InValue;
-                IntPtr vOut = eventArgs.OutValue;
-
-                if (inParam != null)
-                {
-                    throw (new ArgumentException("In parameter may not be specified")); // force an exception to be thrown
-                }
-                else if (vOut != IntPtr.Zero)
-                {
-                    Marshal.GetNativeVariantForObject(switcher.GetStartupProjectChoices(), vOut);
-                }
-                else
-                {
-                    throw (new ArgumentException("Out parameter can not be NULL")); // force an exception to be thrown
-                }
-            }
-        }
-
-
         #endregion
 
         #region IVsSolutionEvents Members

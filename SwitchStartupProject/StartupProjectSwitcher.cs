@@ -14,10 +14,9 @@ namespace LucidConcepts.SwitchStartupProject
 {
     public class StartupProjectSwitcher
     {
+        private readonly DropdownService dropdownService;
         private readonly SolutionOptionPage solutionOptions;
         private readonly OptionPage defaultOptions;
-        private readonly OleMenuCommand menuSwitchStartupProjectComboCommand;
-        private readonly Action openOptionsPage;
         private readonly SwitchStartupProjectPackage.ActivityLogger logger;
 
         private readonly Dictionary<string, IVsHierarchy> name2hierarchy = new Dictionary<string, IVsHierarchy>();
@@ -30,10 +29,6 @@ namespace LucidConcepts.SwitchStartupProject
         private List<string> allStartupProjects;
         private List<MultiProjectConfiguration> multiProjectConfigurations;
 
-        private const string sentinel = "";
-        private const string configure = "Configure...";
-        private List<string> startupProjects = new List<string>(new [] { configure });
-        private string currentStartupProject = sentinel;
         private bool openingSolution;
         private bool reactToChangedEvent = true;
 
@@ -41,18 +36,17 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly IVsFileChangeEx fileChangeService;
         private readonly ProjectHierarchyHelper projectHierarchyHelper;
 
-
-
-        public StartupProjectSwitcher(OleMenuCommand combobox, SolutionOptionPage solutionOptions, OptionPage defaultOptions, DTE dte, IVsFileChangeEx fileChangeService, ProjectHierarchyHelper project2Hierarchy, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
+        public StartupProjectSwitcher(DropdownService dropdownService, SolutionOptionPage solutionOptions, OptionPage defaultOptions, DTE dte, IVsFileChangeEx fileChangeService, ProjectHierarchyHelper project2Hierarchy, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
         {
             logger.LogInfo("Entering constructor of StartupProjectSwitcher");
-            this.menuSwitchStartupProjectComboCommand = combobox;
+            this.dropdownService = dropdownService;
+            dropdownService.OnListItemSelected = _ChangeStartupProject;
+            dropdownService.OnConfigurationSelected = () => package.ShowOptionPage(solutionOptions.EnableSolutionConfiguration ? typeof(SolutionOptionPage) : typeof(OptionPage));
             this.solutionOptions = solutionOptions;
             this.defaultOptions = defaultOptions;
             this.dte = dte;
             this.fileChangeService = fileChangeService;
             this.projectHierarchyHelper = project2Hierarchy;
-            this.openOptionsPage = () => package.ShowOptionPage(solutionOptions.EnableSolutionConfiguration ? typeof(SolutionOptionPage) : typeof(OptionPage));
             this.logger = logger;
 
             // initialize MRU list
@@ -70,7 +64,7 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 if (e.OptionParameter == EOptionParameter.Mode)
                 {
-                    _PopulateStartupProjects();
+                    _PopulateDropdownList();
                 }
                 else if (e.OptionParameter == EOptionParameter.MruCount)
                 {
@@ -79,7 +73,7 @@ namespace LucidConcepts.SwitchStartupProject
                 else if (e.OptionParameter == EOptionParameter.MultiProjectConfigurations)
                 {
                     _ChangeMultiProjectConfigurationsInOptions(e.ListChangedEventArgs);
-                    _PopulateStartupProjects();
+                    _PopulateDropdownList();
                 }
             };
             solutionOptions.GetAllProjectNames = () =>
@@ -88,42 +82,6 @@ namespace LucidConcepts.SwitchStartupProject
                 projects.Sort();
                 return projects;
             };
-            menuSwitchStartupProjectComboCommand.Enabled = true;
-        }
-
-        public string GetCurrentStartupProject()
-        {
-            return currentStartupProject;
-        }
-
-        public Array GetStartupProjectChoices()
-        {
-            return startupProjects.ToArray();
-        }
-
-        public void ChooseStartupProject(string name)
-        {
-            // new value was selected or typed in
-            // see if it is the configuration item
-            if (String.Compare(configure, name, StringComparison.CurrentCultureIgnoreCase) == 0)
-            {
-                logger.LogInfo("Selected configure... in combobox");
-                openOptionsPage();
-                return;
-
-            }
-
-            // see if it is one of our items
-            foreach (string project in this.startupProjects)
-            {
-                if (String.Compare(project, name, StringComparison.CurrentCultureIgnoreCase) == 0)
-                {
-                    logger.LogInfo("Selected or typed new entry in combobox: {0}", project);
-                    _ChangeStartupProject(project);
-                    return;
-                }
-            }
-            throw (new ArgumentException("ParamNotValidStringInList")); // force an exception to be thrown
         }
 
         public void UpdateStartupProject()
@@ -144,12 +102,12 @@ namespace LucidConcepts.SwitchStartupProject
                     var newStartupProjectName = projectPath2name[startupProject];
                     logger.LogInfo("New startup project was activated outside of combobox: {0}", newStartupProjectName);
                     mruStartupProjects.Touch(newStartupProjectName);
-                    _PopulateStartupProjects();
-                    currentStartupProject = newStartupProjectName;
+                    _PopulateDropdownList();
+                    dropdownService.CurrentDropdownValue = newStartupProjectName;
                     return;
                 }
                 logger.LogInfo("New unknown startup project was activated outside of combobox");
-                currentStartupProject = sentinel;
+                dropdownService.CurrentDropdownValue = null;
                 return;
             }
 
@@ -159,7 +117,7 @@ namespace LucidConcepts.SwitchStartupProject
                 failure: () =>
                 {
                     logger.LogInfo("New unknown multi-project startup config was activated outside of combobox");
-                    currentStartupProject = sentinel;
+                    dropdownService.CurrentDropdownValue = null;
                 });
         }
 
@@ -168,7 +126,7 @@ namespace LucidConcepts.SwitchStartupProject
             foreach (var configuration in multiProjectConfigurations.Where(configuration => _AreEqual(configuration.Projects, newStartupProjects.Projects)))
             {
                 var newStartupProjectName = configuration.Name;
-                currentStartupProject = newStartupProjectName;
+                dropdownService.CurrentDropdownValue = newStartupProjectName;
                 success(newStartupProjectName);
                 return; // take first match only
             }
@@ -217,7 +175,7 @@ namespace LucidConcepts.SwitchStartupProject
             // When solution is open: enable solution configuration
             logger.LogInfo("Enable solution configuration");
             solutionOptions.EnableSolutionConfiguration = true;
-            _PopulateStartupProjects();
+            _PopulateDropdownList();
             // Select the currently active startup configuration in the dropdown
             UpdateStartupProject();
         }
@@ -238,7 +196,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             logger.LogInfo("Finished to close solution");
             // When solution is closed: choose no project
-            currentStartupProject = sentinel;
+            dropdownService.CurrentDropdownValue = null;
             solutionOptions.Configurations.Clear();
             logger.LogInfo("Disable solution configuration");
             solutionOptions.EnableSolutionConfiguration = false;
@@ -328,7 +286,7 @@ namespace LucidConcepts.SwitchStartupProject
 
             if (!openingSolution)
             {
-                _PopulateStartupProjects(); // when reopening a single project, refresh list
+                _PopulateDropdownList(); // when reopening a single project, refresh list
             }
         }
 
@@ -345,11 +303,11 @@ namespace LucidConcepts.SwitchStartupProject
             var newPath = isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy);
 
             logger.LogInfo("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
-            var reselectRenamedProject = currentStartupProject == oldName;
+            var reselectRenamedProject = dropdownService.CurrentDropdownValue == oldName;
             _RenameProject(pHierarchy, oldName, oldPath, newName, newPath);
             if (reselectRenamedProject)
             {
-                currentStartupProject = newName;
+                dropdownService.CurrentDropdownValue = newName;
             }
         }
 
@@ -359,11 +317,11 @@ namespace LucidConcepts.SwitchStartupProject
             // When project is closed: remove it from list of startup projects (if it was in there)
             if (allStartupProjects.Contains(projectName))
             {
-                if (currentStartupProject == projectName)
+                if (dropdownService.CurrentDropdownValue == projectName)
                 {
-                    currentStartupProject = sentinel;
+                    dropdownService.CurrentDropdownValue = null;
                 }
-                startupProjects.Remove(projectName);
+                dropdownService.DropdownList.Remove(projectName);
                 allStartupProjects.Remove(projectName);
                 typeStartupProjects.Remove(projectName);
                 mruStartupProjects.Remove(projectName);
@@ -374,11 +332,11 @@ namespace LucidConcepts.SwitchStartupProject
             }
         }
 
-        public void ToggleDebuggingActive(bool active)
+        public void ToggleDebuggingActive(bool debuggingActive)
         {
-            logger.LogInfo(active ? "Start debugging, disable combobox" : "Stop debugging, enable combobox");
+            logger.LogInfo(debuggingActive ? "Start debugging, disable combobox" : "Stop debugging, enable combobox");
             // When debugging command UI context is activated, disable combobox, otherwise enable combobox
-            menuSwitchStartupProjectComboCommand.Enabled = !active;
+            dropdownService.DropdownEnabled = !debuggingActive;
         }
 
         private void _LoadDefaultSettings()
@@ -416,7 +374,7 @@ namespace LucidConcepts.SwitchStartupProject
         private void _RenameProject(IVsHierarchy pHierarchy, string oldName, string oldPath, string newName, string newPath)
         {
 
-            _RenameEntryInList(startupProjects, oldName, newName);
+            _RenameEntryInList(dropdownService.DropdownList, oldName, newName);
             _RenameEntryInList(allStartupProjects, oldName, newName);
             _RenameEntryInList(typeStartupProjects, oldName, newName);
             mruStartupProjects.Replace(oldName, newName);
@@ -440,8 +398,8 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _ChangeStartupProject(string newStartupProject)
         {
-            this.currentStartupProject = newStartupProject;
-            if (newStartupProject == sentinel)
+            dropdownService.CurrentDropdownValue = newStartupProject;
+            if (newStartupProject == null)
             {
                 // No startup project
                 _ActivateSingleProjectConfiguration(null);
@@ -641,18 +599,23 @@ namespace LucidConcepts.SwitchStartupProject
             projectPath2name.Clear();
             allStartupProjects = new List<string>();
             typeStartupProjects = new List<string>();
-            startupProjects = new List<string>(new [] { configure });
+            dropdownService.DropdownList = null;
         }
 
-        private void _RenameEntryInList(List<string> list, string oldName, string newName)
+        private void _RenameEntryInList(IList<string> list, string oldName, string newName)
         {
-            var index = list.FindIndex(p => p == oldName);
-            if (index < 0) return;
-            list[index] = newName;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] == oldName)
+                {
+                    list[i] = newName;
+                }
+            }
         }
 
-        private void _PopulateStartupProjects()
+        private void _PopulateDropdownList()
         {
+            var startupProjects = new List<string>();
             switch (solutionOptions.Mode)
             {
                 case EMode.All:
@@ -667,11 +630,10 @@ namespace LucidConcepts.SwitchStartupProject
                     startupProjects = typeStartupProjects.ToList();
                     break;
                 case EMode.None:
-                    startupProjects = new List<string>();
                     break;
             }
             multiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
-            startupProjects.Add(configure);
+            dropdownService.DropdownList = startupProjects;
         }
 
         private void _ChangeMultiProjectConfigurationsInOptions(ListChangedEventArgs listChangedEventArgs)
@@ -682,9 +644,9 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 var index = listChangedEventArgs.NewIndex;
                 if (index < multiProjectConfigurations.Count &&
-                    multiProjectConfigurations[index].Name == currentStartupProject)
+                    multiProjectConfigurations[index].Name == dropdownService.CurrentDropdownValue)
                 {
-                    currentStartupProject = solutionOptions.Configurations[index].Name;
+                    dropdownService.CurrentDropdownValue = solutionOptions.Configurations[index].Name;
                 }
             }
 
@@ -701,7 +663,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             var oldList = mruStartupProjects;
             mruStartupProjects = new MRUList<string>(solutionOptions.MostRecentlyUsedCount, oldList);
-            _PopulateStartupProjects();
+            _PopulateDropdownList();
         }
     }
 }

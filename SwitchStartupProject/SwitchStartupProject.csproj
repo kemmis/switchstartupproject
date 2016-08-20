@@ -138,29 +138,7 @@
     <Compile Include="Helpers\ProjectHierarchyHelper.cs" />
     <Compile Include="MultiProjectConfiguration.cs" />
     <Compile Include="MultiProjectConfigurationProject.cs" />
-    <Compile Include="OptionPage.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="OptionsPage\DefaultOptionsView.xaml.cs">
-      <DependentUpon>DefaultOptionsView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="OptionsPage\DefaultOptionsViewModel.cs" />
-    <Compile Include="SolutionOptionPage.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="Helpers\GlobalSuppressions.cs" />
-    <Compile Include="OptionsPage\AutoGreyableImage.cs" />
-    <Compile Include="OptionsPage\Configuration.cs" />
-    <Compile Include="OptionsPage\DelegateCommand.cs" />
-    <Compile Include="OptionsPage\NativeMethods.cs" />
-    <Compile Include="OptionsPage\SolutionOptionsView.xaml.cs">
-      <DependentUpon>SolutionOptionsView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="OptionsPage\SolutionOptionsViewModel.cs" />
-    <Compile Include="OptionsPage\Project.cs" />
-    <Compile Include="OptionsPage\UIElemendDialogPage.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="StartupProjectSwitcher.cs" />
     <Compile Include="SwitchStartupProjectPackage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -189,7 +167,6 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\Clone.png" />
     <Content Include="..\LICENSE.md">
       <Link>Resources\LICENSE.md</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
@@ -202,24 +179,10 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Resource Include="Resources\ArrowDown.png" />
-    <Resource Include="Resources\Add.png" />
-    <Resource Include="Resources\ArrowUp.png" />
-    <Resource Include="Resources\Delete.png" />
     <Content Include="Resources\SwitchStartupProject.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="OptionsPage\DefaultOptionsView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="OptionsPage\SolutionOptionsView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup />
   <PropertyGroup>

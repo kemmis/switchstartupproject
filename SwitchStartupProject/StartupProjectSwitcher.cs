@@ -15,8 +15,6 @@ namespace LucidConcepts.SwitchStartupProject
     public class StartupProjectSwitcher
     {
         private readonly DropdownService dropdownService;
-        private readonly SolutionOptionPage solutionOptions;
-        private readonly OptionPage defaultOptions;
         private readonly SwitchStartupProjectPackage.ActivityLogger logger;
 
         private readonly Dictionary<string, IVsHierarchy> name2hierarchy = new Dictionary<string, IVsHierarchy>();
@@ -36,14 +34,11 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly IVsFileChangeEx fileChangeService;
         private readonly ProjectHierarchyHelper projectHierarchyHelper;
 
-        public StartupProjectSwitcher(DropdownService dropdownService, SolutionOptionPage solutionOptions, OptionPage defaultOptions, DTE dte, IVsFileChangeEx fileChangeService, ProjectHierarchyHelper project2Hierarchy, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
+        public StartupProjectSwitcher(DropdownService dropdownService, DTE dte, IVsFileChangeEx fileChangeService, ProjectHierarchyHelper project2Hierarchy, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
         {
             logger.LogInfo("Entering constructor of StartupProjectSwitcher");
             this.dropdownService = dropdownService;
             dropdownService.OnListItemSelected = _ChangeStartupProject;
-            dropdownService.OnConfigurationSelected = () => package.ShowOptionPage(solutionOptions.EnableSolutionConfiguration ? typeof(SolutionOptionPage) : typeof(OptionPage));
-            this.solutionOptions = solutionOptions;
-            this.defaultOptions = defaultOptions;
             this.dte = dte;
             this.fileChangeService = fileChangeService;
             this.projectHierarchyHelper = project2Hierarchy;
@@ -59,29 +54,6 @@ namespace LucidConcepts.SwitchStartupProject
             allStartupProjects = new List<string>();
 
             multiProjectConfigurations = new List<MultiProjectConfiguration>();
-
-            solutionOptions.Modified += (s, e) =>
-            {
-                if (e.OptionParameter == EOptionParameter.Mode)
-                {
-                    _PopulateDropdownList();
-                }
-                else if (e.OptionParameter == EOptionParameter.MruCount)
-                {
-                    _ChangeMRUCountInOptions();
-                }
-                else if (e.OptionParameter == EOptionParameter.MultiProjectConfigurations)
-                {
-                    _ChangeMultiProjectConfigurationsInOptions(e.ListChangedEventArgs);
-                    _PopulateDropdownList();
-                }
-            };
-            solutionOptions.GetAllProjectNames = () =>
-            {
-                var projects = allStartupProjects;
-                projects.Sort();
-                return projects;
-            };
         }
 
         public void UpdateStartupProject()

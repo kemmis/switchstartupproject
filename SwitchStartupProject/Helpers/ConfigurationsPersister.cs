@@ -6,8 +6,6 @@ using System.Text;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json.Linq;
-using Configuration = LucidConcepts.SwitchStartupProject.OptionsPage.Configuration;
-using Project = LucidConcepts.SwitchStartupProject.OptionsPage.Project;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -97,25 +95,25 @@ namespace LucidConcepts.SwitchStartupProject
             settings[mostRecentlyUsedListKey] = JArray.FromObject(list);
         }
 
-        public IEnumerable<Configuration> GetMultiProjectConfigurations()
+        public IEnumerable<MultiProjectConfiguration> GetMultiProjectConfigurations()
         {
             var version = _GetVersion();
-            if (!_ExistsKey(multiProjectConfigurationsKey)) return Enumerable.Empty<Configuration>();
+            if (!_ExistsKey(multiProjectConfigurationsKey)) return Enumerable.Empty<MultiProjectConfiguration>();
             if (version == 1)
             {
                 return from configuration in settings[multiProjectConfigurationsKey].Cast<JProperty>()
                        let projects = (from project in configuration.Value
-                                       select new Project(project.Value<string>(), ""))
-                       select new Configuration(configuration.Name, projects);
+                                       select new MultiProjectConfigurationProject(project.Value<string>(), ""))
+                       select new MultiProjectConfiguration(configuration.Name, projects.ToList());
             }
             return from configuration in settings[multiProjectConfigurationsKey].Cast<JProperty>()
                    let projects = (from project in configuration.Value[projectsKey].Cast<JProperty>()
-                                   select new Project(project.Name, project.Value[claKey].Value<string>()))
-                   select new Configuration(configuration.Name, projects);
+                                   select new MultiProjectConfigurationProject(project.Name, project.Value[claKey].Value<string>()))
+                   select new MultiProjectConfiguration(configuration.Name, projects.ToList());
 
         }
 
-        public void StoreMultiProjectConfigurations(IList<Configuration> configurations)
+        public void StoreMultiProjectConfigurations(IList<MultiProjectConfiguration> configurations)
         {
             settings[multiProjectConfigurationsKey] = new JObject(
                 from c in configurations

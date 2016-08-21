@@ -22,12 +22,10 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly Dictionary<string, string> projectPath2name = new Dictionary<string, string>();
 
         private ConfigurationsPersister settingsPersister;
-        private MRUList<string> mruStartupProjects;
-        private List<string> typeStartupProjects;
         private List<string> allStartupProjects;
         private List<MultiProjectConfiguration> multiProjectConfigurations;
 
-        private bool openingSolution;
+        private bool openingSolution = false;
         private bool reactToChangedEvent = true;
 
         private readonly DTE dte;
@@ -44,24 +42,19 @@ namespace LucidConcepts.SwitchStartupProject
             this.projectHierarchyHelper = project2Hierarchy;
             this.logger = logger;
 
-            // initialize MRU list
-            mruStartupProjects = new MRUList<string>(mruCount);
-
-            // initialize type list
-            typeStartupProjects = new List<string>();
-
-            // initialize all list
             allStartupProjects = new List<string>();
-
             multiProjectConfigurations = new List<MultiProjectConfiguration>();
         }
 
+        /// <summary>
+        /// Update the selection in the dropdown box when a new startup project was set
+        /// </summary>
         public void UpdateStartupProject()
         {
             // When startup project is set through dropdown, don't do anything
             if (!reactToChangedEvent) return;
             // Don't react to startup project changes while opening the solution or when multi-project configurations have not yet been loaded.
-            if (openingSolution || !solutionOptions.EnableSolutionConfiguration) return;
+            if (openingSolution) return;
 
             // When startup project is set in solution explorer, update combobox
             var newStartupProjects = dte.Solution.SolutionBuild.StartupProjects as Array;
@@ -73,8 +66,6 @@ namespace LucidConcepts.SwitchStartupProject
                 {
                     var newStartupProjectName = projectPath2name[startupProject];
                     logger.LogInfo("New startup project was activated outside of combobox: {0}", newStartupProjectName);
-                    mruStartupProjects.Touch(newStartupProjectName);
-                    _PopulateDropdownList();
                     dropdownService.CurrentDropdownValue = newStartupProjectName;
                     return;
                 }
@@ -144,9 +135,6 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 _LoadDefaultSettings();
             }
-            // When solution is open: enable solution configuration
-            logger.LogInfo("Enable solution configuration");
-            solutionOptions.EnableSolutionConfiguration = true;
             _PopulateDropdownList();
             // Select the currently active startup configuration in the dropdown
             UpdateStartupProject();
@@ -160,7 +148,6 @@ namespace LucidConcepts.SwitchStartupProject
                 logger.LogInfo("Cannot store solution specific configuration because configuration persister has not yet been set up.");
                 return;
             }
-            _StoreSettings();
             settingsPersister.SettingsFileModified -= OnSettingsFileModified;
         }
 
@@ -169,9 +156,6 @@ namespace LucidConcepts.SwitchStartupProject
             logger.LogInfo("Finished to close solution");
             // When solution is closed: choose no project
             dropdownService.CurrentDropdownValue = null;
-            solutionOptions.Configurations.Clear();
-            logger.LogInfo("Disable solution configuration");
-            solutionOptions.EnableSolutionConfiguration = false;
             settingsPersister = null;
             _ClearProjects();
         }
@@ -180,16 +164,6 @@ namespace LucidConcepts.SwitchStartupProject
         {
             settingsPersister.Load();
             _LoadSettings();
-        }
-
-        public void OnSolutionSaved()
-        {
-            if (settingsPersister == null)  // This happens e.g. when creating a new website
-            {
-                logger.LogInfo("Cannot store solution specific configuration because configuration persister has not yet been set up.");
-                return;
-            }
-            _StoreSettings();
         }
 
         public void OpenProject(IVsHierarchy pHierarchy)
@@ -205,56 +179,12 @@ namespace LucidConcepts.SwitchStartupProject
             
             logger.LogInfo("Opening project: {0}", name);
 
-            var project = projectHierarchyHelper.GetProjectFromHierarchy(pHierarchy);
             var projectTypeGuids = _GetProjectTypeGuids(pHierarchy);
 
             var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
 
             _AddProject(name, pHierarchy, isWebSiteProject);
             allStartupProjects.Add(name);
-
-            VSLangProj.prjOutputType? projectOutputType = null;
-            if (!projectTypeGuids.Contains(GuidList.guidCPlusPlus))
-            {
-                try
-                {
-                    var outputType = project.Properties.Item("OutputType");
-                    if (outputType != null)
-                    {
-                        if (outputType.Value is int)
-                        {
-                            projectOutputType = (VSLangProj.prjOutputType) outputType.Value;
-                        }
-                        else if (outputType.Value.GetType().FullName == "Microsoft.VisualStudio.FSharp.ProjectSystem.OutputType")
-                        {
-                            switch (outputType.Value.ToString())
-                            {
-                                case "WinExe":
-                                    projectOutputType = VSLangProj.prjOutputType.prjOutputTypeWinExe;
-                                    break;
-                        
-                                case "Exe":
-                                    projectOutputType = VSLangProj.prjOutputType.prjOutputTypeExe;
-                                    break;
-                            }
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            // Smart mode: Add executables, windows executables, web applications, Visual Studio extension packages and database projects
-            if (projectOutputType == VSLangProj.prjOutputType.prjOutputTypeExe ||
-                projectOutputType == VSLangProj.prjOutputType.prjOutputTypeWinExe ||
-                projectOutputType == VSLangProj.prjOutputType.prjOutputTypeLibrary && (
-                    projectTypeGuids.Contains(GuidList.guidWebApp) ||
-                    projectTypeGuids.Contains(GuidList.guidVsPackage)) ||
-                projectOutputType == null && projectTypeGuids.Contains(GuidList.guidDatabase))
-            {
-                typeStartupProjects.Add(name);
-            }
 
             if (!openingSolution)
             {
@@ -295,8 +225,6 @@ namespace LucidConcepts.SwitchStartupProject
                 }
                 dropdownService.DropdownList.Remove(projectName);
                 allStartupProjects.Remove(projectName);
-                typeStartupProjects.Remove(projectName);
-                mruStartupProjects.Remove(projectName);
                 name2hierarchy.Remove(projectName);
                 var projectPath = name2projectPath[projectName];
                 name2projectPath.Remove(projectName);
@@ -314,33 +242,11 @@ namespace LucidConcepts.SwitchStartupProject
         private void _LoadDefaultSettings()
         {
             logger.LogInfo("Loading default configuration");
-            solutionOptions.Mode = defaultOptions.Mode;
-            solutionOptions.MostRecentlyUsedCount = defaultOptions.MostRecentlyUsedCount;
-            mruStartupProjects = new MRUList<string>(solutionOptions.MostRecentlyUsedCount);
-            solutionOptions.Configurations.Clear();
-            solutionOptions.ActivateCommandLineArguments = false;
         }
 
         private void _LoadSettings()
         {
             logger.LogInfo("Loading configuration for solution");
-            solutionOptions.Mode = settingsPersister.GetSingleProjectMode();
-            solutionOptions.MostRecentlyUsedCount = settingsPersister.GetSingleProjectMruCount();
-            mruStartupProjects = new MRUList<string>(solutionOptions.MostRecentlyUsedCount, settingsPersister.GetSingleProjectMruList().Intersect(allStartupProjects));
-            solutionOptions.Configurations.Clear();
-            settingsPersister.GetMultiProjectConfigurations().ForEach(solutionOptions.Configurations.Add);
-            solutionOptions.ActivateCommandLineArguments = settingsPersister.GetActivateCommandLineArguments();
-        }
-
-        private void _StoreSettings()
-        {
-            logger.LogInfo("Storing solution specific configuration.");
-            settingsPersister.StoreSingleProjectMode(solutionOptions.Mode);
-            settingsPersister.StoreSingleProjectMruCount(solutionOptions.MostRecentlyUsedCount);
-            settingsPersister.StoreSingleProjectMruList(mruStartupProjects);
-            settingsPersister.StoreMultiProjectConfigurations(solutionOptions.Configurations);
-            settingsPersister.StoreActivateCommandLineArguments(solutionOptions.ActivateCommandLineArguments);
-            settingsPersister.Persist();
         }
 
         private void _RenameProject(IVsHierarchy pHierarchy, string oldName, string oldPath, string newName, string newPath)
@@ -348,8 +254,6 @@ namespace LucidConcepts.SwitchStartupProject
 
             _RenameEntryInList(dropdownService.DropdownList, oldName, newName);
             _RenameEntryInList(allStartupProjects, oldName, newName);
-            _RenameEntryInList(typeStartupProjects, oldName, newName);
-            mruStartupProjects.Replace(oldName, newName);
 
             name2hierarchy.Remove(oldName);
             name2hierarchy.Add(newName, pHierarchy);
@@ -358,14 +262,6 @@ namespace LucidConcepts.SwitchStartupProject
             projectPath2name.Remove(oldPath);
             projectPath2name.Add(newPath, newName);
 
-
-            solutionOptions.Configurations.ForEach(config => config.Projects.ForEach(project =>
-            {
-                if (project.Name == oldName)
-                {
-                    project.Name = newName;
-                }
-            }));
         }
 
         private void _ChangeStartupProject(string newStartupProject)
@@ -411,10 +307,6 @@ namespace LucidConcepts.SwitchStartupProject
                 dte.Solution.SolutionBuild.StartupProjects = projectPath;
                 
                 // Clear CLA
-                if (solutionOptions.ActivateCommandLineArguments)
-                {
-                    _SetStartArgumentsOfProject(projectName, string.Empty);
-                }
             });
         }
 
@@ -436,13 +328,6 @@ namespace LucidConcepts.SwitchStartupProject
                 }
 
                 // Set CLA
-                if (solutionOptions.ActivateCommandLineArguments)
-                {
-                    foreach (var projectConfig in configuration.Projects)
-                    {
-                        _SetStartArgumentsOfProject(projectConfig.Name, projectConfig.CommandLineArguments);
-                    }
-                }
             });
         }
 
@@ -570,7 +455,6 @@ namespace LucidConcepts.SwitchStartupProject
             name2projectPath.Clear();
             projectPath2name.Clear();
             allStartupProjects = new List<string>();
-            typeStartupProjects = new List<string>();
             dropdownService.DropdownList = null;
         }
 
@@ -588,54 +472,10 @@ namespace LucidConcepts.SwitchStartupProject
         private void _PopulateDropdownList()
         {
             var startupProjects = new List<string>();
-            switch (solutionOptions.Mode)
-            {
-                case EMode.All:
-                    allStartupProjects.Sort();
-                    startupProjects = allStartupProjects.ToList();
-                    break;
-                case EMode.MostRecentlyUsed:
-                    startupProjects = mruStartupProjects.ToList();
-                    break;
-                case EMode.Smart:
-                    typeStartupProjects.Sort();
-                    startupProjects = typeStartupProjects.ToList();
-                    break;
-                case EMode.None:
-                    break;
-            }
+            allStartupProjects.Sort();
+            startupProjects = allStartupProjects.ToList();
             multiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
             dropdownService.DropdownList = startupProjects;
-        }
-
-        private void _ChangeMultiProjectConfigurationsInOptions(ListChangedEventArgs listChangedEventArgs)
-        {
-            // If the currently selected multi-project startup configuration is changed, adjust its name
-            if (listChangedEventArgs != null &&
-                listChangedEventArgs.ListChangedType == ListChangedType.ItemChanged)
-            {
-                var index = listChangedEventArgs.NewIndex;
-                if (index < multiProjectConfigurations.Count &&
-                    multiProjectConfigurations[index].Name == dropdownService.CurrentDropdownValue)
-                {
-                    dropdownService.CurrentDropdownValue = solutionOptions.Configurations[index].Name;
-                }
-            }
-
-            multiProjectConfigurations.Clear();
-            multiProjectConfigurations = (from configuration in solutionOptions.Configurations
-                                          let projects = (from project in configuration.Projects
-                                                          where project.Name != null && name2projectPath.ContainsKey(project.Name)
-                                                          select new MultiProjectConfigurationProject(project.Name, project.CommandLineArguments)).ToList()
-                                          select new MultiProjectConfiguration(configuration.Name, projects)).ToList();
-
-        }
-
-        private void _ChangeMRUCountInOptions()
-        {
-            var oldList = mruStartupProjects;
-            mruStartupProjects = new MRUList<string>(solutionOptions.MostRecentlyUsedCount, oldList);
-            _PopulateDropdownList();
         }
     }
 }

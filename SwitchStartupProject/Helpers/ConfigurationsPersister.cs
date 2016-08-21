@@ -24,9 +24,6 @@ namespace LucidConcepts.SwitchStartupProject
     public class ConfigurationsPersister : IVsFileChangeEvents
     {
         private const string versionKey = "Version";
-        private const string singleProjectModeKey = "SingleProjectMode";
-        private const string singleProjectMruCountKey = "SingleProjectMruCount";
-        private const string mostRecentlyUsedListKey = "MRU";
         private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
         private const string projectsKey = "Projects";
         private const string claKey = "CommandLineArguments";
@@ -57,44 +54,6 @@ namespace LucidConcepts.SwitchStartupProject
             settings = ConfigurationFileExists() ? JObject.Parse(File.ReadAllText(settingsFilename)) : new JObject();
         }
 
-        public void Persist()
-        {
-            _StopTrackingSettingsFile();
-            settings[versionKey] = 2;
-            File.WriteAllText(settingsFilename, settings.ToString());
-            _StartTrackingSettingsFile();
-        }
-
-        public EMode GetSingleProjectMode()
-        {
-            return _ExistsKey(singleProjectModeKey) ? (EMode)settings[singleProjectModeKey].Value<int>() : EMode.All;
-        }
-
-        public void StoreSingleProjectMode(EMode mode)
-        {
-            settings[singleProjectModeKey] = (int)mode;
-        }
-
-        public int GetSingleProjectMruCount()
-        {
-            return _ExistsKey(singleProjectMruCountKey) ? settings[singleProjectMruCountKey].Value<int>() : 5;
-        }
-
-        public void StoreSingleProjectMruCount(int count)
-        {
-            settings[singleProjectMruCountKey] = count;
-        }
-
-        public IEnumerable<string> GetSingleProjectMruList()
-        {
-             return _ExistsKey(mostRecentlyUsedListKey) ? settings[mostRecentlyUsedListKey].Values<string>() : Enumerable.Empty<string>();
-        }
-
-        public void StoreSingleProjectMruList(IEnumerable<string> list)
-        {
-            settings[mostRecentlyUsedListKey] = JArray.FromObject(list);
-        }
-
         public IEnumerable<MultiProjectConfiguration> GetMultiProjectConfigurations()
         {
             var version = _GetVersion();
@@ -113,25 +72,9 @@ namespace LucidConcepts.SwitchStartupProject
 
         }
 
-        public void StoreMultiProjectConfigurations(IList<MultiProjectConfiguration> configurations)
-        {
-            settings[multiProjectConfigurationsKey] = new JObject(
-                from c in configurations
-                select new JProperty(c.Name, new JObject(
-                    new JProperty(projectsKey, new JObject(
-                        from p in c.Projects
-                        select new JProperty(p.Name, new JObject(
-                            new JProperty(claKey, p.CommandLineArguments))))))));
-        }
-
         public bool GetActivateCommandLineArguments()
         {
             return _ExistsKey(activateCommandLineArgumentsKey) && settings[activateCommandLineArgumentsKey].Value<bool>();
-        }
-
-        public void StoreActivateCommandLineArguments(bool value)
-        {
-            settings[activateCommandLineArgumentsKey] = value;
         }
 
         private string _GetSettingsFilename(string solutionFilename, string settingsFileExtension)
@@ -144,7 +87,6 @@ namespace LucidConcepts.SwitchStartupProject
         {
             return _ExistsKey(versionKey) ? settings[versionKey].Value<int>() : 1;
         }
-
 
         private bool _ExistsKey(string key)
         {

@@ -266,7 +266,6 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int SaveUserOptions(IVsSolutionPersistence pPersistence)
         {
-            switcher.OnSolutionSaved();
             return VSConstants.S_OK;
         }
 

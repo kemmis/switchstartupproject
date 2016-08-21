@@ -131,12 +131,12 @@
   <ItemGroup>
     <Compile Include="DropdownService.cs" />
     <Compile Include="Guids.cs" />
-    <Compile Include="Helpers\ConfigurationsPersister.cs" />
+    <Compile Include="Configuration\ConfigurationsPersister.cs" />
     <Compile Include="Helpers\EnumerableExtensions.cs" />
     <Compile Include="Helpers\Paths.cs" />
     <Compile Include="Helpers\ProjectHierarchyHelper.cs" />
-    <Compile Include="MultiProjectConfiguration.cs" />
-    <Compile Include="MultiProjectConfigurationProject.cs" />
+    <Compile Include="Configuration\MultiProjectConfiguration.cs" />
+    <Compile Include="Configuration\MultiProjectConfigurationProject.cs" />
     <Compile Include="Helpers\GlobalSuppressions.cs" />
     <Compile Include="StartupProjectSwitcher.cs" />
     <Compile Include="SwitchStartupProjectPackage.cs" />

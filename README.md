@@ -21,3 +21,7 @@ No more scrolling up and down the solution explorer tree just to change the star
 * Download older releases from the [Downloads Section](https://bitbucket.org/thirteen/switchstartupproject/downloads)
 * Download CI builds from [AppVeyor](https://ci.appveyor.com/project/thirteen/switchstartupproject)
 * Source code on [Bitbucket](https://bitbucket.org/thirteen/switchstartupproject/src)
+
+## Found a problem?
+
+Use the [Issue Tracker](https://bitbucket.org/thirteen/switchstartupproject/issues?status=new&status=open)

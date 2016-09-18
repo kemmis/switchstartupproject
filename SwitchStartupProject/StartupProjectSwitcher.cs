@@ -21,7 +21,8 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly Dictionary<string, string> name2projectPath = new Dictionary<string, string>();
         private readonly Dictionary<string, string> projectPath2name = new Dictionary<string, string>();
 
-        private ConfigurationsPersister settingsPersister;
+        private ConfigurationFileTracker configurationFileTracker;
+        private ConfigurationLoader configurationLoader;
         private List<string> allStartupProjects;
         private List<MultiProjectConfiguration> multiProjectConfigurations;
 
@@ -125,9 +126,10 @@ namespace LucidConcepts.SwitchStartupProject
                 logger.LogInfo("Solution path not yet known. Skipping initialization of configuration persister and loading of settings.");
                 return;
             }
-            settingsPersister = new ConfigurationsPersister(dte.Solution.FullName, ".startup.suo", fileChangeService);
-            settingsPersister.SettingsFileModified += OnSettingsFileModified;
-            if (settingsPersister.ConfigurationFileExists())
+            var configurationFilename = ConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
+            configurationLoader = new ConfigurationLoader(configurationFilename);
+            configurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, OnConfigurationFileModified);
+            if (configurationLoader.ConfigurationFileExists())
             {
                 _LoadSettings();
             }
@@ -143,12 +145,12 @@ namespace LucidConcepts.SwitchStartupProject
         public void BeforeCloseSolution()
         {
             logger.LogInfo("Starting to close solution");
-            if (settingsPersister == null)  // This happens e.g. when creating a new website
+            if (configurationFileTracker == null)  // This happens e.g. when creating a new website
             {
-                logger.LogInfo("Cannot store solution specific configuration because configuration persister has not yet been set up.");
                 return;
             }
-            settingsPersister.SettingsFileModified -= OnSettingsFileModified;
+            configurationFileTracker.Stop();
+            configurationFileTracker = null;
         }
 
         public void AfterCloseSolution()
@@ -156,13 +158,13 @@ namespace LucidConcepts.SwitchStartupProject
             logger.LogInfo("Finished to close solution");
             // When solution is closed: choose no project
             dropdownService.CurrentDropdownValue = null;
-            settingsPersister = null;
+            configurationLoader = null;
             _ClearProjects();
         }
 
-        public void OnSettingsFileModified(object sender, SettingsFileModifiedEventArgs args)
+        public void OnConfigurationFileModified()
         {
-            settingsPersister.Load();
+            configurationLoader.Load();
             _LoadSettings();
         }
 

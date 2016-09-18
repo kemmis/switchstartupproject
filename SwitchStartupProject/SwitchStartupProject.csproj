@@ -129,9 +129,10 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\ConfigurationFileTracker.cs" />
     <Compile Include="DropdownService.cs" />
     <Compile Include="Guids.cs" />
-    <Compile Include="Configuration\ConfigurationsPersister.cs" />
+    <Compile Include="Configuration\ConfigurationLoader.cs" />
     <Compile Include="Helpers\EnumerableExtensions.cs" />
     <Compile Include="Helpers\Paths.cs" />
     <Compile Include="Helpers\ProjectHierarchyHelper.cs" />

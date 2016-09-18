@@ -7,7 +7,6 @@
     <Description xml:space="preserve">Provides a toolbar dropdown box to switch between startup projects.</Description>
     <Locale>1033</Locale>
     <License>Resources\LICENSE.md</License>
-    <ReleaseNotes>Resources\ReleaseNotes.txt</ReleaseNotes>    
     <MoreInfoUrl>https://bitbucket.org/thirteen/switchstartupproject</MoreInfoUrl>
     <Icon>Resources\SwitchStartupProject.ico</Icon>
     <PreviewImage>Resources\preview.png</PreviewImage>

@@ -192,9 +192,15 @@ namespace LucidConcepts.SwitchStartupProject
             logger.LogInfo("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
             var reselectRenamedProject = dropdownService.CurrentDropdownValue == oldName;
             _RenameProject(pHierarchy, oldName, oldPath, newName, newPath);
+            _PopulateDropdownList();
             if (reselectRenamedProject)
             {
                 dropdownService.CurrentDropdownValue = newName;
+            }
+
+            if (configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(projConfig => projConfig.Name == oldName)))
+            {
+                MessageBox.Show("The renamed project is part of a startup configuration.\nPlease update your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -251,8 +257,6 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _RenameProject(IVsHierarchy pHierarchy, string oldName, string oldPath, string newName, string newPath)
         {
-
-            _RenameEntryInList(dropdownService.DropdownList, oldName, newName);
             _RenameEntryInList(allStartupProjects, oldName, newName);
 
             name2hierarchy.Remove(oldName);

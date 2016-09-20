@@ -2,8 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Windows;
+
 using Newtonsoft.Json.Linq;
+
+using NJsonSchema;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -11,66 +16,179 @@ namespace LucidConcepts.SwitchStartupProject
     public class ConfigurationLoader
     {
         private const string versionKey = "Version";
+        private const int knownVersion = 3;
         private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
         private const string projectsKey = "Projects";
         private const string claKey = "CommandLineArguments";
-        private const string activateCommandLineArgumentsKey = "ActivateCommandLineArguments";
+        private const string listAllProjectsKey = "ListAllProjects";
 
         private readonly string configurationFilename;
-        private JObject settings;
+        private readonly SwitchStartupProjectPackage.ActivityLogger logger;
 
         public static string GetConfigurationFilename(string solutionFilename)
         {
-            const string configurationFileExtension = ".startup.suo";
+            const string configurationFileExtension = ".startup.json";
             var solutionPath = Path.GetDirectoryName(solutionFilename);
             return Path.Combine(solutionPath, Path.GetFileNameWithoutExtension(solutionFilename) + configurationFileExtension);
         }
 
-        public ConfigurationLoader(string configurationFilename)
+        public ConfigurationLoader(string configurationFilename, SwitchStartupProjectPackage.ActivityLogger logger)
         {
             this.configurationFilename = configurationFilename;
-            Load();
+            this.logger = logger;
         }
 
-        public bool ConfigurationFileExists()
+        public Configuration Load()
+        {
+            logger.LogInfo("Loading configuration for solution");
+            if (!_ConfigurationFileExists())
+            {
+                logger.LogInfo("No configuration file found, using default configuration.");
+                return _GetDefaultConfiguration();
+            }
+
+            JObject settings = null;
+            try
+            {
+                settings = JObject.Parse(File.ReadAllText(configurationFilename));
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Could not parse configuration file.\nPlease check the syntax of your configuration file!\nUsing default configuration instead.\n\nError:\n" + e.ToString(), "SwitchStartupProject Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                logger.LogError("Error while parsing configuration file:");
+                logger.LogError(e.ToString());
+                logger.LogInfo("Using default configuration.");
+                return _GetDefaultConfiguration();
+            }
+            JsonSchema4 schema = null;
+            try
+            {
+                var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("LucidConcepts.SwitchStartupProject.Configuration.ConfigurationSchema.json");
+                using (var reader = new StreamReader(stream))
+                {
+                    schema = JsonSchema4.FromJson(reader.ReadToEnd());
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Could not parse schema.\nError:\n" + e.ToString(), "SwitchStartupProject Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                logger.LogError("Error while parsing schema:");
+                logger.LogError(e.ToString());
+                logger.LogInfo("Using default configuration.");
+                return _GetDefaultConfiguration();
+            }
+
+            var validationErrors = schema.Validate(settings);
+            if (validationErrors.Any())
+            {
+                var messages = string.Join("\n", validationErrors.Select(err => string.Format("{0}: {1}", err.Path, err.Kind)));
+                MessageBox.Show("Could not validate schema of configuration file.\nPlease check your configuration file!\nUsing default configuration instead.\n\nErrors:\n" + messages, "SwitchStartupProject Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                logger.LogError("Could not validate schema of configuration file.");
+                logger.LogInfo("Using default configuration.");
+                return _GetDefaultConfiguration();
+            }
+
+            var version = _GetVersion(settings);
+            if (version != knownVersion)
+            {
+                MessageBox.Show("Configuration file has unknown version " + version + ".\nVersion should be " + knownVersion + ".\nUsing default configuration instead.", "SwitchStartupProject Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                logger.LogError("Unknown configuration version " + version);
+                logger.LogInfo("Using default configuration.");
+                return _GetDefaultConfiguration();
+            }
+
+            var listAllProjects = _GetListAllProjects(settings);
+            var multiProjectConfigurations = _GetMultiProjectConfigurations(settings);
+            return new Configuration(listAllProjects, multiProjectConfigurations.ToList());
+        }
+
+        public void CreateDefaultConfigurationFile()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("/*");
+            sb.AppendLine("    This is a configuration file for the SwitchStartupProject Visual Studio Extension");
+            sb.AppendLine("    See https://bitbucket.org/thirteen/switchstartupproject");
+            sb.AppendLine("    ");
+            sb.AppendLine("    With the following settings you can define the available entries");
+            sb.AppendLine("    in the Startup Project dropdown list and their behavior for the solution");
+            sb.AppendLine("    " + configurationFilename);
+            sb.AppendLine("    ");
+            sb.AppendLine("    SwitchStartupProject reads this file when you open the solution and");
+            sb.AppendLine("    whenever this file is changed while the solution is open.");
+            sb.AppendLine("    ");
+            sb.AppendLine("    This configuration file uses JSON syntax with C-style comments.");
+            sb.AppendLine("*/");
+            sb.AppendLine("{");
+            sb.AppendLine("    /*  Configuration File Version  */");
+            sb.AppendLine("    \"" + versionKey + "\": 3,");
+            sb.AppendLine("    ");
+            sb.AppendLine("    /*  Create an item in the dropdown list for each project in the solution?  */");
+            sb.AppendLine("    \"" + listAllProjectsKey + "\": true,");
+            sb.AppendLine("    ");
+            sb.AppendLine("    /*");
+            sb.AppendLine("        Dictionary of named startup project configurations with one or multiple");
+            sb.AppendLine("        startup projects and optional command line arguments.");
+            sb.AppendLine("        Example:");
+            sb.AppendLine("        ");
+            sb.AppendLine("        \"" + multiProjectConfigurationsKey + "\": {");
+            sb.AppendLine("            \"A + B\": {");
+            sb.AppendLine("                \"" + projectsKey + "\": {");
+            sb.AppendLine("                    \"MyProjectA\": {},");
+            sb.AppendLine("                    \"MyProjectB\": {");
+            sb.AppendLine("                        \"" + claKey + "\": \"1234\"");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine("            },");
+            sb.AppendLine("            \"D\": {");
+            sb.AppendLine("                \"" + projectsKey + "\": {");
+            sb.AppendLine("                    \"MyProjectD\": {}");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");
+            sb.AppendLine("        },");
+            sb.AppendLine("        ");
+            sb.AppendLine("        Note: The command line arguments of a project get permanently over-");
+            sb.AppendLine("        written if its configuration contains the CommandLineArguments property.");
+            sb.AppendLine("        If a configuration does not contain the CommandLineArguments property");
+            sb.AppendLine("        the project command line arguments won't change when activating it.");
+            sb.AppendLine("        To remove command line arguments set by another configuration, add the");
+            sb.AppendLine("        CommandLineArguments property with an empty string as value.");
+            sb.AppendLine("    */");
+            sb.AppendLine("    \"" + multiProjectConfigurationsKey + "\": {}");
+            sb.AppendLine("}");
+            File.WriteAllText(configurationFilename, sb.ToString());
+        }
+
+        private Configuration _GetDefaultConfiguration()
+        {
+            return new Configuration(true, Enumerable.Empty<MultiProjectConfiguration>().ToList());
+        }
+
+        private bool _ConfigurationFileExists()
         {
             return File.Exists(configurationFilename);
         }
 
-        public void Load()
+        private static int _GetVersion(JObject settings)
         {
-            settings = ConfigurationFileExists() ? JObject.Parse(File.ReadAllText(configurationFilename)) : new JObject();
+            return _ExistsKey(settings, versionKey) ? settings[versionKey].Value<int>() : 0;
         }
 
-        public IEnumerable<MultiProjectConfiguration> GetMultiProjectConfigurations()
+        private static bool _GetListAllProjects(JObject settings)
         {
-            var version = _GetVersion();
-            if (!_ExistsKey(multiProjectConfigurationsKey)) return Enumerable.Empty<MultiProjectConfiguration>();
-            if (version == 1)
-            {
-                return from configuration in settings[multiProjectConfigurationsKey].Cast<JProperty>()
-                       let projects = (from project in configuration.Value
-                                       select new MultiProjectConfigurationProject(project.Value<string>(), ""))
-                       select new MultiProjectConfiguration(configuration.Name, projects.ToList());
-            }
+            return !_ExistsKey(settings, listAllProjectsKey) || settings[listAllProjectsKey].Value<bool>();
+        }
+
+        private static IEnumerable<MultiProjectConfiguration> _GetMultiProjectConfigurations(JObject settings)
+        {
+            if (!_ExistsKey(settings, multiProjectConfigurationsKey)) return Enumerable.Empty<MultiProjectConfiguration>();
             return from configuration in settings[multiProjectConfigurationsKey].Cast<JProperty>()
                    let projects = (from project in configuration.Value[projectsKey].Cast<JProperty>()
-                                   select new MultiProjectConfigurationProject(project.Name, project.Value[claKey].Value<string>()))
+                                   let cla = project.Value[claKey]
+                                   select new MultiProjectConfigurationProject(project.Name, cla != null ? cla.Value<string>() : null))
                    select new MultiProjectConfiguration(configuration.Name, projects.ToList());
-
         }
 
-        public bool GetActivateCommandLineArguments()
-        {
-            return _ExistsKey(activateCommandLineArgumentsKey) && settings[activateCommandLineArgumentsKey].Value<bool>();
-        }
-
-        private int _GetVersion()
-        {
-            return _ExistsKey(versionKey) ? settings[versionKey].Value<int>() : 1;
-        }
-
-        private bool _ExistsKey(string key)
+        private static bool _ExistsKey(JObject settings, string key)
         {
             return settings.Children<JProperty>().Any(child => child.Name == key);
         }

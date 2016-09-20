@@ -1,6 +1,7 @@
 # Release notes
 
 ## Version 3.1
+* New configuration file extension: <SolutionName>.startup.json
 * Reorganize readme, license and release notes files
 
 ## Version 3.0

@@ -20,7 +20,7 @@ namespace LucidConcepts.SwitchStartupProject
 
             fileChangeService.AdviseFileChange(
                 configurationFilename,
-                (uint)(_VSFILECHANGEFLAGS.VSFILECHG_Add | _VSFILECHANGEFLAGS.VSFILECHG_Del | _VSFILECHANGEFLAGS.VSFILECHG_Size | _VSFILECHANGEFLAGS.VSFILECHG_Time),
+                (uint)(_VSFILECHANGEFLAGS.VSFILECHG_Size | _VSFILECHANGEFLAGS.VSFILECHG_Time),
                 this,
                 out fileChangeCookie);
         }

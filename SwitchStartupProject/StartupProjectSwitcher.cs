@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Windows;
+
 using EnvDTE;
 
 using Microsoft.VisualStudio;
@@ -23,8 +25,8 @@ namespace LucidConcepts.SwitchStartupProject
 
         private ConfigurationFileTracker configurationFileTracker;
         private ConfigurationLoader configurationLoader;
+        private Configuration configuration;
         private List<string> allStartupProjects;
-        private List<MultiProjectConfiguration> multiProjectConfigurations;
 
         private bool openingSolution = false;
         private bool reactToChangedEvent = true;
@@ -44,7 +46,7 @@ namespace LucidConcepts.SwitchStartupProject
             this.logger = logger;
 
             allStartupProjects = new List<string>();
-            multiProjectConfigurations = new List<MultiProjectConfiguration>();
+            configuration = null;
         }
 
         /// <summary>
@@ -87,9 +89,9 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _SelectMultiProjectConfigInDropdown(MultiProjectConfiguration newStartupProjects, Action<string> success, Action failure)
         {
-            foreach (var configuration in multiProjectConfigurations.Where(configuration => _AreEqual(configuration.Projects, newStartupProjects.Projects)))
+            foreach (var config in configuration.MultiProjectConfigurations.Where(config => _AreEqual(config.Projects, newStartupProjects.Projects)))
             {
-                var newStartupProjectName = configuration.Name;
+                var newStartupProjectName = config.Name;
                 dropdownService.CurrentDropdownValue = newStartupProjectName;
                 success(newStartupProjectName);
                 return; // take first match only
@@ -127,19 +129,9 @@ namespace LucidConcepts.SwitchStartupProject
                 return;
             }
             var configurationFilename = ConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
-            configurationLoader = new ConfigurationLoader(configurationFilename);
-            configurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, OnConfigurationFileModified);
-            if (configurationLoader.ConfigurationFileExists())
-            {
-                _LoadSettings();
-            }
-            else
-            {
-                _LoadDefaultSettings();
-            }
-            _PopulateDropdownList();
-            // Select the currently active startup configuration in the dropdown
-            UpdateStartupProject();
+            configurationLoader = new ConfigurationLoader(configurationFilename, logger);
+            configurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateDropdown);
+            _LoadConfigurationAndUpdateDropdown();
         }
 
         public void BeforeCloseSolution()
@@ -160,12 +152,6 @@ namespace LucidConcepts.SwitchStartupProject
             dropdownService.CurrentDropdownValue = null;
             configurationLoader = null;
             _ClearProjects();
-        }
-
-        public void OnConfigurationFileModified()
-        {
-            configurationLoader.Load();
-            _LoadSettings();
         }
 
         public void OpenProject(IVsHierarchy pHierarchy)
@@ -241,14 +227,29 @@ namespace LucidConcepts.SwitchStartupProject
             dropdownService.DropdownEnabled = !debuggingActive;
         }
 
-        private void _LoadDefaultSettings()
+        private void _LoadConfigurationAndUpdateDropdown()
         {
-            logger.LogInfo("Loading default configuration");
+            configuration = configurationLoader.Load();
+            // Check if all manually configured startup projects exist
+            if (configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => !allStartupProjects.Contains(configProject.Name))))
+            {
+                MessageBox.Show("The configuration file refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+            }
+            _PopulateDropdownList();
+            // Select the currently active startup configuration in the dropdown
+            UpdateStartupProject();
         }
 
-        private void _LoadSettings()
+        private void _PopulateDropdownList()
         {
-            logger.LogInfo("Loading configuration for solution");
+            var startupProjects = new List<string>();
+            if (configuration.ListAllProjects)
+            {
+                allStartupProjects.Sort();
+                startupProjects.AddRange(allStartupProjects);
+            }
+            configuration.MultiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
+            dropdownService.DropdownList = startupProjects;
         }
 
         private void _RenameProject(IVsHierarchy pHierarchy, string oldName, string oldPath, string newName, string newPath)
@@ -279,11 +280,11 @@ namespace LucidConcepts.SwitchStartupProject
                 // Single startup project
                 _ActivateSingleProjectConfiguration(newStartupProject);
             }
-            else if (multiProjectConfigurations.Any(c => c.Name == newStartupProject))
+            else if (configuration.MultiProjectConfigurations.Any(c => c.Name == newStartupProject))
             {
                 // Multiple startup projects
-                var configuration = multiProjectConfigurations.Single(c => c.Name == newStartupProject);
-                _ActivateMultiProjectConfiguration(configuration);
+                var config = configuration.MultiProjectConfigurations.Single(c => c.Name == newStartupProject);
+                _ActivateMultiProjectConfiguration(config);
             }
         }
 
@@ -307,8 +308,6 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 var projectPath = name2projectPath[projectName];
                 dte.Solution.SolutionBuild.StartupProjects = projectPath;
-                
-                // Clear CLA
             });
         }
 
@@ -330,6 +329,10 @@ namespace LucidConcepts.SwitchStartupProject
                 }
 
                 // Set CLA
+                foreach (var projectConfig in configuration.Projects)
+                {
+                    _SetStartArgumentsOfProject(projectConfig.Name, projectConfig.CommandLineArguments);
+                }
             });
         }
 
@@ -346,6 +349,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _SetStartArgumentsOfProject(string projectName, string commandLineArguments)
         {
+            if (commandLineArguments == null) return;
             if (!name2hierarchy.ContainsKey(projectName)) return;
             var hierarchy = name2hierarchy[projectName];
             var project = projectHierarchyHelper.GetProjectFromHierarchy(hierarchy);
@@ -358,21 +362,21 @@ namespace LucidConcepts.SwitchStartupProject
             }
         }
 
-        private Configuration _GetActiveConfigurationOfProject(Project project)
+        private EnvDTE.Configuration _GetActiveConfigurationOfProject(Project project)
         {
             if (project == null) return null;
             var configurationManager = project.ConfigurationManager;
             return configurationManager == null ? null : configurationManager.ActiveConfiguration;
         }
 
-        private IEnumerable<Configuration> _GetAllConfigurationsOfProject(Project project)
+        private IEnumerable<EnvDTE.Configuration> _GetAllConfigurationsOfProject(Project project)
         {
             if (project == null) return null;
             var configurationManager = project.ConfigurationManager;
-            return configurationManager.Cast<Configuration>();
+            return configurationManager.Cast<EnvDTE.Configuration>();
         }
 
-        private Property _GetStartArgumentsPropertyOfConfiguration(Configuration configuration, IVsHierarchy projectHierarchy)
+        private Property _GetStartArgumentsPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
         {
             if (configuration == null || projectHierarchy == null) return null;
             var properties = configuration.Properties;
@@ -469,15 +473,6 @@ namespace LucidConcepts.SwitchStartupProject
                     list[i] = newName;
                 }
             }
-        }
-
-        private void _PopulateDropdownList()
-        {
-            var startupProjects = new List<string>();
-            allStartupProjects.Sort();
-            startupProjects = allStartupProjects.ToList();
-            multiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
-            dropdownService.DropdownList = startupProjects;
         }
     }
 }

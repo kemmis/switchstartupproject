@@ -74,7 +74,7 @@ namespace LucidConcepts.SwitchStartupProject
                     return;
                 }
                 logger.LogInfo("New unknown startup project was activated outside of combobox");
-                dropdownService.CurrentDropdownValue = null;
+                dropdownService.CurrentDropdownValue = DropdownService.OtherItem;
                 return;
             }
 
@@ -84,7 +84,7 @@ namespace LucidConcepts.SwitchStartupProject
                 failure: () =>
                 {
                     logger.LogInfo("New unknown multi-project startup config was activated outside of combobox");
-                    dropdownService.CurrentDropdownValue = null;
+                    dropdownService.CurrentDropdownValue = DropdownService.OtherItem;
                 });
         }
 

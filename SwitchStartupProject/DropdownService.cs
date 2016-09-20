@@ -13,6 +13,7 @@ namespace LucidConcepts.SwitchStartupProject
     {
         private readonly OleMenuCommand dropdownCommand;
         private const string sentinel = "";
+        private const string other = "<other>";
         private const string configure = "Configure...";
         private IList<string> dropdownList;
         private string currentDropdownValue = sentinel;
@@ -37,6 +38,11 @@ namespace LucidConcepts.SwitchStartupProject
 
             DropdownList = null;
             dropdownCommand.Enabled = true;
+        }
+
+        public static string OtherItem
+        {
+            get { return other; }
         }
 
         public string CurrentDropdownValue

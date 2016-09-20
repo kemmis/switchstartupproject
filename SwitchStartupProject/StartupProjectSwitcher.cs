@@ -78,37 +78,43 @@ namespace LucidConcepts.SwitchStartupProject
                 return;
             }
 
-            var newConfig = _GetCurrentlyActiveConfiguration();
-            _SelectMultiProjectConfigInDropdown(newConfig,
-                success: newStartupProjectName => logger.LogInfo("New multi-project startup config was activated outside of combobox: {0}", newStartupProjectName),
-                failure: () =>
+            var currentConfig = _GetCurrentlyActiveConfiguration();
+            var sortedCurrentProjects = _SortedProjects(currentConfig.Projects);
+            var bestMatch = (from config in configuration.MultiProjectConfigurations
+                             where config.Projects.Count == currentConfig.Projects.Count
+                             let score = _EqualityScore(_SortedProjects(config.Projects), sortedCurrentProjects)
+                             where score >= 0.0
+                             orderby score descending
+                             select config)
+                            .FirstOrDefault();
+            if (bestMatch == null)
+            {
+                logger.LogInfo("New unknown multi-project startup config was activated outside of combobox");
+                dropdownService.CurrentDropdownValue = DropdownService.OtherItem;
+                return;
+            }
+            var newStartupConfigName = bestMatch.Name;
+            logger.LogInfo("New multi-project startup config was activated outside of combobox: {0}", newStartupConfigName);
+            dropdownService.CurrentDropdownValue = newStartupConfigName;
+        }
+
+        private IEnumerable<MultiProjectConfigurationProject> _SortedProjects(IEnumerable<MultiProjectConfigurationProject> projects)
+        {
+            return projects.OrderBy(proj => proj.Name).ThenBy(proj => proj.CommandLineArguments);
+        }
+
+        private double _EqualityScore(IEnumerable<MultiProjectConfigurationProject> sortedAvailableProjects, IEnumerable<MultiProjectConfigurationProject> sortedCurrentProjects)
+        {
+            return sortedAvailableProjects.Zip(sortedCurrentProjects, (available, current) => new { Available = available, Current = current})
+                .Aggregate(0.0, (accumulated, tuple) =>
                 {
-                    logger.LogInfo("New unknown multi-project startup config was activated outside of combobox");
-                    dropdownService.CurrentDropdownValue = DropdownService.OtherItem;
+                    if (tuple.Available.Name != tuple.Current.Name) return double.NegativeInfinity;     // Names don't match => not equal
+                    if (tuple.Available.CommandLineArguments == null) return accumulated;               // Command line arguments not configured => equality score 0
+                    if (tuple.Available.CommandLineArguments != tuple.Current.CommandLineArguments)     // Command line arguments are configured and don't match => not equal
+                        return double.NegativeInfinity;
+                    return accumulated + 1.0;                                                           // Command line arguments match => equality score 1
                 });
         }
-
-        private void _SelectMultiProjectConfigInDropdown(MultiProjectConfiguration newStartupProjects, Action<string> success, Action failure)
-        {
-            foreach (var config in configuration.MultiProjectConfigurations.Where(config => _AreEqual(config.Projects, newStartupProjects.Projects)))
-            {
-                var newStartupProjectName = config.Name;
-                dropdownService.CurrentDropdownValue = newStartupProjectName;
-                success(newStartupProjectName);
-                return; // take first match only
-            }
-            failure();
-        }
-
-        private bool _AreEqual(IList<MultiProjectConfigurationProject> existingConfigurationProjects, IList<MultiProjectConfigurationProject> newConfigurationProjects)
-        {
-            if (existingConfigurationProjects.Count != newConfigurationProjects.Count) return false;
-            return existingConfigurationProjects.Zip(newConfigurationProjects,
-                (existingProj, newProj) => existingProj.Name == newProj.Name &&
-                                           existingProj.CommandLineArguments == newProj.CommandLineArguments
-                ).All(areEqual => areEqual);
-        }
-
 
         // Is called before a solution and its projects are loaded.
         // Is NOT called when a new solution and project are created.

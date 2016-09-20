@@ -137,10 +137,12 @@ namespace LucidConcepts.SwitchStartupProject
             }
             var configurationFilename = ConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
             configurationLoader = new ConfigurationLoader(configurationFilename, logger);
-            configurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateDropdown);
+            configurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject);
             var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, configurationLoader);
             dropdownService.OnConfigurationSelected = configurationFileOpener.Open;
-            _LoadConfigurationAndUpdateDropdown();
+            _LoadConfigurationAndPopulateDropdown();
+            // Determine the currently active startup configuration and select it in the dropdown
+            UpdateStartupProject();
         }
 
         public void BeforeCloseSolution()
@@ -236,7 +238,19 @@ namespace LucidConcepts.SwitchStartupProject
             dropdownService.DropdownEnabled = !debuggingActive;
         }
 
-        private void _LoadConfigurationAndUpdateDropdown()
+        private void _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject()
+        {
+            var selectedDropdownValue = dropdownService.CurrentDropdownValue;
+            _LoadConfigurationAndPopulateDropdown();
+            if (!dropdownService.DropdownList.Contains(selectedDropdownValue))
+            {
+                // previously selected configuration does no longer exist
+                selectedDropdownValue = null;
+            }
+            _ChangeStartupProject(selectedDropdownValue);
+        }
+
+        private void _LoadConfigurationAndPopulateDropdown()
         {
             configuration = configurationLoader.Load();
             // Check if all manually configured startup projects exist
@@ -245,8 +259,6 @@ namespace LucidConcepts.SwitchStartupProject
                 MessageBox.Show("The configuration file refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
             }
             _PopulateDropdownList();
-            // Select the currently active startup configuration in the dropdown
-            UpdateStartupProject();
         }
 
         private void _PopulateDropdownList()

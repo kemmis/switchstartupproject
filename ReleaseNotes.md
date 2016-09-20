@@ -6,6 +6,7 @@
   * Removed MRU mode: It was not really useful and made it hard to share configurations. (issue #29)
   * Removed GUI: Visual Studio and the GUI frequently caused problems when storing the configurations. (issues #26, #28)
   * Configuration file is now read only. (issue #31)
+  * Immediately apply configuration file changes to currently active startup projects. (issue #32)
 * New configuration file extension: <SolutionName>.startup.json
 * Reorganize readme, license and release notes files
 

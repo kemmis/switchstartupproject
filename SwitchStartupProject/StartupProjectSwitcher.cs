@@ -40,6 +40,7 @@ namespace LucidConcepts.SwitchStartupProject
             logger.LogInfo("Entering constructor of StartupProjectSwitcher");
             this.dropdownService = dropdownService;
             dropdownService.OnListItemSelected = _ChangeStartupProject;
+            dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             this.dte = dte;
             this.fileChangeService = fileChangeService;
             this.projectHierarchyHelper = project2Hierarchy;
@@ -131,6 +132,8 @@ namespace LucidConcepts.SwitchStartupProject
             var configurationFilename = ConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
             configurationLoader = new ConfigurationLoader(configurationFilename, logger);
             configurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateDropdown);
+            var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, configurationLoader);
+            dropdownService.OnConfigurationSelected = configurationFileOpener.Open;
             _LoadConfigurationAndUpdateDropdown();
         }
 
@@ -149,6 +152,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             logger.LogInfo("Finished to close solution");
             // When solution is closed: choose no project
+            dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             dropdownService.CurrentDropdownValue = null;
             configurationLoader = null;
             _ClearProjects();
@@ -473,6 +477,11 @@ namespace LucidConcepts.SwitchStartupProject
                     list[i] = newName;
                 }
             }
+        }
+
+        private void _ShowMsgOpenSolution()
+        {
+            MessageBox.Show("Please open a solution before you configure its startup projects.\n\nIn case a solution is open, something went wrong loading it.\nMaybe it helps to delete the solution .suo file (but not the .startup.suo file!) and reload the solution?", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }

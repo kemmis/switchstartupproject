@@ -1,6 +1,11 @@
 # Release notes
 
 ## Version 3.1
+* Less smart, less GUI, more stability, more power for the user
+  * Removed smart mode: It was not smart enough and often failed with newer project types. (issue #30)
+  * Removed MRU mode: It was not really useful and made it hard to share configurations. (issue #29)
+  * Removed GUI: Visual Studio and the GUI frequently caused problems when storing the configurations. (issues #26, #28)
+  * Configuration file is now read only. (issue #31)
 * New configuration file extension: <SolutionName>.startup.json
 * Reorganize readme, license and release notes files
 

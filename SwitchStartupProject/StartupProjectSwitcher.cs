@@ -171,11 +171,7 @@ namespace LucidConcepts.SwitchStartupProject
             
             logger.LogInfo("Opening project: {0}", name);
 
-            var projectTypeGuids = _GetProjectTypeGuids(pHierarchy);
-
-            var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
-
-            _AddProject(name, pHierarchy, isWebSiteProject);
+            _AddProject(name, pHierarchy);
             allStartupProjects.Add(name);
 
             if (!openingSolution)
@@ -191,10 +187,7 @@ namespace LucidConcepts.SwitchStartupProject
             if (!name2hierarchy.ContainsValue(pHierarchy)) return;
             var oldName = name2hierarchy.Single(kvp => kvp.Value == pHierarchy).Key;
             var oldPath = name2projectPath[oldName];
-            var projectTypeGuids = _GetProjectTypeGuids(pHierarchy);
-            var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
-            // Website projects need to be set using the full path
-            var newPath = isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy);
+            var newPath = _GetProjectPath(pHierarchy);
 
             logger.LogInfo("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
             var reselectRenamedProject = dropdownService.CurrentDropdownValue == oldName;
@@ -437,26 +430,25 @@ namespace LucidConcepts.SwitchStartupProject
             return projectTypeGuids;
         }
 
-        private string _GetPathRelativeToSolution(IVsHierarchy pHierarchy)
+        private string _GetProjectPath(IVsHierarchy pHierarchy)
         {
-            var fullProjectPath = _GetAbsolutePath(pHierarchy);
-            var solutionPath = Path.GetDirectoryName(dte.Solution.FullName) + @"\";
-            return Paths.GetPathRelativeTo(fullProjectPath, solutionPath);
-        }
+            var projectTypeGuids = _GetProjectTypeGuids(pHierarchy);
+            var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
 
-        private string _GetAbsolutePath(IVsHierarchy pHierarchy)
-        {
             var project = projectHierarchyHelper.GetProjectFromHierarchy(pHierarchy);
-            return project.FullName;
+            var fullPath = project.FullName;
+            if (isWebSiteProject) return fullPath;  // Website projects need to be set using the full path
+
+            var solutionPath = Path.GetDirectoryName(dte.Solution.FullName) + @"\";
+            return Paths.GetPathRelativeTo(fullPath, solutionPath);
         }
 
-
-        private void _AddProject(string name, IVsHierarchy pHierarchy, bool isWebSiteProject)
+        private void _AddProject(string name, IVsHierarchy pHierarchy)
         {
+            var path = _GetProjectPath(pHierarchy);
             name2hierarchy.Add(name, pHierarchy);
-            // Website projects need to be set using the full path
-            name2projectPath.Add(name, isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy));
-            projectPath2name.Add(isWebSiteProject ? _GetAbsolutePath(pHierarchy) : _GetPathRelativeToSolution(pHierarchy), name);
+            name2projectPath.Add(name, path);
+            projectPath2name.Add(path, name);
         }
 
         private void _ClearProjects()

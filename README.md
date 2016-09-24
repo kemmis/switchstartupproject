@@ -4,7 +4,7 @@
 
 A **Visual Studio extension** that allows you to quickly **select startup projects from a dropdown**.
 
-![Preview](SwitchStartupProject/Resources/preview.png)
+![Preview](https://bytebucket.org/thirteen/switchstartupproject/raw/tip/SwitchStartupProject/Resources/preview.png)
 
 No more scrolling up and down the solution explorer tree just to change the startup project!
 

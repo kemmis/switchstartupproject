@@ -29,7 +29,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             const string configurationFileExtension = ".startup.json";
             var solutionPath = Path.GetDirectoryName(solutionFilename);
-            return Path.Combine(solutionPath, Path.GetFileNameWithoutExtension(solutionFilename) + configurationFileExtension);
+            return Path.Combine(solutionPath, solutionFilename + configurationFileExtension);
         }
 
         public ConfigurationLoader(string configurationFilename, SwitchStartupProjectPackage.ActivityLogger logger)

@@ -24,6 +24,8 @@ No more scrolling up and down the solution explorer tree just to change the star
 
 ## More Information
 * [Configuration](https://bitbucket.org/thirteen/switchstartupproject/src/tip/Configuration.md)
+* [Release Notes](https://bitbucket.org/thirteen/switchstartupproject/src/tip/ReleaseNotes.md)
+* [License](https://bitbucket.org/thirteen/switchstartupproject/src/tip/LICENSE.md)
 
 ## Found a problem?
 

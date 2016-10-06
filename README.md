@@ -22,6 +22,9 @@ No more scrolling up and down the solution explorer tree just to change the star
 * Download CI builds from [AppVeyor](https://ci.appveyor.com/project/thirteen/switchstartupproject)
 * Source code on [Bitbucket](https://bitbucket.org/thirteen/switchstartupproject/src)
 
+## More Information
+* [Configuration](https://bitbucket.org/thirteen/switchstartupproject/src/tip/Configuration.md)
+
 ## Found a problem?
 
 Use the [Issue Tracker](https://bitbucket.org/thirteen/switchstartupproject/issues?status=new&status=open)

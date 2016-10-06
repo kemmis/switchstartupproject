@@ -495,7 +495,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _ShowMsgOpenSolution()
         {
-            MessageBox.Show("Please open a solution before you configure its startup projects.\n\nIn case a solution is open, something went wrong loading it.\nMaybe it helps to delete the solution .suo file (but not the .startup.suo file!) and reload the solution?", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Please open a solution before you configure its startup projects.\n\nIn case a solution is open, something went wrong loading it.\nMaybe it helps to delete the solution .suo file and reload the solution?", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }

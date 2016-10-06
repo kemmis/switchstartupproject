@@ -32,6 +32,13 @@ namespace LucidConcepts.SwitchStartupProject
             return Path.Combine(solutionPath, solutionFilename + configurationFileExtension);
         }
 
+        public static string GetOldConfigurationFilename(string solutionFilename)
+        {
+            const string oldConfigurationFileExtension = ".startup.suo";
+            var solutionPath = Path.GetDirectoryName(solutionFilename);
+            return Path.Combine(solutionPath, Path.GetFileNameWithoutExtension(solutionFilename) + oldConfigurationFileExtension);
+        }
+
         public ConfigurationLoader(string configurationFilename, SwitchStartupProjectPackage.ActivityLogger logger)
         {
             this.configurationFilename = configurationFilename;

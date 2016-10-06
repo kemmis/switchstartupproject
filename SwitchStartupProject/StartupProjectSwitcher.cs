@@ -136,9 +136,10 @@ namespace LucidConcepts.SwitchStartupProject
                 return;
             }
             var configurationFilename = ConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
+            var oldConfigurationFilename = ConfigurationLoader.GetOldConfigurationFilename(dte.Solution.FullName);
             configurationLoader = new ConfigurationLoader(configurationFilename, logger);
             configurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject);
-            var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, configurationLoader);
+            var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, oldConfigurationFilename, configurationLoader);
             dropdownService.OnConfigurationSelected = configurationFileOpener.Open;
             _LoadConfigurationAndPopulateDropdown();
             // Determine the currently active startup configuration and select it in the dropdown

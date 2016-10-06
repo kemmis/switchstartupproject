@@ -13,12 +13,14 @@ namespace LucidConcepts.SwitchStartupProject
     {
         private readonly DTE dte;
         private readonly string configurationFilename;
+        private readonly string oldConfigurationFilename;
         private readonly ConfigurationLoader configurationLoader;
 
-        public ConfigurationFileOpener(DTE dte, string configurationFilename, ConfigurationLoader configurationLoader)
+        public ConfigurationFileOpener(DTE dte, string configurationFilename, string oldConfigurationFilename, ConfigurationLoader configurationLoader)
         {
             this.dte = dte;
             this.configurationFilename = configurationFilename;
+            this.oldConfigurationFilename = oldConfigurationFilename;
             this.configurationLoader = configurationLoader;
         }
 
@@ -33,6 +35,19 @@ namespace LucidConcepts.SwitchStartupProject
                 catch (Exception e)
                 {
                     MessageBox.Show("Could not create default configuration file " + configurationFilename + "\nError:\n" + e.ToString(), "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                }
+
+                if (File.Exists(oldConfigurationFilename))
+                {
+                    try
+                    {
+                        dte.ItemOperations.OpenFile(oldConfigurationFilename, EnvDTE.Constants.vsViewKindCode);
+                        MessageBox.Show("Found old configuration file!\n\nYou may want to transfer your existing multi-project startup configurations to the new configuration file.", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show("Could not open configuration file " + configurationFilename + "\nError:\n" + e.ToString(), "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    }
                 }
             }
 

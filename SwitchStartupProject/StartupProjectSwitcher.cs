@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,7 +8,6 @@ using System.Windows;
 using EnvDTE;
 
 using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
 namespace LucidConcepts.SwitchStartupProject
@@ -35,7 +33,7 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly IVsFileChangeEx fileChangeService;
         private readonly ProjectHierarchyHelper projectHierarchyHelper;
 
-        public StartupProjectSwitcher(DropdownService dropdownService, DTE dte, IVsFileChangeEx fileChangeService, ProjectHierarchyHelper project2Hierarchy, Package package, int mruCount, SwitchStartupProjectPackage.ActivityLogger logger)
+        public StartupProjectSwitcher(DropdownService dropdownService, DTE dte, IVsFileChangeEx fileChangeService, ProjectHierarchyHelper project2Hierarchy, SwitchStartupProjectPackage.ActivityLogger logger)
         {
             logger.LogInfo("Entering constructor of StartupProjectSwitcher");
             this.dropdownService = dropdownService;

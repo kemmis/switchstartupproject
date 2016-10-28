@@ -98,7 +98,7 @@ namespace LucidConcepts.SwitchStartupProject
             var fileChangeService = ServiceProvider.GlobalProvider.GetService(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
             var projectHierarchyHelper = new ProjectHierarchyHelper(solution);
 
-            switcher = new StartupProjectSwitcher(dropdownService, dte, fileChangeService, projectHierarchyHelper, this, 99, Logger);
+            switcher = new StartupProjectSwitcher(dropdownService, dte, fileChangeService, projectHierarchyHelper, Logger);
         }
         #endregion
 

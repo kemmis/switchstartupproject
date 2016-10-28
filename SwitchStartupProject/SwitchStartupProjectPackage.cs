@@ -96,9 +96,8 @@ namespace LucidConcepts.SwitchStartupProject
             }
 
             var fileChangeService = ServiceProvider.GlobalProvider.GetService(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
-            var projectHierarchyHelper = new ProjectHierarchyHelper(solution);
 
-            switcher = new StartupProjectSwitcher(dropdownService, dte, fileChangeService, projectHierarchyHelper, Logger);
+            switcher = new StartupProjectSwitcher(dropdownService, dte, fileChangeService, Logger);
         }
         #endregion
 
@@ -118,7 +117,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterOpenProject(IVsHierarchy pHierarchy, int fAdded)
         {
-            switcher.OpenProject(pHierarchy);
+            switcher.OpenProject(pHierarchy, fAdded == 1);
             return VSConstants.S_OK;
         }
 
@@ -134,12 +133,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnBeforeCloseProject(IVsHierarchy pHierarchy, int fRemoved)
         {
-            object propNameObj = null;
-            if (pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Name, out propNameObj) == VSConstants.S_OK)
-            {
-                string name = (string)propNameObj;
-                switcher.CloseProject(pHierarchy, name);
-            }
+            switcher.CloseProject(pHierarchy);
             return VSConstants.S_OK;
         }
 

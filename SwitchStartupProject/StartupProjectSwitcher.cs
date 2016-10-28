@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows;
 
 using EnvDTE;
 
-using Microsoft.VisualStudio;
+using LucidConcepts.SwitchStartupProject.Helpers;
+
 using Microsoft.VisualStudio.Shell.Interop;
 
 namespace LucidConcepts.SwitchStartupProject
@@ -17,23 +17,13 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly DropdownService dropdownService;
         private readonly SwitchStartupProjectPackage.ActivityLogger logger;
 
-        private readonly Dictionary<string, IVsHierarchy> name2hierarchy = new Dictionary<string, IVsHierarchy>();
-        private readonly Dictionary<string, string> name2projectPath = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> projectPath2name = new Dictionary<string, string>();
-
-        private ConfigurationFileTracker configurationFileTracker;
-        private ConfigurationLoader configurationLoader;
-        private Configuration configuration;
-        private List<string> allStartupProjects;
-
-        private bool openingSolution = false;
+        private Solution solution = null;
         private bool reactToChangedEvent = true;
 
         private readonly DTE dte;
         private readonly IVsFileChangeEx fileChangeService;
-        private readonly ProjectHierarchyHelper projectHierarchyHelper;
 
-        public StartupProjectSwitcher(DropdownService dropdownService, DTE dte, IVsFileChangeEx fileChangeService, ProjectHierarchyHelper project2Hierarchy, SwitchStartupProjectPackage.ActivityLogger logger)
+        public StartupProjectSwitcher(DropdownService dropdownService, DTE dte, IVsFileChangeEx fileChangeService, SwitchStartupProjectPackage.ActivityLogger logger)
         {
             logger.LogInfo("Entering constructor of StartupProjectSwitcher");
             this.dropdownService = dropdownService;
@@ -41,11 +31,7 @@ namespace LucidConcepts.SwitchStartupProject
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             this.dte = dte;
             this.fileChangeService = fileChangeService;
-            this.projectHierarchyHelper = project2Hierarchy;
             this.logger = logger;
-
-            allStartupProjects = new List<string>();
-            configuration = null;
         }
 
         /// <summary>
@@ -56,7 +42,7 @@ namespace LucidConcepts.SwitchStartupProject
             // When startup project is set through dropdown, don't do anything
             if (!reactToChangedEvent) return;
             // Don't react to startup project changes while opening the solution or when multi-project configurations have not yet been loaded.
-            if (openingSolution) return;
+            if (solution.IsOpening) return;
 
             // When startup project is set in solution explorer, update combobox
             var newStartupProjects = dte.Solution.SolutionBuild.StartupProjects as Array;
@@ -64,11 +50,11 @@ namespace LucidConcepts.SwitchStartupProject
             if (newStartupProjects.Length == 1)
             {
                 var startupProject = (string)newStartupProjects.GetValue(0);
-                if (projectPath2name.ContainsKey(startupProject))
+                var project = solution.Projects.Values.SingleOrDefault(p => p.Path == startupProject);
+                if (project != null)
                 {
-                    var newStartupProjectName = projectPath2name[startupProject];
-                    logger.LogInfo("New startup project was activated outside of combobox: {0}", newStartupProjectName);
-                    dropdownService.CurrentDropdownValue = newStartupProjectName;
+                    logger.LogInfo("New startup project was activated outside of combobox: {0}", project.Name);
+                    dropdownService.CurrentDropdownValue = project.Name;
                     return;
                 }
                 logger.LogInfo("New unknown startup project was activated outside of combobox");
@@ -78,7 +64,7 @@ namespace LucidConcepts.SwitchStartupProject
 
             var currentConfig = _GetCurrentlyActiveConfiguration();
             var sortedCurrentProjects = _SortedProjects(currentConfig.Projects);
-            var bestMatch = (from config in configuration.MultiProjectConfigurations
+            var bestMatch = (from config in solution.Configuration.MultiProjectConfigurations
                              where config.Projects.Count == currentConfig.Projects.Count
                              let score = _EqualityScore(_SortedProjects(config.Projects), sortedCurrentProjects)
                              where score >= 0.0
@@ -119,14 +105,17 @@ namespace LucidConcepts.SwitchStartupProject
         public void BeforeOpenSolution(string solutionFileName)
         {
             logger.LogInfo("Starting to open solution: {0}", solutionFileName);
-            openingSolution = true;
+            solution = new Solution
+            {
+                IsOpening = true
+            };
         }
 
         // Is called after a solution and its projects have been loaded.
         // Is also called when a new solution and project have been created.
         public void AfterOpenSolution()
         {
-            openingSolution = false;
+            solution.IsOpening = false;
             logger.LogInfo("Finished to open solution");
             if (string.IsNullOrEmpty(dte.Solution.FullName))  // This happens e.g. when creating a new website
             {
@@ -135,9 +124,9 @@ namespace LucidConcepts.SwitchStartupProject
             }
             var configurationFilename = ConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
             var oldConfigurationFilename = ConfigurationLoader.GetOldConfigurationFilename(dte.Solution.FullName);
-            configurationLoader = new ConfigurationLoader(configurationFilename, logger);
-            configurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject);
-            var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, oldConfigurationFilename, configurationLoader);
+            solution.ConfigurationLoader = new ConfigurationLoader(configurationFilename, logger);
+            solution.ConfigurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject);
+            var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, oldConfigurationFilename, solution.ConfigurationLoader);
             dropdownService.OnConfigurationSelected = configurationFileOpener.Open;
             _LoadConfigurationAndPopulateDropdown();
             // Determine the currently active startup configuration and select it in the dropdown
@@ -147,12 +136,12 @@ namespace LucidConcepts.SwitchStartupProject
         public void BeforeCloseSolution()
         {
             logger.LogInfo("Starting to close solution");
-            if (configurationFileTracker == null)  // This happens e.g. when creating a new website
+            if (solution == null || solution.ConfigurationFileTracker == null)
             {
                 return;
             }
-            configurationFileTracker.Stop();
-            configurationFileTracker = null;
+            solution.ConfigurationFileTracker.Stop();
+            solution.ConfigurationFileTracker = null;
         }
 
         public void AfterCloseSolution()
@@ -161,28 +150,29 @@ namespace LucidConcepts.SwitchStartupProject
             // When solution is closed: choose no project
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             dropdownService.CurrentDropdownValue = null;
-            configurationLoader = null;
-            configuration = null;
-            _ClearProjects();
+            solution.Projects.Clear();
+            solution = null;
+            dropdownService.DropdownList = null;
         }
 
-        public void OpenProject(IVsHierarchy pHierarchy)
+        public void OpenProject(IVsHierarchy pHierarchy, bool isCreated)
         {
             // When project is opened: register it and its name
-            var name = _GetProjectStringProperty(pHierarchy, __VSHPROPID.VSHPROPID_Name);
-            var typeName = _GetProjectStringProperty(pHierarchy, __VSHPROPID.VSHPROPID_TypeName);
-            var caption = _GetProjectStringProperty(pHierarchy, __VSHPROPID.VSHPROPID_Caption);
-            var guid = _GetProjectGuidProperty(pHierarchy, __VSHPROPID.VSHPROPID_TypeGuid);
 
             // Filter out hierarchy elements that don't represent projects
-            if (name == null || typeName == null || caption == null || guid == null) return;
+            var project = SolutionProject.FromHierarchy(pHierarchy, dte.Solution.FullName);
+            if (project == null) return;
 
-            logger.LogInfo("Opening project: {0}", name);
-
-            _AddProject(name, pHierarchy);
-            allStartupProjects.Add(name);
-
-            if (!openingSolution)
+            logger.LogInfo("{0} project: {1}", isCreated ? "Creating" : "Opening", project.Name);
+            if (solution == null)   // This happens e.g. when creating a new project or website solution
+            {
+                solution = new Solution
+                {
+                    IsOpening = true,
+                };
+            }
+            solution.Projects.Add(pHierarchy, project);
+            if (!solution.IsOpening)
             {
                 _PopulateDropdownList(); // when reopening a single project, refresh list
             }
@@ -190,45 +180,43 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void RenameProject(IVsHierarchy pHierarchy)
         {
-            var newName = _GetProjectName(pHierarchy);
-            if (newName == null) return;
-            if (!name2hierarchy.ContainsValue(pHierarchy)) return;
-            var oldName = name2hierarchy.Single(kvp => kvp.Value == pHierarchy).Key;
-            var oldPath = name2projectPath[oldName];
-            var newPath = _GetProjectPath(pHierarchy);
+            var project = solution.Projects.GetValueOrDefault(pHierarchy);
+            if (project == null) return;
+
+            var oldName = project.Name;
+            var oldPath = project.Path;
+            project.Rename();
+            var newName = project.Name;
+            var newPath = project.Path;
 
             logger.LogInfo("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
             var reselectRenamedProject = dropdownService.CurrentDropdownValue == oldName;
-            _RenameProject(pHierarchy, oldName, oldPath, newName, newPath);
+
             _PopulateDropdownList();
             if (reselectRenamedProject)
             {
                 dropdownService.CurrentDropdownValue = newName;
             }
 
-            if (configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(projConfig => projConfig.Name == oldName)))
+            if (solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(projConfig => projConfig.Name == oldName)))
             {
                 MessageBox.Show("The renamed project is part of a startup configuration.\nPlease update your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
-        public void CloseProject(IVsHierarchy pHierarchy, string projectName)
+        public void CloseProject(IVsHierarchy pHierarchy)
         {
-            logger.LogInfo("Closing project: {0}", projectName);
-            // When project is closed: remove it from list of startup projects (if it was in there)
-            if (allStartupProjects.Contains(projectName))
+            var project = solution.Projects.GetValueOrDefault(pHierarchy);
+            if (project == null) return;
+
+            logger.LogInfo("Closing project: {0}", project.Name);
+            // When project is closed: remove it from list of startup projects
+            solution.Projects.Remove(pHierarchy);
+            if (dropdownService.CurrentDropdownValue == project.Name)
             {
-                if (dropdownService.CurrentDropdownValue == projectName)
-                {
-                    dropdownService.CurrentDropdownValue = null;
-                }
-                dropdownService.DropdownList.Remove(projectName);
-                allStartupProjects.Remove(projectName);
-                name2hierarchy.Remove(projectName);
-                var projectPath = name2projectPath[projectName];
-                name2projectPath.Remove(projectName);
-                projectPath2name.Remove(projectPath);
+                dropdownService.CurrentDropdownValue = null;
             }
+            _PopulateDropdownList();
         }
 
         public void ToggleDebuggingActive(bool debuggingActive)
@@ -252,9 +240,9 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _LoadConfigurationAndPopulateDropdown()
         {
-            configuration = configurationLoader.Load();
+            solution.Configuration = solution.ConfigurationLoader.Load();
             // Check if all manually configured startup projects exist
-            if (configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => !allStartupProjects.Contains(configProject.Name))))
+            if (solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => solution.Projects.Values.All(project => project.Name != configProject.Name))))
             {
                 MessageBox.Show("The configuration file refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
             }
@@ -264,26 +252,17 @@ namespace LucidConcepts.SwitchStartupProject
         private void _PopulateDropdownList()
         {
             var startupProjects = new List<string>();
-            if (configuration.ListAllProjects)
+            if (solution != null)   // Solution may be null e.g. when creating a new website
             {
-                allStartupProjects.Sort();
-                startupProjects.AddRange(allStartupProjects);
+                if (solution.Configuration.ListAllProjects)
+                {
+                    var allStartupProjects = solution.Projects.Values.Select(p => p.Name).ToList();
+                    allStartupProjects.Sort();
+                    startupProjects.AddRange(allStartupProjects);
+                }
+                solution.Configuration.MultiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
             }
-            configuration.MultiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
             dropdownService.DropdownList = startupProjects;
-        }
-
-        private void _RenameProject(IVsHierarchy pHierarchy, string oldName, string oldPath, string newName, string newPath)
-        {
-            _RenameEntryInList(allStartupProjects, oldName, newName);
-
-            name2hierarchy.Remove(oldName);
-            name2hierarchy.Add(newName, pHierarchy);
-            name2projectPath.Remove(oldName);
-            name2projectPath.Add(newName, newPath);
-            projectPath2name.Remove(oldPath);
-            projectPath2name.Add(newPath, newName);
-
         }
 
         private void _ChangeStartupProject(string newStartupProject)
@@ -293,16 +272,19 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 // No startup project
                 _ActivateSingleProjectConfiguration(null);
+                return;
             }
-            else if (name2projectPath.ContainsKey(newStartupProject))
+            var project = solution.Projects.Values.SingleOrDefault(p => p.Name == newStartupProject);
+            if (project != null)
             {
                 // Single startup project
-                _ActivateSingleProjectConfiguration(newStartupProject);
+                _ActivateSingleProjectConfiguration(project.Name);
+                return;
             }
-            else if (configuration.MultiProjectConfigurations.Any(c => c.Name == newStartupProject))
+            if (solution.Configuration.MultiProjectConfigurations.Any(c => c.Name == newStartupProject))
             {
                 // Multiple startup projects
-                var config = configuration.MultiProjectConfigurations.Single(c => c.Name == newStartupProject);
+                var config = solution.Configuration.MultiProjectConfigurations.Single(c => c.Name == newStartupProject);
                 _ActivateMultiProjectConfiguration(config);
             }
         }
@@ -311,13 +293,14 @@ namespace LucidConcepts.SwitchStartupProject
         {
             var newStartupProjects = dte.Solution.SolutionBuild.StartupProjects as Array;
             if (newStartupProjects == null) return null;
-            if (projectPath2name.Count == 0) return null;
+            if (solution.Projects.Count == 0) return null;
 
             return new MultiProjectConfiguration(null, newStartupProjects.Cast<string>().Select(projectPath =>
             {
-                var projectName = projectPath2name[projectPath];
-                var cla = _GetStartArgumentsOfProject(projectName);
-                return new MultiProjectConfigurationProject(projectName, cla);
+                var project = solution.Projects.Values.SingleOrDefault(p => p.Path == projectPath);
+                if (project == null) return null;
+                var cla = _GetStartArgumentsOfProject(project);
+                return new MultiProjectConfigurationProject(project.Name, cla);
             }).ToList());
         }
 
@@ -325,8 +308,9 @@ namespace LucidConcepts.SwitchStartupProject
         {
             _SuspendChangedEvent(() =>
             {
-                var projectPath = name2projectPath[projectName];
-                dte.Solution.SolutionBuild.StartupProjects = projectPath;
+                var project = solution.Projects.Values.SingleOrDefault(p => p.Name == projectName);
+                if (project == null) return;
+                dte.Solution.SolutionBuild.StartupProjects = project.Path;
             });
         }
 
@@ -337,41 +321,47 @@ namespace LucidConcepts.SwitchStartupProject
                 if (configuration.Projects.Count == 1)
                 {
                     // If the multi-project startup configuration contains a single project only, handle it as if it was a single-project configuration
-                    var projectPath = name2projectPath[configuration.Projects.Single().Name];
-                    dte.Solution.SolutionBuild.StartupProjects = projectPath;
+                    var projectName = configuration.Projects.Single().Name;
+                    var project = solution.Projects.Values.SingleOrDefault(p => p.Name == projectName);
+                    if (project == null) return;
+                    dte.Solution.SolutionBuild.StartupProjects = project.Path;
                 }
                 else
                 {
                     // SolutionBuild.StartupProjects expects an array of objects
-                    var projectPathArray = configuration.Projects.Select(projectConfig => (object)name2projectPath[projectConfig.Name]).ToArray();
+                    var projectPathArray = configuration.Projects.Select(projectConfig =>
+                    {
+                        var project = solution.Projects.Values.SingleOrDefault(p => p.Name == projectConfig.Name);
+                        return project == null ? null : (object)project.Path;
+                    }).ToArray();
                     dte.Solution.SolutionBuild.StartupProjects = projectPathArray;
                 }
 
                 // Set CLA
                 foreach (var projectConfig in configuration.Projects)
                 {
-                    _SetStartArgumentsOfProject(projectConfig.Name, projectConfig.CommandLineArguments);
+                    var project = solution.Projects.Values.SingleOrDefault(p => p.Name == projectConfig.Name);
+                    if (project == null) return;
+                    _SetStartArgumentsOfProject(project, projectConfig.CommandLineArguments);
                 }
             });
         }
 
-        private string _GetStartArgumentsOfProject(string projectName)
+        private string _GetStartArgumentsOfProject(SolutionProject solutionProject)
         {
-            if (!name2hierarchy.ContainsKey(projectName)) return null;
-            var hierarchy = name2hierarchy[projectName];
-            var project = projectHierarchyHelper.GetProjectFromHierarchy(hierarchy);
+            var hierarchy = solutionProject.Hierarchy;
+            var project = solutionProject.Project;
             var configuration = _GetActiveConfigurationOfProject(project);
             var property = _GetStartArgumentsPropertyOfConfiguration(configuration, hierarchy);
             if (property == null) return null;
             return (string)property.Value;
         }
 
-        private void _SetStartArgumentsOfProject(string projectName, string commandLineArguments)
+        private void _SetStartArgumentsOfProject(SolutionProject solutionProject, string commandLineArguments)
         {
             if (commandLineArguments == null) return;
-            if (!name2hierarchy.ContainsKey(projectName)) return;
-            var hierarchy = name2hierarchy[projectName];
-            var project = projectHierarchyHelper.GetProjectFromHierarchy(hierarchy);
+            var hierarchy = solutionProject.Hierarchy;
+            var project = solutionProject.Project;
             var configurations = _GetAllConfigurationsOfProject(project);
             foreach (var configuration in configurations)
             {
@@ -399,10 +389,9 @@ namespace LucidConcepts.SwitchStartupProject
         {
             if (configuration == null || projectHierarchy == null) return null;
             var properties = configuration.Properties;
-            if (properties == null) return null;
-            var projectTypeGuids = _GetProjectTypeGuids(projectHierarchy);
-            var startArgumentsPropertyName = projectTypeGuids.Contains(GuidList.guidCPlusPlus) ? "CommandArguments" : "StartArguments";
-            return properties.Cast<Property>().FirstOrDefault(property => property.Name == startArgumentsPropertyName);
+            var project = solution.Projects.GetValueOrDefault(projectHierarchy);
+            if (properties == null || project == null) return null;
+            return properties.Cast<Property>().FirstOrDefault(property => property.Name == project.StartArgumentsPropertyName);
         }
 
         private void _SuspendChangedEvent(Action action)
@@ -410,87 +399,6 @@ namespace LucidConcepts.SwitchStartupProject
             reactToChangedEvent = false;
             action();
             reactToChangedEvent = true;
-        }
-
-        private string _GetProjectName(IVsHierarchy pHierarchy)
-        {
-            object nameObj = null;
-            return pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)__VSHPROPID.VSHPROPID_Name, out nameObj) == VSConstants.S_OK ?
-                (string)nameObj :
-                null;
-        }
-
-        private string _GetProjectStringProperty(IVsHierarchy pHierarchy, __VSHPROPID property)
-        {
-            object valueObject = null;
-            return pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)property, out valueObject) == VSConstants.S_OK ? (string)valueObject : null;
-        }
-
-        private Guid? _GetProjectGuidProperty(IVsHierarchy pHierarchy, __VSHPROPID property)
-        {
-            Guid guid = Guid.Empty;
-            return pHierarchy.GetGuidProperty((uint)VSConstants.VSITEMID.Root, (int)property, out guid) == VSConstants.S_OK ? guid : (Guid?)null;
-        }
-
-        private IEnumerable<Guid> _GetProjectTypeGuids(IVsHierarchy pHierarchy)
-        {
-            IEnumerable<Guid> projectTypeGuids;
-            var aggregatableProject = pHierarchy as IVsAggregatableProject;
-            if (aggregatableProject != null)
-            {
-                string projectTypeGuidString;
-                aggregatableProject.GetAggregateProjectTypeGuids(out projectTypeGuidString);
-                projectTypeGuids = projectTypeGuidString.Split(';')
-                    .Where(guidString => !string.IsNullOrEmpty(guidString))
-                    .Select(guidString => new Guid(guidString));
-            }
-            else
-            {
-                var project = projectHierarchyHelper.GetProjectFromHierarchy(pHierarchy);
-                projectTypeGuids = new[] { new Guid(project.Kind) };
-            }
-            return projectTypeGuids;
-        }
-
-        private string _GetProjectPath(IVsHierarchy pHierarchy)
-        {
-            var projectTypeGuids = _GetProjectTypeGuids(pHierarchy);
-            var isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
-
-            var project = projectHierarchyHelper.GetProjectFromHierarchy(pHierarchy);
-            var fullPath = project.FullName;
-            if (isWebSiteProject) return fullPath;  // Website projects need to be set using the full path
-
-            var solutionPath = Path.GetDirectoryName(dte.Solution.FullName) + @"\";
-            return Paths.GetPathRelativeTo(fullPath, solutionPath);
-        }
-
-        private void _AddProject(string name, IVsHierarchy pHierarchy)
-        {
-            var path = _GetProjectPath(pHierarchy);
-            name2hierarchy.Add(name, pHierarchy);
-            name2projectPath.Add(name, path);
-            projectPath2name.Add(path, name);
-        }
-
-        private void _ClearProjects()
-        {
-            name2hierarchy.Clear();
-            name2projectPath.Clear();
-            projectPath2name.Clear();
-            allStartupProjects = new List<string>();
-            dropdownService.DropdownList = null;
-        }
-
-        private void _RenameEntryInList(IList<string> list, string oldName, string newName)
-        {
-            for (int i = 0; i < list.Count; i++)
-            {
-                if (list[i] == oldName)
-                {
-                    list[i] = newName;
-                }
-            }
         }
 
         private void _ShowMsgOpenSolution()

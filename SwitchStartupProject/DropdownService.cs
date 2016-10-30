@@ -12,11 +12,11 @@ namespace LucidConcepts.SwitchStartupProject
     public class DropdownService
     {
         private readonly OleMenuCommand dropdownCommand;
-        private const string sentinel = "";
-        private const string other = "<other>";
-        private const string configure = "Configure...";
-        private IList<string> dropdownList;
-        private string currentDropdownValue = sentinel;
+        private static readonly IDropdownEntry sentinel = new OtherDropdownEntry("");
+        private static readonly IDropdownEntry other = new OtherDropdownEntry("<other>");
+        private static readonly IDropdownEntry configure = new OtherDropdownEntry("Configure...");
+        private IList<IDropdownEntry> dropdownList;
+        private IDropdownEntry currentDropdownValue = sentinel;
 
         public DropdownService(IMenuCommandService mcs)
         {
@@ -40,29 +40,23 @@ namespace LucidConcepts.SwitchStartupProject
             dropdownCommand.Enabled = true;
         }
 
-        public static string OtherItem
+        public static IDropdownEntry OtherItem
         {
             get { return other; }
         }
 
-        public string CurrentDropdownValue
+        public IDropdownEntry CurrentDropdownValue
         {
             get { return currentDropdownValue != sentinel ? currentDropdownValue : null; }
             set { currentDropdownValue = value ?? sentinel; }
         }
 
-        public void ReplaceDropdownList(IList<string> listItems)
-        {
-            dropdownList = listItems;
-            dropdownList.Add(configure);
-        }
-
-        public IList<string> DropdownList
+        public IList<IDropdownEntry> DropdownList
         {
             get { return dropdownList; }
             set
             {
-                dropdownList = value ?? new List<string>();
+                dropdownList = value ?? new List<IDropdownEntry>();
                 dropdownList.Add(configure);
             }
         }
@@ -75,7 +69,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public Action OnConfigurationSelected { get; set; }
 
-        public Action<string> OnListItemSelected { get; set; }
+        public Action<IDropdownEntry> OnListItemSelected { get; set; }
 
 
 
@@ -108,7 +102,7 @@ namespace LucidConcepts.SwitchStartupProject
             if (currentValueHolder != IntPtr.Zero)
             {
                 // when currentValueHolder is non-NULL, the IDE is requesting the current value for the combo
-                Marshal.GetNativeVariantForObject(currentDropdownValue, currentValueHolder);
+                Marshal.GetNativeVariantForObject(currentDropdownValue.DisplayName, currentValueHolder);
             }
             else if (newChoice != null)
             {
@@ -143,38 +137,29 @@ namespace LucidConcepts.SwitchStartupProject
                 throw (new ArgumentException("Out parameter can not be NULL"));
             }
             // the second command is used to retrieve the full list of choices as an array of strings
-            Marshal.GetNativeVariantForObject(dropdownList.ToArray(), listHolder);
+            Marshal.GetNativeVariantForObject(dropdownList.Select(item => item.DisplayName).ToArray(), listHolder);
         }
 
         private void _ChooseNewDropdownValue(int index)
         {
-            var name = dropdownList[index];
+            var item = dropdownList[index];
 
             // new value was selected
             // see if it is the configuration item
-            if (String.Compare(configure, name, StringComparison.CurrentCultureIgnoreCase) == 0)
+            if (item == configure)
             {
                 if (OnConfigurationSelected != null) OnConfigurationSelected();
                 return;
             }
 
             // see if it is the sentinel
-            if (String.Compare(sentinel, name, StringComparison.CurrentCultureIgnoreCase) == 0)
+            if (item == sentinel)   // TODO: this cannot happen because sentinel is not in list!
             {
                 if (OnListItemSelected != null) OnListItemSelected(null);
                 return;
             }
 
-            // see if it is one of the list items
-            foreach (string project in this.dropdownList)
-            {
-                if (String.Compare(project, name, StringComparison.CurrentCultureIgnoreCase) == 0)
-                {
-                    if (OnListItemSelected != null) OnListItemSelected(project);
-                    return;
-                }
-            }
-            throw (new ArgumentException("Param is not a valid string in list"));
+            if (OnListItemSelected != null) OnListItemSelected(item);
         }
 
     }

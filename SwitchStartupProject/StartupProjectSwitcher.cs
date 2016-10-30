@@ -54,7 +54,11 @@ namespace LucidConcepts.SwitchStartupProject
                 if (project != null)
                 {
                     logger.LogInfo("New startup project was activated outside of combobox: {0}", project.Name);
-                    dropdownService.CurrentDropdownValue = project.Name;
+                    var dropDownItem = dropdownService.DropdownList.SingleOrDefault(item =>
+                        (item is SingleProjectDropdownEntry) &&
+                        ((item as SingleProjectDropdownEntry).Project == project)
+                    ) ?? new OtherDropdownEntry(project.Name);  // if there is no dropdown entry for the single project, add an "other" entry so the name of the project is shown
+                    dropdownService.CurrentDropdownValue = dropDownItem;
                     return;
                 }
                 logger.LogInfo("New unknown startup project was activated outside of combobox");
@@ -77,9 +81,12 @@ namespace LucidConcepts.SwitchStartupProject
                 dropdownService.CurrentDropdownValue = DropdownService.OtherItem;
                 return;
             }
-            var newStartupConfigName = bestMatch.Name;
-            logger.LogInfo("New multi-project startup config was activated outside of combobox: {0}", newStartupConfigName);
-            dropdownService.CurrentDropdownValue = newStartupConfigName;
+            logger.LogInfo("New multi-project startup config was activated outside of combobox: {0}", bestMatch.Name);
+            var dropDownValue = dropdownService.DropdownList.SingleOrDefault(item =>
+                (item is MultiProjectDropdownEntry) &&
+                ((item as MultiProjectDropdownEntry).Configuration == bestMatch)
+            ) ?? DropdownService.OtherItem;  // if there is no dropdown entry for the single project, add an "other" entry so the name of the project is shown
+            dropdownService.CurrentDropdownValue = dropDownValue;
         }
 
         private IEnumerable<MultiProjectConfigurationProject> _SortedProjects(IEnumerable<MultiProjectConfigurationProject> projects)
@@ -190,14 +197,7 @@ namespace LucidConcepts.SwitchStartupProject
             var newPath = project.Path;
 
             logger.LogInfo("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
-            var reselectRenamedProject = dropdownService.CurrentDropdownValue == oldName;
-
             _PopulateDropdownList();
-            if (reselectRenamedProject)
-            {
-                dropdownService.CurrentDropdownValue = newName;
-            }
-
             if (solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(projConfig => projConfig.Name == oldName)))
             {
                 MessageBox.Show("The renamed project is part of a startup configuration.\nPlease update your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -212,7 +212,8 @@ namespace LucidConcepts.SwitchStartupProject
             logger.LogInfo("Closing project: {0}", project.Name);
             // When project is closed: remove it from list of startup projects
             solution.Projects.Remove(pHierarchy);
-            if (dropdownService.CurrentDropdownValue == project.Name)
+            if ((dropdownService.CurrentDropdownValue is SingleProjectDropdownEntry) &&
+                (dropdownService.CurrentDropdownValue as SingleProjectDropdownEntry).Project == project)
             {
                 dropdownService.CurrentDropdownValue = null;
             }
@@ -251,21 +252,19 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _PopulateDropdownList()
         {
-            var startupProjects = new List<string>();
+            var startupProjects = new List<IDropdownEntry>();
             if (solution != null)   // Solution may be null e.g. when creating a new website
             {
                 if (solution.Configuration.ListAllProjects)
                 {
-                    var allStartupProjects = solution.Projects.Values.Select(p => p.Name).ToList();
-                    allStartupProjects.Sort();
-                    startupProjects.AddRange(allStartupProjects);
+                    solution.Projects.Values.OrderBy(project => project.Name).ForEach(project => startupProjects.Add(new SingleProjectDropdownEntry(project)));
                 }
-                solution.Configuration.MultiProjectConfigurations.ForEach(c => startupProjects.Add(c.Name));
+                solution.Configuration.MultiProjectConfigurations.ForEach(config => startupProjects.Add(new MultiProjectDropdownEntry(config)));
             }
             dropdownService.DropdownList = startupProjects;
         }
 
-        private void _ChangeStartupProject(string newStartupProject)
+        private void _ChangeStartupProject(IDropdownEntry newStartupProject)
         {
             dropdownService.CurrentDropdownValue = newStartupProject;
             if (newStartupProject == null)
@@ -274,17 +273,17 @@ namespace LucidConcepts.SwitchStartupProject
                 _ActivateSingleProjectConfiguration(null);
                 return;
             }
-            var project = solution.Projects.Values.SingleOrDefault(p => p.Name == newStartupProject);
-            if (project != null)
+            if (newStartupProject is SingleProjectDropdownEntry)
             {
                 // Single startup project
-                _ActivateSingleProjectConfiguration(project.Name);
+                var project = (newStartupProject as SingleProjectDropdownEntry).Project;
+                _ActivateSingleProjectConfiguration(project);
                 return;
             }
-            if (solution.Configuration.MultiProjectConfigurations.Any(c => c.Name == newStartupProject))
+            if (newStartupProject is MultiProjectDropdownEntry)
             {
                 // Multiple startup projects
-                var config = solution.Configuration.MultiProjectConfigurations.Single(c => c.Name == newStartupProject);
+                var config = (newStartupProject as MultiProjectDropdownEntry).Configuration;
                 _ActivateMultiProjectConfiguration(config);
             }
         }
@@ -304,11 +303,10 @@ namespace LucidConcepts.SwitchStartupProject
             }).ToList());
         }
 
-        private void _ActivateSingleProjectConfiguration(string projectName)
+        private void _ActivateSingleProjectConfiguration(SolutionProject project)
         {
             _SuspendChangedEvent(() =>
             {
-                var project = solution.Projects.Values.SingleOrDefault(p => p.Name == projectName);
                 if (project == null) return;
                 dte.Solution.SolutionBuild.StartupProjects = project.Path;
             });

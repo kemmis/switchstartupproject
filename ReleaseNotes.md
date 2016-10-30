@@ -1,5 +1,8 @@
 # Release notes
 
+## Version 3.2
+* Bugfix: Support multi-project configurations with same name as project (issue #45)
+
 ## Version 3.1
 * Less smart, less GUI, more stability, more power for the user
   * Removed smart mode: It was not smart enough and often failed with newer project types. (issue #30)

@@ -84,40 +84,36 @@ namespace LucidConcepts.SwitchStartupProject
             if ((null == e) || (e == EventArgs.Empty))
             {
                 // We should never get here; EventArgs are required.
-                throw (new ArgumentException("EventArgs are required")); // force an exception to be thrown
+                throw (new ArgumentException("EventArgs are required"));
             }
-
             var eventArgs = e as OleMenuCmdEventArgs;
-
-            if (eventArgs != null)
-            {
-                var newChoice = eventArgs.InValue as string;
-                var currentValueHolder = eventArgs.OutValue;
-
-                if (currentValueHolder != IntPtr.Zero && newChoice != null)
-                {
-                    throw (new ArgumentException("Both in and out parameters should not be specified")); // force an exception to be thrown
-                }
-                if (currentValueHolder != IntPtr.Zero)
-                {
-                    // when currentValueHolder is non-NULL, the IDE is requesting the current value for the combo
-                    Marshal.GetNativeVariantForObject(currentDropdownValue, currentValueHolder);
-                }
-                else if (newChoice != null)
-                {
-                    // when newChoice is non-NULL, the IDE is sending the new value that has been selected in the combo
-                    _ChooseNewDropdownValue(newChoice);
-                }
-                else
-                {
-                    // We should never get here
-                    throw (new ArgumentException("InOutParamCantBeNULL")); // force an exception to be thrown
-                }
-            }
-            else
+            if (eventArgs == null)
             {
                 // We should never get here; EventArgs are required.
-                throw (new ArgumentException("EventArgs are required")); // force an exception to be thrown
+                throw (new ArgumentException("EventArgs are required"));
+            }
+
+            var newChoice = eventArgs.InValue as string;
+            var currentValueHolder = eventArgs.OutValue;
+
+            if (currentValueHolder == IntPtr.Zero && newChoice == null)
+            {
+                throw (new ArgumentException("Both in and out parameters should not be null"));
+            }
+            if (currentValueHolder != IntPtr.Zero && newChoice != null)
+            {
+                throw (new ArgumentException("Both in and out parameters should not be specified"));
+            }
+
+            if (currentValueHolder != IntPtr.Zero)
+            {
+                // when currentValueHolder is non-NULL, the IDE is requesting the current value for the combo
+                Marshal.GetNativeVariantForObject(currentDropdownValue, currentValueHolder);
+            }
+            else if (newChoice != null)
+            {
+                // when newChoice is non-NULL, the IDE is sending the new value that has been selected in the combo
+                _ChooseNewDropdownValue(newChoice);
             }
         }
 
@@ -126,30 +122,28 @@ namespace LucidConcepts.SwitchStartupProject
             if (e == EventArgs.Empty)
             {
                 // We should never get here; EventArgs are required.
-                throw (new ArgumentException("EventArgs are required")); // force an exception to be thrown
+                throw (new ArgumentException("EventArgs are required"));
             }
-
             var eventArgs = e as OleMenuCmdEventArgs;
-
-            if (eventArgs != null)
+            if (eventArgs == null)
             {
-                var inParam = eventArgs.InValue;
-                var listHolder = eventArgs.OutValue;
-
-                if (inParam != null)
-                {
-                    throw (new ArgumentException("In parameter may not be specified")); // force an exception to be thrown
-                }
-                else if (listHolder != IntPtr.Zero)
-                {
-                    // the second command is used to retrieve the full list of choices as an array of strings
-                    Marshal.GetNativeVariantForObject(dropdownList.ToArray(), listHolder);
-                }
-                else
-                {
-                    throw (new ArgumentException("Out parameter can not be NULL")); // force an exception to be thrown
-                }
+                // We should never get here; EventArgs are required.
+                throw (new ArgumentException("EventArgs are required"));
             }
+            
+            var inParam = eventArgs.InValue;
+            var listHolder = eventArgs.OutValue;
+
+            if (inParam != null)
+            {
+                throw (new ArgumentException("In parameter may not be specified"));
+            }
+            if (listHolder == IntPtr.Zero)
+            {
+                throw (new ArgumentException("Out parameter can not be NULL"));
+            }
+            // the second command is used to retrieve the full list of choices as an array of strings
+            Marshal.GetNativeVariantForObject(dropdownList.ToArray(), listHolder);
         }
 
         private void _ChooseNewDropdownValue(string name)
@@ -178,7 +172,7 @@ namespace LucidConcepts.SwitchStartupProject
                     return;
                 }
             }
-            throw (new ArgumentException("ParamNotValidStringInList")); // force an exception to be thrown
+            throw (new ArgumentException("Param is not a valid string in list"));
         }
 
     }

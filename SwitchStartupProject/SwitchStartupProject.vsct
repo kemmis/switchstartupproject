@@ -27,7 +27,7 @@
     
     <!-- The definition of the dropdown combobox command -->
     <Combos>
-      <Combo guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" type="DropDownCombo" defaultWidth="150" idCommandList="cmdidSwitchStartupProjectComboGetList">
+      <Combo guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" type="IndexCombo" defaultWidth="150" idCommandList="cmdidSwitchStartupProjectComboGetList">
         <CommandFlag>CommandWellOnly</CommandFlag>
         <Strings>
           <ButtonText>Startup Project</ButtonText>

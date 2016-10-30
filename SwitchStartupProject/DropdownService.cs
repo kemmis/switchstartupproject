@@ -93,7 +93,7 @@ namespace LucidConcepts.SwitchStartupProject
                 throw (new ArgumentException("EventArgs are required"));
             }
 
-            var newChoice = eventArgs.InValue as string;
+            var newChoice = eventArgs.InValue as int?;
             var currentValueHolder = eventArgs.OutValue;
 
             if (currentValueHolder == IntPtr.Zero && newChoice == null)
@@ -113,7 +113,7 @@ namespace LucidConcepts.SwitchStartupProject
             else if (newChoice != null)
             {
                 // when newChoice is non-NULL, the IDE is sending the new value that has been selected in the combo
-                _ChooseNewDropdownValue(newChoice);
+                _ChooseNewDropdownValue(newChoice.Value);
             }
         }
 
@@ -146,8 +146,10 @@ namespace LucidConcepts.SwitchStartupProject
             Marshal.GetNativeVariantForObject(dropdownList.ToArray(), listHolder);
         }
 
-        private void _ChooseNewDropdownValue(string name)
+        private void _ChooseNewDropdownValue(int index)
         {
+            var name = dropdownList[index];
+
             // new value was selected
             // see if it is the configuration item
             if (String.Compare(configure, name, StringComparison.CurrentCultureIgnoreCase) == 0)

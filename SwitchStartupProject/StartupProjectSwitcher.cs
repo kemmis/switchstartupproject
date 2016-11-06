@@ -249,7 +249,11 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 if (solution.Configuration.ListAllProjects)
                 {
-                    solution.Projects.Values.OrderBy(project => project.Name).ForEach(project => startupProjects.Add(new SingleProjectDropdownEntry(project)));
+                    var projectsByName = solution.Projects.Values.ToLookup(project => project.Name);
+                    solution.Projects.Values.OrderBy(project => project.Name).ForEach(project => startupProjects.Add(new SingleProjectDropdownEntry(project)
+                    {
+                        Disambiguate = projectsByName[project.Name].Count() > 1
+                    }));
                 }
                 solution.Configuration.MultiProjectConfigurations.ForEach(config => startupProjects.Add(new MultiProjectDropdownEntry(_GetStartupConfiguration(config))));
             }

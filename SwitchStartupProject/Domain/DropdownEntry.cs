@@ -19,7 +19,15 @@ namespace LucidConcepts.SwitchStartupProject
         }
 
         public SolutionProject Project { get; private set; }
-        public string DisplayName { get { return Project.Name; } }
+        public bool Disambiguate { get; set; }
+        public string DisplayName
+        {
+            get
+            {
+                if (!Disambiguate || !Project.SolutionFolders.Any()) return Project.Name;
+                return string.Format("{0} ({1})", Project.Name, string.Join("/", Project.SolutionFolders));
+            }
+        }
 
         public bool IsEqual(IDropdownEntry other)
         {

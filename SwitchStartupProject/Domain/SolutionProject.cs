@@ -24,7 +24,7 @@ namespace LucidConcepts.SwitchStartupProject
         public string Path { get; private set; }
         public Project Project { get; private set; }
         public string StartArgumentsPropertyName { get; private set; }
-
+        public IList<string> SolutionFolders { get; private set; }
 
         protected SolutionProject(IVsHierarchy hierarchy, string name, string typeName, string caption, Guid guid, string solutionFullName)
         {
@@ -42,6 +42,7 @@ namespace LucidConcepts.SwitchStartupProject
             this.Name = _GetProjectStringProperty(Hierarchy, __VSHPROPID.VSHPROPID_Name);
             this.Path = _GetProjectPath(Project, solutionFullName, isWebSiteProject);
             this.StartArgumentsPropertyName = projectTypeGuids.Contains(GuidList.guidCPlusPlus) ? "CommandArguments" : "StartArguments";
+            this.SolutionFolders = _GetSolutionFolders(hierarchy);
         }
 
         public static SolutionProject FromHierarchy(IVsHierarchy hierarchy, string solutionFullName)
@@ -111,5 +112,29 @@ namespace LucidConcepts.SwitchStartupProject
             return (project as Project);
         }
 
+        private static List<string> _GetSolutionFolders(IVsHierarchy hierarchy)
+        {
+            var parents = new List<string>();
+            var current = hierarchy;
+            while (true)
+            {
+                current = _GetParentHierarchy(current);
+                if (current == null) break;
+                var typeguid = _GetProjectGuidProperty(current, __VSHPROPID.VSHPROPID_TypeGuid);
+                var parentName = _GetProjectStringProperty(current, __VSHPROPID.VSHPROPID_Name);
+                if (typeguid != VSConstants.GUID_ItemType_VirtualFolder) break;
+                parents.Add(parentName);
+            }
+            parents.Reverse();
+            return parents;
+        }
+
+        private static IVsHierarchy _GetParentHierarchy(IVsHierarchy pHierarchy)
+        {
+            object parentHierarchy;
+            return (pHierarchy.GetProperty(VSConstants.VSITEMID_ROOT, (int)__VSHPROPID.VSHPROPID_ParentHierarchy, out parentHierarchy)) == VSConstants.S_OK ?
+                parentHierarchy as IVsHierarchy :
+                null;
+        }
     }
 }

@@ -30,7 +30,7 @@ namespace LucidConcepts.SwitchStartupProject
     // This attribute is needed to let the shell know that this package exposes some menus.
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [Guid(GuidList.guidSwitchStartupProjectPkgString)]
-    public sealed class SwitchStartupProjectPackage : Package, IVsSolutionEvents, IVsSolutionEvents4, IVsSolutionLoadEvents, IVsSelectionEvents, IVsPersistSolutionOpts
+    public sealed class SwitchStartupProjectPackage : Package, IVsSolutionEvents, IVsSolutionEvents4, IVsSolutionLoadEvents, IVsSelectionEvents
     {
 
         private uint solutionEventsCookie;
@@ -256,15 +256,6 @@ namespace LucidConcepts.SwitchStartupProject
         }
 
         public int OnSelectionChanged(IVsHierarchy pHierOld, uint itemidOld, IVsMultiItemSelect pMISOld, ISelectionContainer pSCOld, IVsHierarchy pHierNew, uint itemidNew, IVsMultiItemSelect pMISNew, ISelectionContainer pSCNew)
-        {
-            return VSConstants.S_OK;
-        }
-
-        #endregion
-
-        #region IVsPersistSolutionOpts Members
-
-        public int SaveUserOptions(IVsSolutionPersistence pPersistence)
         {
             return VSConstants.S_OK;
         }

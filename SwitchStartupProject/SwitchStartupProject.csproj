@@ -138,6 +138,7 @@
     <Compile Include="Configuration\ConfigurationFileTracker.cs" />
     <Compile Include="Domain\Solution.cs" />
     <Compile Include="Domain\DropdownEntry.cs" />
+    <Compile Include="Domain\StartupConfiguration.cs" />
     <Compile Include="DropdownService.cs" />
     <Compile Include="Guids.cs" />
     <Compile Include="Configuration\ConfigurationLoader.cs" />

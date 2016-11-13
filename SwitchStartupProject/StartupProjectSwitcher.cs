@@ -10,6 +10,8 @@ using LucidConcepts.SwitchStartupProject.Helpers;
 
 using Microsoft.VisualStudio.Shell.Interop;
 
+using Newtonsoft.Json;
+
 namespace LucidConcepts.SwitchStartupProject
 {
     public class StartupProjectSwitcher
@@ -241,6 +243,23 @@ namespace LucidConcepts.SwitchStartupProject
             if (solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => solution.Projects.Values.All(project => !_ConfigRefersToProject(configProject, project)))))
             {
                 MessageBox.Show("The configuration file refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+            }
+            // Check if any manually configured startup project references need to be disambiguated
+            var projectsByName = solution.Projects.Values.ToLookup(project => project.Name);
+            var projectNamesThatNeedDisambiguation = projectsByName.Where(kvp => kvp.Count() > 1).Select(kvp => kvp.Key).ToList();
+            if (projectNamesThatNeedDisambiguation.Any())
+            {
+                var allProjectNameReferences = (from config in solution.Configuration.MultiProjectConfigurations
+                                                from proj in config.Projects
+                                                select proj.NameOrPath).Distinct();
+                var ambiguousProjectNameReferences = allProjectNameReferences.Intersect(projectNamesThatNeedDisambiguation).ToList();
+                if (ambiguousProjectNameReferences.Any())
+                {
+                    var projectNameToPath = string.Join("\n", from projectName in ambiguousProjectNameReferences
+                                                              from project in projectsByName[projectName]
+                                                              select string.Format("• {0}", JsonConvert.ToString(project.Path)));
+                    MessageBox.Show("The configuration file refers to ambiguous project names.\nPlease use either of the following project paths instead:\n\n" + projectNameToPath, "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                }
             }
             _PopulateDropdownList();
         }

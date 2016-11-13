@@ -1,6 +1,9 @@
 # Release notes
 
 ## Version 3.2
+* Support solutions with multiple projects of the same name (issue #39)
+  * Show solution folder names to disambiguate
+  * Allow multi-project configurations to unambiguously refer to projects by path
 * Bugfix: Support multi-project configurations with same name as project (issue #45)
 
 ## Version 3.1

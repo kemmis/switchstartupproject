@@ -162,6 +162,7 @@ namespace LucidConcepts.SwitchStartupProject
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             dropdownService.CurrentDropdownValue = null;
             configurationLoader = null;
+            configuration = null;
             _ClearProjects();
         }
 
@@ -175,7 +176,7 @@ namespace LucidConcepts.SwitchStartupProject
 
             // Filter out hierarchy elements that don't represent projects
             if (name == null || typeName == null || caption == null || guid == null) return;
-            
+
             logger.LogInfo("Opening project: {0}", name);
 
             _AddProject(name, pHierarchy);

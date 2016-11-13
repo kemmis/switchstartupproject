@@ -333,8 +333,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             _SuspendChangedEvent(() =>
             {
-                if (project == null) return;
-                dte.Solution.SolutionBuild.StartupProjects = project.Path;
+                dte.Solution.SolutionBuild.StartupProjects = project != null ? project.Path : null;
             });
         }
 

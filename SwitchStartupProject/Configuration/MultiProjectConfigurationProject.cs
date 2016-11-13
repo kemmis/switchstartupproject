@@ -7,13 +7,13 @@ namespace LucidConcepts.SwitchStartupProject
 {
     public class MultiProjectConfigurationProject
     {
-        public MultiProjectConfigurationProject(string name, string commandLineArguments)
+        public MultiProjectConfigurationProject(string nameOrPath, string commandLineArguments)
         {
-            this.Name = name;
+            this.NameOrPath = nameOrPath;
             this.CommandLineArguments = commandLineArguments;
         }
 
-        public string Name { get; private set; }
+        public string NameOrPath { get; private set; }
         public string CommandLineArguments { get; private set; }
     }
 }

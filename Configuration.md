@@ -68,16 +68,20 @@ A dictionary of named startup configurations, each consisting of one or multiple
 
 Example of a startup configuration:
 ```
-        "A + B (CLA)": {                             /*  Configuration name (appears in the dropdown)  */
+        "A + B (CLA) + C": {                         /*  Configuration name (appears in the dropdown)  */
             "Projects": {
                 "MyProjectA": {},                    /*  Starting project A  */
                 "MyProjectB": {                      /*  and project B ...   */
                     "CommandLineArguments": "1234"   /*  ... with command line arguments "1234"  */
-                }
+                },
+                "Path\\To\\ProjectC.csproj": {}      /*  and project C (specified by path)  */
             }
         }
 ```
-Startup projects are identified by their name as shown in the solution explorer of Visual Studio.
+Startup projects can be specified in two ways:
+
+* Either by project name as shown in the solution explorer of Visual Studio.
+* Or by the path to the project file, relative to the solution file. This allows to unambiguously refer to projects with same name. Note that backslashes have to be escaped (duplicated) in JSON.
 
 SwitchStartupProject creates an item in the dropdown for each startup configuration, allowing the corresponding startup projects (and command line arguments) to be activated.
 

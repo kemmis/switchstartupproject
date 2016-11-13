@@ -186,6 +186,8 @@ namespace LucidConcepts.SwitchStartupProject
             var project = solution.Projects.GetValueOrDefault(pHierarchy);
             if (project == null) return;
 
+            var showMessage = solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => _ConfigRefersToProject(configProject, project)));
+
             var oldName = project.Name;
             var oldPath = project.Path;
             project.Rename();
@@ -194,7 +196,8 @@ namespace LucidConcepts.SwitchStartupProject
 
             logger.LogInfo("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
             _PopulateDropdownList();
-            if (solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(projConfig => projConfig.Name == oldName)))
+
+            if (showMessage)
             {
                 MessageBox.Show("The renamed project is part of a startup configuration.\nPlease update your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -235,7 +238,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             solution.Configuration = solution.ConfigurationLoader.Load();
             // Check if all manually configured startup projects exist
-            if (solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => solution.Projects.Values.All(project => project.Name != configProject.Name))))
+            if (solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => solution.Projects.Values.All(project => !_ConfigRefersToProject(configProject, project)))))
             {
                 MessageBox.Show("The configuration file refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
             }
@@ -264,7 +267,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             var startupConfigurationProjects = config.Projects.Select(configProject =>
             {
-                var project = solution.Projects.Values.SingleOrDefault(solutionProject => solutionProject.Name == configProject.Name);
+                var project = solution.Projects.Values.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject));
                 return new StartupConfigurationProject(project, configProject.CommandLineArguments);
             }).ToList();
             return new StartupConfiguration(config.Name, startupConfigurationProjects);
@@ -398,6 +401,12 @@ namespace LucidConcepts.SwitchStartupProject
         private void _ShowMsgOpenSolution()
         {
             MessageBox.Show("Please open a solution before you configure its startup projects.\n\nIn case a solution is open, something went wrong loading it.\nMaybe it helps to delete the solution .suo file and reload the solution?", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private bool _ConfigRefersToProject(MultiProjectConfigurationProject configProject, SolutionProject project)
+        {
+            return configProject.NameOrPath == project.Name ||
+                   configProject.NameOrPath == project.Path;
         }
     }
 }

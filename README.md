@@ -13,7 +13,7 @@ No more scrolling up and down the solution explorer tree just to change the star
 * Select the startup project from a dropdown. (Like you do for the platform or configuration.)
 * Switch between multi-project startup configurations. (e.g. [B and C] or [A, C and D])
 * Configure command line parameters for the startup projects.
-* Compatible with Visual Studio 15, 2015, 2013, 2012 and 2010
+* Compatible with Visual Studio 2017, 2015, 2013, 2012 and 2010
 
 ## Get it!
 

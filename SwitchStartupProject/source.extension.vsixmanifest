@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Vsix xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Version="1.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2010">
-  <Identifier Id="894b6873-138b-4e5f-ac68-6863cf312f7b">
-    <Name>SwitchStartupProject</Name>
+  <Identifier Id="40b5ca05-6793-42f7-a50a-cca5bf4ff495">
+    <Name>SwitchStartupProject for VS 2017</Name>
     <Author>Lucid Concepts</Author>
     <Version>3.2</Version>
     <Description xml:space="preserve">Provides a toolbar dropdown box to switch between startup projects.</Description>

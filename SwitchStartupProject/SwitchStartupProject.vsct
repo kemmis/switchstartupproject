@@ -10,7 +10,7 @@
   <!-- Include some debug guids and menu ids -->
   <Extern href="VSDbgCmd.h"/>
   <Extern href="VsDebugGuids.h"/>
-   
+
   <!--The Commands section is where we the commands, menus and menu groups are defined.
       This section uses a Guid to identify the package that provides the command defined inside it. -->
   <Commands package="guidSwitchStartupProjectPkg">
@@ -24,7 +24,7 @@
         <Parent guid="guidVSDebugGroup" id="IDM_DEBUG_MENU"/>
       </Group>
     </Groups>
-    
+
     <!-- The definition of the dropdown combobox command -->
     <Combos>
       <Combo guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" type="IndexCombo" defaultWidth="150" idCommandList="cmdidSwitchStartupProjectComboGetList">
@@ -39,7 +39,7 @@
       </Combo>
     </Combos>
   </Commands>
-  
+
   <!-- Place the combo command into two parents: -->
   <CommandPlacements>
     <!-- First parent: The Visual Studio 'Run/Build' standard toolbar group -->
@@ -54,8 +54,8 @@
 
   <Symbols>
     <!-- This is the package guid. -->
-    <GuidSymbol name="guidSwitchStartupProjectPkg" value="{894b6873-138b-4e5f-ac68-6863cf312f7b}" />
-    
+    <GuidSymbol name="guidSwitchStartupProjectPkg" value="{40b5ca05-6793-42f7-a50a-cca5bf4ff495}" />
+
     <!-- This is the guid used to group the menu commands together -->
     <GuidSymbol name="guidSwitchStartupProjectCmdSet" value="{9c1b4719-1443-4d96-b264-7cf17809659b}">
 
@@ -68,8 +68,8 @@
       <IDSymbol name="cmdidSwitchStartupProjectComboGetList" value="0x102"/>
 
     </GuidSymbol>
-    
-    
+
+
   </Symbols>
 
 </CommandTable>

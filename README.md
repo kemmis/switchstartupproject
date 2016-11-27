@@ -17,7 +17,8 @@ No more scrolling up and down the solution explorer tree just to change the star
 
 ## Get it!
 
-* Download the newest release from the [Visual Studio Extensions Gallery](http://visualstudiogallery.msdn.microsoft.com/f4e1be8c-b2dd-4dec-b273-dd88f8818571)
+* Download the [release for Visual Studio 2017 RC](https://visualstudiogallery.msdn.microsoft.com/9bbd5b32-6df8-4ae6-8a53-bcdd472c07ee)
+* Download the newest release from the [Visual Studio Extensions Gallery](https://visualstudiogallery.msdn.microsoft.com/f4e1be8c-b2dd-4dec-b273-dd88f8818571)
 * Download older releases from the [Downloads Section](https://bitbucket.org/thirteen/switchstartupproject/downloads)
 * Download CI builds from [AppVeyor](https://ci.appveyor.com/project/thirteen/switchstartupproject)
 * Source code on [Bitbucket](https://bitbucket.org/thirteen/switchstartupproject/src)

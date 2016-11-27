@@ -1,5 +1,7 @@
 # Release notes
 
+## Version 3.3
+
 ## Version 3.2
 * Add support for Visual Studio 2017 RC (issue #47)
 * Support solutions with multiple projects of the same name (issue #39)

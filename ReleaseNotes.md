@@ -1,6 +1,7 @@
 # Release notes
 
 ## Version 3.3
+* Add support for configuring working directories of projects (issue #27)
 
 ## Version 3.2
 * Add support for Visual Studio 2017 RC (issue #47)

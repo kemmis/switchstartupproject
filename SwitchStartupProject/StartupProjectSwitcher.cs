@@ -89,7 +89,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private IEnumerable<StartupConfigurationProject> _SortedProjects(IEnumerable<StartupConfigurationProject> startupConfigurationProjects)
         {
-            return startupConfigurationProjects.OrderBy(proj => proj.Project.Path)
+            return startupConfigurationProjects.OrderBy(proj => proj.Project != null ? proj.Project.Path : "")
                                                 .ThenBy(proj => proj.CommandLineArguments)
                                                 .ThenBy(proj => proj.WorkingDirectory);
         }
@@ -249,11 +249,6 @@ namespace LucidConcepts.SwitchStartupProject
         private void _LoadConfigurationAndPopulateDropdown()
         {
             solution.Configuration = solution.ConfigurationLoader.Load();
-            // Check if all manually configured startup projects exist
-            if (solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => solution.Projects.Values.All(project => !_ConfigRefersToProject(configProject, project)))))
-            {
-                MessageBox.Show("The configuration file refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-            }
             // Check if any manually configured startup project references need to be disambiguated
             var projectsByName = solution.Projects.Values.ToLookup(project => project.Name);
             var projectNamesThatNeedDisambiguation = projectsByName.Where(kvp => kvp.Count() > 1).Select(kvp => kvp.Key).ToList();
@@ -356,12 +351,25 @@ namespace LucidConcepts.SwitchStartupProject
                 if (startupProjects.Count == 1)
                 {
                     // If the multi-project startup configuration contains a single project only, handle it as if it was a single-project configuration
-                    dte.Solution.SolutionBuild.StartupProjects = startupProjects.Single().Project.Path;
+                    var project = startupProjects.Single().Project;
+                    if (project == null)
+                    {
+                        MessageBox.Show("The activated configuration refers to an inexistent project.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        return;
+                    }
+                    dte.Solution.SolutionBuild.StartupProjects = project.Path;
                 }
                 else
                 {
                     // SolutionBuild.StartupProjects expects an array of objects
-                    var projectPathArray = startupProjects.Select(startupProject => (object)startupProject.Project.Path).ToArray();
+                    var projectPathArray = (from startupProject in startupProjects
+                                           let project = startupProject.Project
+                                           where project != null
+                                           select (object)project.Path).ToArray();
+                    if (startupProjects.Count != projectPathArray.Length)
+                    {
+                        MessageBox.Show("The activated configuration refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    }
                     dte.Solution.SolutionBuild.StartupProjects = projectPathArray;
                 }
 
@@ -386,7 +394,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _SetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty, string newValue)
         {
-            if (newValue == null) return;
+            if (newValue == null || solutionProject == null) return;
             var hierarchy = solutionProject.Hierarchy;
             var project = solutionProject.Project;
             var configurations = _GetAllConfigurationsOfProject(project);

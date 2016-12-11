@@ -2,6 +2,7 @@
 
 ## Version 3.3
 * Add support for configuring working directories of projects (issue #27)
+* Add support for SQL Server Integration Services (SSIS) projects (issue #44)
 
 ## Version 3.2
 * Add support for Visual Studio 2017 RC (issue #47)

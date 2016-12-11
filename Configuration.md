@@ -28,11 +28,12 @@ See also the [JSON schema](https://bitbucket.org/thirteen/switchstartupproject/s
     "Version": 3,
     "ListAllProjects": false,
     "MultiProjectConfigurations": {
-        "A + B (CLA)": {
+        "A + B (CLA + WD)": {
             "Projects": {
                 "MyProjectA": {},
                 "MyProjectB": {
-                    "CommandLineArguments": "1234"
+                    "CommandLineArguments": "1234",
+                    "WorkingDirectory": "%USERPROFILE%\\test\"
                 }
             }
         },
@@ -40,7 +41,8 @@ See also the [JSON schema](https://bitbucket.org/thirteen/switchstartupproject/s
             "Projects": {
                 "MyProjectA": {},
                 "MyProjectB": {
-                    "CommandLineArguments": ""
+                    "CommandLineArguments": "",
+                    "WorkingDirectory": ""
                 }
             }
         },
@@ -64,17 +66,18 @@ Can be either `true` or `false`.
 If set to `true`, SwitchStartupProject creates an item in the dropdown for each project in the solution, which allows each project to be activated individually as startup project.
 
 ### MultiProjectConfigurations
-A dictionary of named startup configurations, each consisting of one or multiple startup projects with optional command line arguments.
+A dictionary of named startup configurations, each consisting of one or multiple startup projects with optional parameters like command line arguments and working directory.
 
 Example of a startup configuration:
 ```
-        "A + B (CLA) + C": {                         /*  Configuration name (appears in the dropdown)  */
+        "A + B (CLA) + C": {                                    /*  Configuration name (appears in the dropdown)  */
             "Projects": {
-                "MyProjectA": {},                    /*  Starting project A  */
-                "MyProjectB": {                      /*  and project B ...   */
-                    "CommandLineArguments": "1234"   /*  ... with command line arguments "1234"  */
+                "MyProjectA": {},                               /*  Starting project A  */
+                "MyProjectB": {                                 /*  and project B ...   */
+                    "CommandLineArguments": "1234",             /*  ... with command line arguments "1234"  */
+                    "WorkingDirectory": "%USERPROFILE%\\test"   /*  ... with working directory %USERPROFILE%\test  */
                 },
-                "Path\\To\\ProjectC.csproj": {}      /*  and project C (specified by path)  */
+                "Path\\To\\ProjectC.csproj": {}                 /*  and project C (specified by path)  */
             }
         }
 ```
@@ -86,7 +89,7 @@ Startup projects can be specified in two ways:
 SwitchStartupProject creates an item in the dropdown for each startup configuration, allowing the corresponding startup projects (and command line arguments) to be activated.
 
 > Note:
-> If a startup project specifies command line arguments, these command line arguments are (persistently) set when the configuration gets activated. If a startup project does not specify command line arguments, the existing command line argument value won't change when the configuration gets activated. To clear command line arguments set by another configuration, specify the command line arguments with an empty string `""` value.
+> If a startup project specifies a parameter (like command line arguments or a working directory), that parameter is (persistently) set when the configuration gets activated. If a startup project does not specify a parameter, the existing parameter value won't change when the configuration gets activated. To clear a parameter set by another configuration, specify the parameter with an empty string `""` value.
 
 ## Default Values
 

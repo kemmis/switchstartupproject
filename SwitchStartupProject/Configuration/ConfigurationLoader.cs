@@ -20,6 +20,7 @@ namespace LucidConcepts.SwitchStartupProject
         private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
         private const string projectsKey = "Projects";
         private const string claKey = "CommandLineArguments";
+        private const string workingDirKey = "WorkingDirectory";
         private const string listAllProjectsKey = "ListAllProjects";
 
         private readonly string configurationFilename;
@@ -124,16 +125,26 @@ namespace LucidConcepts.SwitchStartupProject
             sb.AppendLine("    \"" + listAllProjectsKey + "\": true,");
             sb.AppendLine("");
             sb.AppendLine("    /*");
-            sb.AppendLine("        Dictionary of named startup project configurations with one or multiple");
-            sb.AppendLine("        startup projects and optional command line arguments.");
+            sb.AppendLine("        Dictionary of named configurations with one or multiple startup projects");
+            sb.AppendLine("        and optional parameters like command line arguments and working directory.");
             sb.AppendLine("        Example:");
             sb.AppendLine("");
             sb.AppendLine("        \"" + multiProjectConfigurationsKey + "\": {");
-            sb.AppendLine("            \"A + B\": {");
+            sb.AppendLine("            \"A + B (CLA + workDir)\": {");
             sb.AppendLine("                \"" + projectsKey + "\": {");
             sb.AppendLine("                    \"MyProjectA\": {},");
             sb.AppendLine("                    \"MyProjectB\": {");
             sb.AppendLine("                        \"" + claKey + "\": \"1234\"");
+            sb.AppendLine("                        \"" + workingDirKey + "\": \"%USERPROFILE%\\test\"");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine("            },");
+            sb.AppendLine("            \"A + B\": {");
+            sb.AppendLine("                \"" + projectsKey + "\": {");
+            sb.AppendLine("                    \"MyProjectA\": {},");
+            sb.AppendLine("                    \"MyProjectB\": {");
+            sb.AppendLine("                        \"" + claKey + "\": \"\"");
+            sb.AppendLine("                        \"" + workingDirKey + "\": \"\"");
             sb.AppendLine("                    }");
             sb.AppendLine("                }");
             sb.AppendLine("            },");
@@ -175,7 +186,8 @@ namespace LucidConcepts.SwitchStartupProject
             return from configuration in settings[multiProjectConfigurationsKey].Cast<JProperty>()
                    let projects = (from project in configuration.Value[projectsKey].Cast<JProperty>()
                                    let cla = project.Value[claKey]
-                                   select new MultiProjectConfigurationProject(project.Name, cla != null ? cla.Value<string>() : null))
+                                   let workingDir = project.Value[workingDirKey]
+                                   select new MultiProjectConfigurationProject(project.Name, cla != null ? cla.Value<string>() : null, workingDir != null ? workingDir.Value<string>() : null))
                    select new MultiProjectConfiguration(configuration.Name, projects.ToList());
         }
 

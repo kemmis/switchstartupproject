@@ -1,5 +1,10 @@
 # Release notes
 
+## Version 3.3
+* Add support for configuring working directories of projects (issue #27)
+* Add support for SQL Server Integration Services (SSIS) projects (issue #44)
+* Improve handling of unloaded projects (issues #48 and #49)
+
 ## Version 3.2
 * Add support for Visual Studio 2017 RC (issue #47)
 * Support solutions with multiple projects of the same name (issue #39)

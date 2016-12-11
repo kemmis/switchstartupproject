@@ -12,10 +12,6 @@ namespace LucidConcepts.SwitchStartupProject
 {
     public class SolutionProject
     {
-        private IList<Guid> projectTypeGuids;
-        private string typeName;
-        private string caption;
-        private Guid guid;
         private bool isWebSiteProject;
         private string solutionFullName;
 
@@ -26,20 +22,14 @@ namespace LucidConcepts.SwitchStartupProject
         public string StartArgumentsPropertyName { get; private set; }
         public IList<string> SolutionFolders { get; private set; }
 
-        protected SolutionProject(IVsHierarchy hierarchy, string name, string typeName, string caption, Guid guid, string solutionFullName)
+        protected SolutionProject(IVsHierarchy hierarchy, Project project, string name, IList<Guid> projectTypeGuids, string solutionFullName)
         {
             this.Hierarchy = hierarchy;
+            this.Project = project;
             this.Name = name;
-            this.typeName = typeName;
-            this.caption = caption;
-            this.guid = guid;
             this.solutionFullName = solutionFullName;
+            this.isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
 
-            this.Project = _GetProjectFromHierarchy(hierarchy);
-            projectTypeGuids = _GetProjectTypeGuids(hierarchy, Project).ToList();
-            isWebSiteProject = projectTypeGuids.Contains(GuidList.guidWebSite);
-
-            this.Name = _GetProjectStringProperty(Hierarchy, __VSHPROPID.VSHPROPID_Name);
             this.Path = _GetProjectPath(Project, solutionFullName, isWebSiteProject);
             this.StartArgumentsPropertyName = projectTypeGuids.Contains(GuidList.guidCPlusPlus) ? "CommandArguments" : "StartArguments";
             this.SolutionFolders = _GetSolutionFolders(hierarchy);
@@ -48,14 +38,14 @@ namespace LucidConcepts.SwitchStartupProject
         public static SolutionProject FromHierarchy(IVsHierarchy hierarchy, string solutionFullName)
         {
             var name = _GetProjectStringProperty(hierarchy, __VSHPROPID.VSHPROPID_Name);
-            var typeName = _GetProjectStringProperty(hierarchy, __VSHPROPID.VSHPROPID_TypeName);
-            var caption = _GetProjectStringProperty(hierarchy, __VSHPROPID.VSHPROPID_Caption);
-            var guid = _GetProjectGuidProperty(hierarchy, __VSHPROPID.VSHPROPID_TypeGuid);
 
-            // Filter out hierarchy elements that don't represent projects
-            if (name == null || typeName == null || caption == null || guid == null) return null;
+            var project = _GetProjectFromHierarchy(hierarchy);
+            var projectTypeGuids = _GetProjectTypeGuids(hierarchy, project).ToList();
 
-            return new SolutionProject(hierarchy, name, typeName, caption, guid.Value, solutionFullName);
+            // Filter out hierarchy elements that don't represent projects (e.g. solution folders)
+            if (name == null || projectTypeGuids.Contains(GuidList.guidSolutionFolder) || projectTypeGuids.Contains(GuidList.guidMiscFiles)) return null;
+
+            return new SolutionProject(hierarchy, project, name, projectTypeGuids, solutionFullName);
         }
 
         public void Rename()

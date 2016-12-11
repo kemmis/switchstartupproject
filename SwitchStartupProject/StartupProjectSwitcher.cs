@@ -89,7 +89,9 @@ namespace LucidConcepts.SwitchStartupProject
 
         private IEnumerable<StartupConfigurationProject> _SortedProjects(IEnumerable<StartupConfigurationProject> startupConfigurationProjects)
         {
-            return startupConfigurationProjects.OrderBy(proj => proj.Project.Path).ThenBy(proj => proj.CommandLineArguments);
+            return startupConfigurationProjects.OrderBy(proj => proj.Project != null ? proj.Project.Path : "")
+                                                .ThenBy(proj => proj.CommandLineArguments)
+                                                .ThenBy(proj => proj.WorkingDirectory);
         }
 
         private double _EqualityScore(IEnumerable<StartupConfigurationProject> sortedAvailableProjects, IEnumerable<StartupConfigurationProject> sortedCurrentProjects)
@@ -98,12 +100,20 @@ namespace LucidConcepts.SwitchStartupProject
                 .Aggregate(0.0, (accumulated, tuple) =>
                 {
                     if (tuple.Available.Project != tuple.Current.Project) return double.NegativeInfinity;   // Projects don't match => not equal
-                    if (tuple.Available.CommandLineArguments == null) return accumulated;                   // Command line arguments not configured => equality score 0
-                    if (tuple.Available.CommandLineArguments != tuple.Current.CommandLineArguments)         // Command line arguments are configured and don't match => not equal
-                        return double.NegativeInfinity;
-                    return accumulated + 1.0;                                                               // Command line arguments match => equality score 1
+                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.CommandLineArguments);
+                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.WorkingDirectory);
+                    return accumulated;
                 });
         }
+
+        private double _EqualityScore(StartupConfigurationProject available, StartupConfigurationProject current, Func<StartupConfigurationProject, string> getProperty)
+        {
+            if (getProperty(available) == null) return 0.0;             // Property not configured => equality score 0
+            return getProperty(available) != getProperty(current) ?
+                double.NegativeInfinity :                               // Property configured but doesn't match => not equal
+                1.0;                                                    // Property configured and does match => increase equality score by 1
+        }
+
 
         // Is called before a solution and its projects are loaded.
         // Is NOT called when a new solution and project are created.
@@ -239,11 +249,6 @@ namespace LucidConcepts.SwitchStartupProject
         private void _LoadConfigurationAndPopulateDropdown()
         {
             solution.Configuration = solution.ConfigurationLoader.Load();
-            // Check if all manually configured startup projects exist
-            if (solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => solution.Projects.Values.All(project => !_ConfigRefersToProject(configProject, project)))))
-            {
-                MessageBox.Show("The configuration file refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-            }
             // Check if any manually configured startup project references need to be disambiguated
             var projectsByName = solution.Projects.Values.ToLookup(project => project.Name);
             var projectNamesThatNeedDisambiguation = projectsByName.Where(kvp => kvp.Count() > 1).Select(kvp => kvp.Key).ToList();
@@ -287,7 +292,7 @@ namespace LucidConcepts.SwitchStartupProject
             var startupConfigurationProjects = config.Projects.Select(configProject =>
             {
                 var project = solution.Projects.Values.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject));
-                return new StartupConfigurationProject(project, configProject.CommandLineArguments);
+                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory);
             }).ToList();
             return new StartupConfiguration(config.Name, startupConfigurationProjects);
         }
@@ -324,8 +329,9 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 var project = solution.Projects.Values.SingleOrDefault(p => p.Path == projectPath);
                 if (project == null) return null;
-                var cla = _GetStartArgumentsOfProject(project);
-                return new StartupConfigurationProject(project, cla);
+                var cla = _GetProjectProperty(project, _GetStartArgumentsPropertyOfConfiguration);
+                var workingDir = _GetProjectProperty(project, _GetStartWorkingDirectoryPropertyOfConfiguration);
+                return new StartupConfigurationProject(project, cla, workingDir);
             }).ToList());
         }
 
@@ -345,44 +351,58 @@ namespace LucidConcepts.SwitchStartupProject
                 if (startupProjects.Count == 1)
                 {
                     // If the multi-project startup configuration contains a single project only, handle it as if it was a single-project configuration
-                    dte.Solution.SolutionBuild.StartupProjects = startupProjects.Single().Project.Path;
+                    var project = startupProjects.Single().Project;
+                    if (project == null)
+                    {
+                        MessageBox.Show("The activated configuration refers to an inexistent project.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        return;
+                    }
+                    dte.Solution.SolutionBuild.StartupProjects = project.Path;
                 }
                 else
                 {
                     // SolutionBuild.StartupProjects expects an array of objects
-                    var projectPathArray = startupProjects.Select(startupProject => (object)startupProject.Project.Path).ToArray();
+                    var projectPathArray = (from startupProject in startupProjects
+                                           let project = startupProject.Project
+                                           where project != null
+                                           select (object)project.Path).ToArray();
+                    if (startupProjects.Count != projectPathArray.Length)
+                    {
+                        MessageBox.Show("The activated configuration refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    }
                     dte.Solution.SolutionBuild.StartupProjects = projectPathArray;
                 }
 
-                // Set CLA
+                // Set properties
                 foreach (var startupProject in startupProjects)
                 {
-                    _SetStartArgumentsOfProject(startupProject.Project, startupProject.CommandLineArguments);
+                    _SetProjectProperty(startupProject.Project, _GetStartArgumentsPropertyOfConfiguration, startupProject.CommandLineArguments);
+                    _SetProjectProperty(startupProject.Project, _GetStartWorkingDirectoryPropertyOfConfiguration, startupProject.WorkingDirectory);
                 }
             });
         }
 
-        private string _GetStartArgumentsOfProject(SolutionProject solutionProject)
+        private string _GetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
         {
             var hierarchy = solutionProject.Hierarchy;
             var project = solutionProject.Project;
             var configuration = _GetActiveConfigurationOfProject(project);
-            var property = _GetStartArgumentsPropertyOfConfiguration(configuration, hierarchy);
+            var property = getProperty(configuration, hierarchy);
             if (property == null) return null;
             return (string)property.Value;
         }
 
-        private void _SetStartArgumentsOfProject(SolutionProject solutionProject, string commandLineArguments)
+        private void _SetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty, string newValue)
         {
-            if (commandLineArguments == null) return;
+            if (newValue == null || solutionProject == null) return;
             var hierarchy = solutionProject.Hierarchy;
             var project = solutionProject.Project;
             var configurations = _GetAllConfigurationsOfProject(project);
             foreach (var configuration in configurations)
             {
-                var property = _GetStartArgumentsPropertyOfConfiguration(configuration, hierarchy);
+                var property = getProperty(configuration, hierarchy);
                 if (property == null) continue;
-                property.Value = commandLineArguments;
+                property.Value = newValue;
             }
         }
 
@@ -407,6 +427,14 @@ namespace LucidConcepts.SwitchStartupProject
             var project = solution.Projects.GetValueOrDefault(projectHierarchy);
             if (properties == null || project == null) return null;
             return properties.Cast<Property>().FirstOrDefault(property => property.Name == project.StartArgumentsPropertyName);
+        }
+
+        private Property _GetStartWorkingDirectoryPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
+        {
+            if (configuration == null || projectHierarchy == null) return null;
+            var properties = configuration.Properties;
+            if (properties == null) return null;
+            return properties.Cast<Property>().FirstOrDefault(property => property.Name == "StartWorkingDirectory");
         }
 
         private void _SuspendChangedEvent(Action action)

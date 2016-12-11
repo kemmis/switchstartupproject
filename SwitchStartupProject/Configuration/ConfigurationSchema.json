@@ -2,7 +2,7 @@
     "title": "SwitchStartupProject configuration file schema",
     "type": "object",
     "properties": {
-        "Version": { 
+        "Version": {
             "type": "integer"
         },
         "ListAllProjects": {
@@ -25,6 +25,10 @@
                             "properties": {
                                 "CommandLineArguments": {
                                     "description": "Optional command line arguments",
+                                    "type": "string"
+                                },
+                                "WorkingDirectory": {
+                                    "description": "Optional working directory",
                                     "type": "string"
                                 }
                             }

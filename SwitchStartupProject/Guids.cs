@@ -16,5 +16,8 @@ namespace LucidConcepts.SwitchStartupProject
         public static readonly Guid guidWebSite = new Guid("{e24c65dc-7377-472b-9aba-bc803b73c61a}");
         public static readonly Guid guidVsPackage = new Guid("{82b43b9b-a64c-4715-b499-d71e9ca2bd60}");
         public static readonly Guid guidDatabase = new Guid("{00d1a9c2-b5f0-4af3-8072-f6c62b433612}");
+
+        public static readonly Guid guidSolutionFolder = new Guid("{2150E333-8FDC-42A3-9474-1A3956D46DE8}");
+        public static readonly Guid guidMiscFiles = new Guid(EnvDTE.Constants.vsProjectKindMisc);
     };
 }

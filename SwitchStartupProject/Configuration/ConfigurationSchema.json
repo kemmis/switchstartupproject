@@ -30,6 +30,10 @@
                                 "WorkingDirectory": {
                                     "description": "Optional working directory",
                                     "type": "string"
+                                },
+                                "StartExternalProgram": {
+                                    "description": "Optional path to external program to run when debugging",
+                                    "type": "string"
                                 }
                             }
                         }

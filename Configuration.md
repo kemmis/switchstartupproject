@@ -33,7 +33,8 @@ See also the [JSON schema](https://bitbucket.org/thirteen/switchstartupproject/s
                 "MyProjectA": {},
                 "MyProjectB": {
                     "CommandLineArguments": "1234",
-                    "WorkingDirectory": "%USERPROFILE%\\test\"
+                    "WorkingDirectory": "%USERPROFILE%\\test\",
+                    "StartExternalProgram": "c:\myprogram.exe"
                 }
             }
         },
@@ -75,7 +76,8 @@ Example of a startup configuration:
                 "MyProjectA": {},                               /*  Starting project A  */
                 "MyProjectB": {                                 /*  and project B ...   */
                     "CommandLineArguments": "1234",             /*  ... with command line arguments "1234"  */
-                    "WorkingDirectory": "%USERPROFILE%\\test"   /*  ... with working directory %USERPROFILE%\test  */
+                    "WorkingDirectory": "%USERPROFILE%\\test",  /*  ... with working directory %USERPROFILE%\test  */
+                    "StartExternalProgram": "c:\myprogram.exe"  /*  ... using c:\myprogram.exe as the debugging host  */
                 },
                 "Path\\To\\ProjectC.csproj": {}                 /*  and project C (specified by path)  */
             }

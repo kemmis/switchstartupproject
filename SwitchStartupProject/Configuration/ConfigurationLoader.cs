@@ -21,6 +21,7 @@ namespace LucidConcepts.SwitchStartupProject
         private const string projectsKey = "Projects";
         private const string claKey = "CommandLineArguments";
         private const string workingDirKey = "WorkingDirectory";
+        private const string startExtProgKey = "StartExternalProgram";
         private const string listAllProjectsKey = "ListAllProjects";
 
         private readonly string configurationFilename;
@@ -136,6 +137,7 @@ namespace LucidConcepts.SwitchStartupProject
             sb.AppendLine("                    \"MyProjectB\": {");
             sb.AppendLine("                        \"" + claKey + "\": \"1234\"");
             sb.AppendLine("                        \"" + workingDirKey + "\": \"%USERPROFILE%\\test\"");
+            sb.AppendLine("                        \"" + startExtProgKey + "\": \"c:\\myprogram.exe");
             sb.AppendLine("                    }");
             sb.AppendLine("                }");
             sb.AppendLine("            },");
@@ -187,7 +189,8 @@ namespace LucidConcepts.SwitchStartupProject
                    let projects = (from project in configuration.Value[projectsKey].Cast<JProperty>()
                                    let cla = project.Value[claKey]
                                    let workingDir = project.Value[workingDirKey]
-                                   select new MultiProjectConfigurationProject(project.Name, cla != null ? cla.Value<string>() : null, workingDir != null ? workingDir.Value<string>() : null))
+                                   let startExtProg = project.Value[startExtProgKey]
+                                   select new MultiProjectConfigurationProject(project.Name, cla != null ? cla.Value<string>() : null, workingDir != null ? workingDir.Value<string>() : null, startExtProg != null ? startExtProg.Value<string>() : null))
                    select new MultiProjectConfiguration(configuration.Name, projects.ToList());
         }
 

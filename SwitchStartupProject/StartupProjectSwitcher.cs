@@ -292,7 +292,7 @@ namespace LucidConcepts.SwitchStartupProject
             var startupConfigurationProjects = config.Projects.Select(configProject =>
             {
                 var project = solution.Projects.Values.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject));
-                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory);
+                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory, configProject.StartExternalProgram);
             }).ToList();
             return new StartupConfiguration(config.Name, startupConfigurationProjects);
         }
@@ -331,7 +331,8 @@ namespace LucidConcepts.SwitchStartupProject
                 if (project == null) return null;
                 var cla = _GetProjectProperty(project, _GetStartArgumentsPropertyOfConfiguration);
                 var workingDir = _GetProjectProperty(project, _GetStartWorkingDirectoryPropertyOfConfiguration);
-                return new StartupConfigurationProject(project, cla, workingDir);
+                var startExtProg = _GetProjectProperty(project, _GetStartExternalProgramPropertyOfConfiguration);
+                return new StartupConfigurationProject(project, cla, workingDir, startExtProg);
             }).ToList());
         }
 
@@ -378,6 +379,8 @@ namespace LucidConcepts.SwitchStartupProject
                 {
                     _SetProjectProperty(startupProject.Project, _GetStartArgumentsPropertyOfConfiguration, startupProject.CommandLineArguments);
                     _SetProjectProperty(startupProject.Project, _GetStartWorkingDirectoryPropertyOfConfiguration, startupProject.WorkingDirectory);
+                    _SetProjectProperty(startupProject.Project, _GetStartExternalProgramPropertyOfConfiguration, startupProject.StartExternalProgram);
+                    _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, string.IsNullOrEmpty(startupProject.StartExternalProgram) ? 0 : 1);
                 }
             });
         }
@@ -392,7 +395,7 @@ namespace LucidConcepts.SwitchStartupProject
             return (string)property.Value;
         }
 
-        private void _SetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty, string newValue)
+        private void _SetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty, object newValue)
         {
             if (newValue == null || solutionProject == null) return;
             var hierarchy = solutionProject.Hierarchy;
@@ -435,6 +438,22 @@ namespace LucidConcepts.SwitchStartupProject
             var properties = configuration.Properties;
             if (properties == null) return null;
             return properties.Cast<Property>().FirstOrDefault(property => property.Name == "StartWorkingDirectory");
+        }
+
+        private Property _GetStartExternalProgramPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
+        {
+            if (configuration == null || projectHierarchy == null) return null;
+            var properties = configuration.Properties;
+            if (properties == null) return null;
+            return properties.Cast<Property>().FirstOrDefault(property => property.Name == "StartProgram");
+        }
+
+        private Property _GetStartActionPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
+        {
+            if (configuration == null || projectHierarchy == null) return null;
+            var properties = configuration.Properties;
+            if (properties == null) return null;
+            return properties.Cast<Property>().FirstOrDefault(property => property.Name == "StartAction");
         }
 
         private void _SuspendChangedEvent(Action action)

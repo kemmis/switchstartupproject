@@ -1,5 +1,7 @@
 # Release notes
 
+## Version 3.4
+
 ## Version 3.3
 * Add support for configuring working directories of projects (issue #27)
 * Add support for SQL Server Integration Services (SSIS) projects (issue #44)

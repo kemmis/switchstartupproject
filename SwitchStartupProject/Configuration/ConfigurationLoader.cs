@@ -131,13 +131,13 @@ namespace LucidConcepts.SwitchStartupProject
             sb.AppendLine("        Example:");
             sb.AppendLine("");
             sb.AppendLine("        \"" + multiProjectConfigurationsKey + "\": {");
-            sb.AppendLine("            \"A + B (CLA + workDir)\": {");
+            sb.AppendLine("            \"A + B (Ext)\": {");
             sb.AppendLine("                \"" + projectsKey + "\": {");
             sb.AppendLine("                    \"MyProjectA\": {},");
             sb.AppendLine("                    \"MyProjectB\": {");
-            sb.AppendLine("                        \"" + claKey + "\": \"1234\"");
-            sb.AppendLine("                        \"" + workingDirKey + "\": \"%USERPROFILE%\\test\"");
-            sb.AppendLine("                        \"" + startExtProgKey + "\": \"c:\\myprogram.exe");
+            sb.AppendLine("                        \"" + claKey + "\": \"1234\",");
+            sb.AppendLine("                        \"" + workingDirKey + "\": \"%USERPROFILE%\\\\test\",");
+            sb.AppendLine("                        \"" + startExtProgKey + "\": \"c:\\\\myprogram.exe\"");
             sb.AppendLine("                    }");
             sb.AppendLine("                }");
             sb.AppendLine("            },");
@@ -145,7 +145,7 @@ namespace LucidConcepts.SwitchStartupProject
             sb.AppendLine("                \"" + projectsKey + "\": {");
             sb.AppendLine("                    \"MyProjectA\": {},");
             sb.AppendLine("                    \"MyProjectB\": {");
-            sb.AppendLine("                        \"" + claKey + "\": \"\"");
+            sb.AppendLine("                        \"" + claKey + "\": \"\",");
             sb.AppendLine("                        \"" + workingDirKey + "\": \"\"");
             sb.AppendLine("                    }");
             sb.AppendLine("                }");
@@ -155,7 +155,7 @@ namespace LucidConcepts.SwitchStartupProject
             sb.AppendLine("                    \"MyProjectD\": {}");
             sb.AppendLine("                }");
             sb.AppendLine("            }");
-            sb.AppendLine("        },");
+            sb.AppendLine("        }");
             sb.AppendLine("    */");
             sb.AppendLine("    \"" + multiProjectConfigurationsKey + "\": {}");
             sb.AppendLine("}");

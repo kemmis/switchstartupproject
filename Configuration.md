@@ -28,13 +28,13 @@ See also the [JSON schema](https://bitbucket.org/thirteen/switchstartupproject/s
     "Version": 3,
     "ListAllProjects": false,
     "MultiProjectConfigurations": {
-        "A + B (CLA + WD)": {
+        "A + B (Ext)": {
             "Projects": {
                 "MyProjectA": {},
                 "MyProjectB": {
                     "CommandLineArguments": "1234",
-                    "WorkingDirectory": "%USERPROFILE%\\test\",
-                    "StartExternalProgram": "c:\myprogram.exe"
+                    "WorkingDirectory": "%USERPROFILE%\\test",
+                    "StartExternalProgram": "c:\\myprogram.exe"
                 }
             }
         },
@@ -77,7 +77,7 @@ Example of a startup configuration:
                 "MyProjectB": {                                 /*  and project B ...   */
                     "CommandLineArguments": "1234",             /*  ... with command line arguments "1234"  */
                     "WorkingDirectory": "%USERPROFILE%\\test",  /*  ... with working directory %USERPROFILE%\test  */
-                    "StartExternalProgram": "c:\myprogram.exe"  /*  ... using c:\myprogram.exe as the debugging host  */
+                    "StartExternalProgram": "c:\\myprogram.exe" /*  ... using c:\myprogram.exe as the debugging host  */
                 },
                 "Path\\To\\ProjectC.csproj": {}                 /*  and project C (specified by path)  */
             }

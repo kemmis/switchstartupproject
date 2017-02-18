@@ -26,17 +26,19 @@ namespace LucidConcepts.SwitchStartupProject
 
     public class StartupConfigurationProject
     {
-        public StartupConfigurationProject(SolutionProject project, string commandLineArguments, string workingDirectory, string startExternalProgram)
+        public StartupConfigurationProject(SolutionProject project, string commandLineArguments, string workingDirectory, bool startProject, string startExternalProgram)
         {
             this.Project = project;
             this.CommandLineArguments = commandLineArguments;
             this.WorkingDirectory = workingDirectory;
+            this.StartProject = startProject;
             this.StartExternalProgram = startExternalProgram;
         }
 
         public SolutionProject Project { get; private set; }
         public string CommandLineArguments { get; private set; }
         public string WorkingDirectory { get; private set; }
+        public bool StartProject { get; set; }
         public string StartExternalProgram { get; set; }
 
         public bool IsEqual(StartupConfigurationProject other)
@@ -44,6 +46,7 @@ namespace LucidConcepts.SwitchStartupProject
             return this.Project == other.Project &&
                    this.CommandLineArguments == other.CommandLineArguments &&
                    this.WorkingDirectory == other.WorkingDirectory &&
+                   this.StartProject == other.StartProject &&
                    this.StartExternalProgram == other.StartExternalProgram;
         }
     }

@@ -21,6 +21,7 @@ namespace LucidConcepts.SwitchStartupProject
         private const string projectsKey = "Projects";
         private const string claKey = "CommandLineArguments";
         private const string workingDirKey = "WorkingDirectory";
+        private const string startProjectKey = "StartProject";
         private const string startExtProgKey = "StartExternalProgram";
         private const string listAllProjectsKey = "ListAllProjects";
 
@@ -146,7 +147,8 @@ namespace LucidConcepts.SwitchStartupProject
             sb.AppendLine("                    \"MyProjectA\": {},");
             sb.AppendLine("                    \"MyProjectB\": {");
             sb.AppendLine("                        \"" + claKey + "\": \"\",");
-            sb.AppendLine("                        \"" + workingDirKey + "\": \"\"");
+            sb.AppendLine("                        \"" + workingDirKey + "\": \"\",");
+            sb.AppendLine("                        \"" + startProjectKey + "\": true");
             sb.AppendLine("                    }");
             sb.AppendLine("                }");
             sb.AppendLine("            },");
@@ -189,8 +191,14 @@ namespace LucidConcepts.SwitchStartupProject
                    let projects = (from project in configuration.Value[projectsKey].Cast<JProperty>()
                                    let cla = project.Value[claKey]
                                    let workingDir = project.Value[workingDirKey]
+                                   let startProject = project.Value[startProjectKey]
                                    let startExtProg = project.Value[startExtProgKey]
-                                   select new MultiProjectConfigurationProject(project.Name, cla != null ? cla.Value<string>() : null, workingDir != null ? workingDir.Value<string>() : null, startExtProg != null ? startExtProg.Value<string>() : null))
+                                   select new MultiProjectConfigurationProject(
+                                       project.Name,
+                                       cla != null ? cla.Value<string>() : null,
+                                       workingDir != null ? workingDir.Value<string>() : null,
+                                       startProject != null && startProject.Value<bool>(),
+                                       startExtProg != null ? startExtProg.Value<string>() : null))
                    select new MultiProjectConfiguration(configuration.Name, projects.ToList());
         }
 

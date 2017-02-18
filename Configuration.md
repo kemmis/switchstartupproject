@@ -43,7 +43,8 @@ See also the [JSON schema](https://bitbucket.org/thirteen/switchstartupproject/s
                 "MyProjectA": {},
                 "MyProjectB": {
                     "CommandLineArguments": "",
-                    "WorkingDirectory": ""
+                    "WorkingDirectory": "",
+                    "StartProject": true
                 }
             }
         },

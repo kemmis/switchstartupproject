@@ -89,10 +89,21 @@ Startup projects can be specified in two ways:
 * Either by project name as shown in the solution explorer of Visual Studio.
 * Or by the path to the project file, relative to the solution file. This allows to unambiguously refer to projects with same name. Note that backslashes have to be escaped (duplicated) in JSON.
 
-SwitchStartupProject creates an item in the dropdown for each startup configuration, allowing the corresponding startup projects (and command line arguments) to be activated.
+SwitchStartupProject creates an item in the dropdown for each startup configuration, allowing the corresponding startup projects (and parameters) to be activated.
 
-> Note:
-> If a startup project specifies a parameter (like command line arguments or a working directory), that parameter is (persistently) set when the configuration gets activated. If a startup project does not specify a parameter, the existing parameter value won't change when the configuration gets activated. To clear a parameter set by another configuration, specify the parameter with an empty string `""` value.
+| Parameter | Type | Example Value | Explanation |
+| --- | --- | --- | --- |
+| `"CommandLineArguments"` | string | `"--doSomething 123"` | Passes the given string as command line arguments to the started project/program |
+| `"WorkingDirectory"` | string | `"F:\\Project\\Test"` | Starts the project/program in the given working directory. Remember to escape (double) backslashes. |
+| `"StartExternalProgram"` | string | `"C:\\Windows\\System32\\cmd.exe"`| Starts the specified program instead of the project. Remember to escape (double) backslashes. |
+| `"StartBrowserWithURL"` | string | `"https://localhost:1234/api/test"` | Starts the default browser and opens the given URL. |
+| `"StartProject"` | boolean | `true` | Starts the project. (Resets a `"StartExternalProgram"` or `"StartBrowserWithURL"` parameter specified in another configuration.) |
+
+Note:
+If a startup project specifies a parameter (like command line arguments or a working directory), that parameter is (persistently) set when the configuration gets activated.
+If a startup project does not specify a parameter, the existing parameter value won't change when the configuration gets activated.
+To reset a parameter set by another configuration, specify the parameter with an empty string `""` value.
+Use `"StartProject": true` to reset a `"StartExternalProgram"` or `"StartBrowserWithURL"` parameter set by another configuration.
 
 ## Default Values
 

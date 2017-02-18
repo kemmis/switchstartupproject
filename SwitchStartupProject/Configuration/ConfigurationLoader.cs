@@ -23,6 +23,7 @@ namespace LucidConcepts.SwitchStartupProject
         private const string workingDirKey = "WorkingDirectory";
         private const string startProjectKey = "StartProject";
         private const string startExtProgKey = "StartExternalProgram";
+        private const string startBrowserKey = "StartBrowserWithURL";
         private const string listAllProjectsKey = "ListAllProjects";
 
         private readonly string configurationFilename;
@@ -193,12 +194,14 @@ namespace LucidConcepts.SwitchStartupProject
                                    let workingDir = project.Value[workingDirKey]
                                    let startProject = project.Value[startProjectKey]
                                    let startExtProg = project.Value[startExtProgKey]
+                                   let startBrowser = project.Value[startBrowserKey]
                                    select new MultiProjectConfigurationProject(
                                        project.Name,
                                        cla != null ? cla.Value<string>() : null,
                                        workingDir != null ? workingDir.Value<string>() : null,
                                        startProject != null && startProject.Value<bool>(),
-                                       startExtProg != null ? startExtProg.Value<string>() : null))
+                                       startExtProg != null ? startExtProg.Value<string>() : null,
+                                       startBrowser != null ? startBrowser.Value<string>() : null))
                    select new MultiProjectConfiguration(configuration.Name, projects.ToList());
         }
 

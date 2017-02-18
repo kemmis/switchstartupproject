@@ -292,7 +292,7 @@ namespace LucidConcepts.SwitchStartupProject
             var startupConfigurationProjects = config.Projects.Select(configProject =>
             {
                 var project = solution.Projects.Values.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject));
-                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory, configProject.StartProject, configProject.StartExternalProgram);
+                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory, configProject.StartProject, configProject.StartExternalProgram, configProject.StartBrowserWithUrl);
             }).ToList();
             return new StartupConfiguration(config.Name, startupConfigurationProjects);
         }
@@ -333,7 +333,8 @@ namespace LucidConcepts.SwitchStartupProject
                 var workingDir = _GetStringProjectPropertyOrNull(project, _GetStartWorkingDirectoryPropertyOfConfiguration);
                 var startProject = 0 == _GetIntProjectPropertyOrNull(project, _GetStartActionPropertyOfConfiguration);
                 var startExtProg = _GetStringProjectPropertyOrNull(project, _GetStartExternalProgramPropertyOfConfiguration);
-                return new StartupConfigurationProject(project, cla, workingDir, startProject, startExtProg);
+                var startBrowser = _GetStringProjectPropertyOrNull(project, _GetStartBrowserWithUrlPropertyOfConfiguration);
+                return new StartupConfigurationProject(project, cla, workingDir, startProject, startExtProg, startBrowser);
             }).ToList());
         }
 
@@ -382,6 +383,8 @@ namespace LucidConcepts.SwitchStartupProject
                     _SetProjectProperty(startupProject.Project, _GetStartWorkingDirectoryPropertyOfConfiguration, startupProject.WorkingDirectory);
                     _SetProjectProperty(startupProject.Project, _GetStartExternalProgramPropertyOfConfiguration, startupProject.StartExternalProgram);
                     if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 1);
+                    _SetProjectProperty(startupProject.Project, _GetStartBrowserWithUrlPropertyOfConfiguration, startupProject.StartBrowserWithUrl);
+                    if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 2);
                     if (startupProject.StartProject) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 0);
                 }
             });
@@ -459,6 +462,11 @@ namespace LucidConcepts.SwitchStartupProject
         private Property _GetStartExternalProgramPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
         {
             return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartProgram");
+        }
+
+        private Property _GetStartBrowserWithUrlPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
+        {
+            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartURL");
         }
 
         private Property _GetStartActionPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)

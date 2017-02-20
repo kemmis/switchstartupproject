@@ -17,6 +17,7 @@ namespace LucidConcepts.SwitchStartupProject
     {
         private const string versionKey = "Version";
         private const int knownVersion = 3;
+        private const string listAllProjectsKey = "ListAllProjects";
         private const string multiProjectConfigurationsKey = "MultiProjectConfigurations";
         private const string projectsKey = "Projects";
         private const string claKey = "CommandLineArguments";
@@ -24,7 +25,8 @@ namespace LucidConcepts.SwitchStartupProject
         private const string startProjectKey = "StartProject";
         private const string startExtProgKey = "StartExternalProgram";
         private const string startBrowserKey = "StartBrowserWithURL";
-        private const string listAllProjectsKey = "ListAllProjects";
+        private const string enableRemoteDebuggingKey = "EnableRemoteDebugging";
+        private const string remoteDebuggingMachineKey = "RemoteDebuggingMachine";
 
         private readonly string configurationFilename;
         private readonly SwitchStartupProjectPackage.ActivityLogger logger;
@@ -195,13 +197,17 @@ namespace LucidConcepts.SwitchStartupProject
                                    let startProject = project.Value[startProjectKey]
                                    let startExtProg = project.Value[startExtProgKey]
                                    let startBrowser = project.Value[startBrowserKey]
+                                   let enableRemote = project.Value[enableRemoteDebuggingKey]
+                                   let remoteMachine = project.Value[remoteDebuggingMachineKey]
                                    select new MultiProjectConfigurationProject(
                                        project.Name,
                                        cla != null ? cla.Value<string>() : null,
                                        workingDir != null ? workingDir.Value<string>() : null,
                                        startProject != null && startProject.Value<bool>(),
                                        startExtProg != null ? startExtProg.Value<string>() : null,
-                                       startBrowser != null ? startBrowser.Value<string>() : null))
+                                       startBrowser != null ? startBrowser.Value<string>() : null,
+                                       enableRemote != null ? enableRemote.Value<bool?>() : null,
+                                       remoteMachine != null ? remoteMachine.Value<string>() : null))
                    select new MultiProjectConfiguration(configuration.Name, projects.ToList());
         }
 

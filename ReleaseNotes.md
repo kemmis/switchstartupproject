@@ -2,6 +2,7 @@
 
 ## Version 3.4
 * Add support for starting an external program or browser (issue #54) thanks to Jon List
+* Add support for enabling remote debugging (issue #35)
 
 ## Version 3.3
 * Add support for configuring working directories of projects (issue #27)

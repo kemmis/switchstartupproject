@@ -292,7 +292,7 @@ namespace LucidConcepts.SwitchStartupProject
             var startupConfigurationProjects = config.Projects.Select(configProject =>
             {
                 var project = solution.Projects.Values.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject));
-                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory, configProject.StartProject, configProject.StartExternalProgram, configProject.StartBrowserWithUrl);
+                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory, configProject.StartProject, configProject.StartExternalProgram, configProject.StartBrowserWithUrl, configProject.EnableRemoteDebugging, configProject.RemoteDebuggingMachine);
             }).ToList();
             return new StartupConfiguration(config.Name, startupConfigurationProjects);
         }
@@ -334,7 +334,9 @@ namespace LucidConcepts.SwitchStartupProject
                 var startProject = 0 == _GetIntProjectPropertyOrNull(project, _GetStartActionPropertyOfConfiguration);
                 var startExtProg = _GetStringProjectPropertyOrNull(project, _GetStartExternalProgramPropertyOfConfiguration);
                 var startBrowser = _GetStringProjectPropertyOrNull(project, _GetStartBrowserWithUrlPropertyOfConfiguration);
-                return new StartupConfigurationProject(project, cla, workingDir, startProject, startExtProg, startBrowser);
+                var enableRemote = _GetBoolProjectPropertyOrNull(project, _GetEnableRemoteDebuggingPropertyOfConfiguration);
+                var remoteMachine = _GetStringProjectPropertyOrNull(project, _GetRemoteDebuggingMachinePropertyOfConfiguration);
+                return new StartupConfigurationProject(project, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine);
             }).ToList());
         }
 
@@ -386,6 +388,8 @@ namespace LucidConcepts.SwitchStartupProject
                     _SetProjectProperty(startupProject.Project, _GetStartBrowserWithUrlPropertyOfConfiguration, startupProject.StartBrowserWithUrl);
                     if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 2);
                     if (startupProject.StartProject) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 0);
+                    _SetProjectProperty(startupProject.Project, _GetEnableRemoteDebuggingPropertyOfConfiguration, startupProject.EnableRemoteDebugging);
+                    _SetProjectProperty(startupProject.Project, _GetRemoteDebuggingMachinePropertyOfConfiguration, startupProject.RemoteDebuggingMachine);
                 }
             });
         }
@@ -410,6 +414,13 @@ namespace LucidConcepts.SwitchStartupProject
             var property = _GetProjectProperty(solutionProject, getProperty);
             if (property == null) return null;
             return (int)property.Value;
+        }
+
+        private bool? _GetBoolProjectPropertyOrNull(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
+        {
+            var property = _GetProjectProperty(solutionProject, getProperty);
+            if (property == null) return null;
+            return (bool)property.Value;
         }
 
         private void _SetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty, object newValue)
@@ -472,6 +483,16 @@ namespace LucidConcepts.SwitchStartupProject
         private Property _GetStartActionPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
         {
             return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartAction");
+        }
+
+        private Property _GetEnableRemoteDebuggingPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
+        {
+            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "RemoteDebugEnabled");
+        }
+
+        private Property _GetRemoteDebuggingMachinePropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
+        {
+            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "RemoteDebugMachine");
         }
 
         private void _SuspendChangedEvent(Action action)

@@ -26,7 +26,15 @@ namespace LucidConcepts.SwitchStartupProject
 
     public class StartupConfigurationProject
     {
-        public StartupConfigurationProject(SolutionProject project, string commandLineArguments, string workingDirectory, bool startProject, string startExternalProgram, string startBrowserWithUrl)
+        public StartupConfigurationProject(
+            SolutionProject project,
+            string commandLineArguments,
+            string workingDirectory,
+            bool startProject,
+            string startExternalProgram,
+            string startBrowserWithUrl,
+            bool? enableRemoteDebugging,
+            string remoteDebuggingMachine)
         {
             this.Project = project;
             this.CommandLineArguments = commandLineArguments;
@@ -34,6 +42,8 @@ namespace LucidConcepts.SwitchStartupProject
             this.StartProject = startProject;
             this.StartExternalProgram = startExternalProgram;
             this.StartBrowserWithUrl = startBrowserWithUrl;
+            this.EnableRemoteDebugging = enableRemoteDebugging;
+            this.RemoteDebuggingMachine = remoteDebuggingMachine;
         }
 
         public SolutionProject Project { get; private set; }
@@ -42,6 +52,8 @@ namespace LucidConcepts.SwitchStartupProject
         public bool StartProject { get; set; }
         public string StartExternalProgram { get; set; }
         public string StartBrowserWithUrl { get; set; }
+        public bool? EnableRemoteDebugging { get; private set; }
+        public string RemoteDebuggingMachine { get; set; }
 
         public bool IsEqual(StartupConfigurationProject other)
         {
@@ -50,7 +62,9 @@ namespace LucidConcepts.SwitchStartupProject
                    this.WorkingDirectory == other.WorkingDirectory &&
                    this.StartProject == other.StartProject &&
                    this.StartExternalProgram == other.StartExternalProgram &&
-                   this.StartBrowserWithUrl == other.StartBrowserWithUrl;
+                   this.StartBrowserWithUrl == other.StartBrowserWithUrl &&
+                   this.EnableRemoteDebugging == other.EnableRemoteDebugging &&
+                   this.RemoteDebuggingMachine == other.RemoteDebuggingMachine;
         }
     }
 }

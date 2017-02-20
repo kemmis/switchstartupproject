@@ -98,6 +98,8 @@ SwitchStartupProject creates an item in the dropdown for each startup configurat
 | `"StartExternalProgram"` | string | `"C:\\Windows\\System32\\cmd.exe"`| Starts the specified program instead of the project. Remember to escape (double) backslashes. |
 | `"StartBrowserWithURL"` | string | `"https://localhost:1234/api/test"` | Starts the default browser and opens the given URL. |
 | `"StartProject"` | boolean | `true` | Starts the project. (Resets a `"StartExternalProgram"` or `"StartBrowserWithURL"` parameter specified in another configuration.) |
+| `"EnableRemoteDebugging"` | boolean | `true` | Use remote machine for debugging. |
+| `"RemoteDebuggingMachine"` | string | `"\\\\MyDomain\\MyTestMachine"` | Specify the machine name used for remote debugging. Remember to escape (double) backslashes. |
 
 Note:
 If a startup project specifies a parameter (like command line arguments or a working directory), that parameter is (persistently) set when the configuration gets activated.

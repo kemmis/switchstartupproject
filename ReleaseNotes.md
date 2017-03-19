@@ -1,5 +1,7 @@
 # Release notes
 
+## Version 3.5
+
 ## Version 3.4
 * Add support for starting an external program or browser (issue #54) thanks to Jon List
 * Add support for enabling remote debugging (issue #35)

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Text.RegularExpressions;
 
 using EnvDTE;
 
@@ -125,6 +125,24 @@ namespace LucidConcepts.SwitchStartupProject
             return (pHierarchy.GetProperty(VSConstants.VSITEMID_ROOT, (int)__VSHPROPID.VSHPROPID_ParentHierarchy, out parentHierarchy)) == VSConstants.S_OK ?
                 parentHierarchy as IVsHierarchy :
                 null;
+        }
+
+        public string EvaluateBuildMacros(string input)
+        {
+            var macroInfo = Hierarchy as IVsBuildMacroInfo;
+            if (macroInfo == null) return input;
+            if (string.IsNullOrEmpty(input)) return input;
+            var matches = Regex.Matches(input, @"(?<token>\$\((?<macro>[^\)]+)\))");
+            var tokens = matches.OfType<Match>()
+                .Select(m => new { Macro = m.Groups["macro"].Value, Token = m.Groups["token"].Value })
+                .Distinct();
+            foreach (var token in tokens)
+            {
+                string value;
+                if (macroInfo.GetBuildMacroValue(token.Macro, out value) != VSConstants.S_OK) continue;
+                input = input.Replace(token.Token, value);
+            }
+            return input;
         }
     }
 }

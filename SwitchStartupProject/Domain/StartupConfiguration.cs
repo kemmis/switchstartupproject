@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -37,13 +36,13 @@ namespace LucidConcepts.SwitchStartupProject
             string remoteDebuggingMachine)
         {
             this.Project = project;
-            this.CommandLineArguments = commandLineArguments;
-            this.WorkingDirectory = workingDirectory;
+            this.CommandLineArguments = project.EvaluateBuildMacros(commandLineArguments);
+            this.WorkingDirectory = project.EvaluateBuildMacros(workingDirectory);
             this.StartProject = startProject;
-            this.StartExternalProgram = startExternalProgram;
-            this.StartBrowserWithUrl = startBrowserWithUrl;
+            this.StartExternalProgram = project.EvaluateBuildMacros(startExternalProgram);
+            this.StartBrowserWithUrl = project.EvaluateBuildMacros(startBrowserWithUrl);
             this.EnableRemoteDebugging = enableRemoteDebugging;
-            this.RemoteDebuggingMachine = remoteDebuggingMachine;
+            this.RemoteDebuggingMachine = project.EvaluateBuildMacros(remoteDebuggingMachine);
         }
 
         public SolutionProject Project { get; private set; }

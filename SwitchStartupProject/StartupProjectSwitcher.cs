@@ -327,16 +327,38 @@ namespace LucidConcepts.SwitchStartupProject
 
             return new StartupConfiguration(null, newStartupProjectPaths.Select(projectPath =>
             {
-                var project = solution.Projects.Values.SingleOrDefault(p => p.Path == projectPath);
+                var solutionProject = solution.Projects.Values.SingleOrDefault(p => p.Path == projectPath);
+                if (solutionProject == null) return null;
+
+                var project = solutionProject.Project;
                 if (project == null) return null;
-                var cla = _GetStringProjectPropertyOrNull(project, _GetStartArgumentsPropertyOfConfiguration);
-                var workingDir = _GetStringProjectPropertyOrNull(project, _GetStartWorkingDirectoryPropertyOfConfiguration);
-                var startProject = 0 == _GetIntProjectPropertyOrNull(project, _GetStartActionPropertyOfConfiguration);
-                var startExtProg = _GetStringProjectPropertyOrNull(project, _GetStartExternalProgramPropertyOfConfiguration);
-                var startBrowser = _GetStringProjectPropertyOrNull(project, _GetStartBrowserWithUrlPropertyOfConfiguration);
-                var enableRemote = _GetBoolProjectPropertyOrNull(project, _GetEnableRemoteDebuggingPropertyOfConfiguration);
-                var remoteMachine = _GetStringProjectPropertyOrNull(project, _GetRemoteDebuggingMachinePropertyOfConfiguration);
-                return new StartupConfigurationProject(project, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine);
+                var configurationManager = project.ConfigurationManager;
+                if (configurationManager == null) return null;
+                var configuration = configurationManager.ActiveConfiguration;
+                if (configuration == null) return null;
+                var properties = configuration.Properties;
+                if (properties == null) return null;
+
+                string cla = null;
+                string workingDir = null;
+                bool startProject = false;
+                string startExtProg = null;
+                string startBrowser = null;
+                bool? enableRemote = null;
+                string remoteMachine = null;
+
+                foreach (var property in properties.Cast<Property>())
+                {
+                    if (property == null) continue;
+                    if (property.Name == solutionProject.StartArgumentsPropertyName) cla = (string)property.Value;
+                    if (property.Name == "StartWorkingDirectory") workingDir = (string)property.Value;
+                    if (property.Name == "StartAction") startProject = 0 == (int)property.Value;
+                    if (property.Name == "StartProgram") startExtProg = (string)property.Value;
+                    if (property.Name == "StartURL") startBrowser = (string)property.Value;
+                    if (property.Name == "RemoteDebugEnabled") enableRemote = (bool)property.Value;
+                    if (property.Name == "RemoteDebugMachine") remoteMachine = (string)property.Value;
+                }
+                return new StartupConfigurationProject(solutionProject, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine);
             }).ToList());
         }
 
@@ -381,118 +403,39 @@ namespace LucidConcepts.SwitchStartupProject
                 // Set properties
                 foreach (var startupProject in startupProjects)
                 {
-                    _SetProjectProperty(startupProject.Project, _GetStartArgumentsPropertyOfConfiguration, startupProject.CommandLineArguments);
-                    _SetProjectProperty(startupProject.Project, _GetStartWorkingDirectoryPropertyOfConfiguration, startupProject.WorkingDirectory);
-                    _SetProjectProperty(startupProject.Project, _GetStartExternalProgramPropertyOfConfiguration, startupProject.StartExternalProgram);
-                    if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 1);
-                    _SetProjectProperty(startupProject.Project, _GetStartBrowserWithUrlPropertyOfConfiguration, startupProject.StartBrowserWithUrl);
-                    if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 2);
-                    if (startupProject.StartProject) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 0);
-                    _SetProjectProperty(startupProject.Project, _GetEnableRemoteDebuggingPropertyOfConfiguration, startupProject.EnableRemoteDebugging);
-                    _SetProjectProperty(startupProject.Project, _GetRemoteDebuggingMachinePropertyOfConfiguration, startupProject.RemoteDebuggingMachine);
+                    if (startupProject.Project == null) continue;
+                    var solutionProject = startupProject.Project;
+                    var project = solutionProject.Project;
+                    if (project == null) continue;
+
+                    foreach (EnvDTE.Configuration configuration in project.ConfigurationManager)
+                    {
+                        if (configuration == null) continue;
+                        var properties = configuration.Properties;
+                        if (properties == null) continue;
+                        foreach (var property in properties.Cast<Property>())
+                        {
+                            if (property == null) continue;
+                            _SetPropertyValue(property, solutionProject.StartArgumentsPropertyName, startupProject.CommandLineArguments);
+                            _SetPropertyValue(property, "StartWorkingDirectory", startupProject.WorkingDirectory);
+                            _SetPropertyValue(property, "StartProgram", startupProject.StartExternalProgram);
+                            _SetPropertyValue(property, "StartURL", startupProject.StartBrowserWithUrl);
+                            _SetPropertyValue(property, "RemoteDebugEnabled", startupProject.EnableRemoteDebugging);
+                            _SetPropertyValue(property, "RemoteDebugMachine", startupProject.RemoteDebuggingMachine);
+
+                            if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetPropertyValue(property, "StartAction", 1);
+                            if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetPropertyValue(property, "StartAction", 2);
+                            if (startupProject.StartProject) _SetPropertyValue(property, "StartAction", 0);
+                        }
+                    }
                 }
             });
         }
 
-        private Property _GetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
+        private void _SetPropertyValue(Property property, string name, object newValue)
         {
-            var hierarchy = solutionProject.Hierarchy;
-            var project = solutionProject.Project;
-            var configuration = _GetActiveConfigurationOfProject(project);
-            return getProperty(configuration, hierarchy);
-        }
-
-        private string _GetStringProjectPropertyOrNull(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
-        {
-            var property = _GetProjectProperty(solutionProject, getProperty);
-            if (property == null) return null;
-            return (string)property.Value;
-        }
-
-        private int? _GetIntProjectPropertyOrNull(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
-        {
-            var property = _GetProjectProperty(solutionProject, getProperty);
-            if (property == null) return null;
-            return (int)property.Value;
-        }
-
-        private bool? _GetBoolProjectPropertyOrNull(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
-        {
-            var property = _GetProjectProperty(solutionProject, getProperty);
-            if (property == null) return null;
-            return (bool)property.Value;
-        }
-
-        private void _SetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty, object newValue)
-        {
-            if (newValue == null || solutionProject == null) return;
-            var hierarchy = solutionProject.Hierarchy;
-            var project = solutionProject.Project;
-            var configurations = _GetAllConfigurationsOfProject(project);
-            foreach (var configuration in configurations)
-            {
-                var property = getProperty(configuration, hierarchy);
-                if (property == null) continue;
-                property.Value = newValue;
-            }
-        }
-
-        private EnvDTE.Configuration _GetActiveConfigurationOfProject(Project project)
-        {
-            if (project == null) return null;
-            var configurationManager = project.ConfigurationManager;
-            return configurationManager == null ? null : configurationManager.ActiveConfiguration;
-        }
-
-        private IEnumerable<EnvDTE.Configuration> _GetAllConfigurationsOfProject(Project project)
-        {
-            if (project == null) return null;
-            var configurationManager = project.ConfigurationManager;
-            return configurationManager.Cast<EnvDTE.Configuration>();
-        }
-
-        private Property _GetPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy, Func<SolutionProject, string> getPropertyName)
-        {
-            if (configuration == null || projectHierarchy == null) return null;
-            var properties = configuration.Properties;
-            var project = solution.Projects.GetValueOrDefault(projectHierarchy);
-            if (properties == null || project == null) return null;
-            return properties.Cast<Property>().FirstOrDefault(property => property.Name == getPropertyName(project));
-        }
-
-        private Property _GetStartArgumentsPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => project.StartArgumentsPropertyName);
-        }
-
-        private Property _GetStartWorkingDirectoryPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartWorkingDirectory");
-        }
-
-        private Property _GetStartExternalProgramPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartProgram");
-        }
-
-        private Property _GetStartBrowserWithUrlPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartURL");
-        }
-
-        private Property _GetStartActionPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartAction");
-        }
-
-        private Property _GetEnableRemoteDebuggingPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "RemoteDebugEnabled");
-        }
-
-        private Property _GetRemoteDebuggingMachinePropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "RemoteDebugMachine");
+            if (property.Name != name || newValue == null) return;
+            property.Value = newValue;
         }
 
         private void _SuspendChangedEvent(Action action)

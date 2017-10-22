@@ -203,7 +203,7 @@ namespace LucidConcepts.SwitchStartupProject
                                        project.Name,
                                        cla != null ? cla.Value<string>() : null,
                                        workingDir != null ? workingDir.Value<string>() : null,
-                                       startProject != null && startProject.Value<bool>(),
+                                       startProject != null ? startProject.Value<bool?>() : null,
                                        startExtProg != null ? startExtProg.Value<string>() : null,
                                        startBrowser != null ? startBrowser.Value<string>() : null,
                                        enableRemote != null ? enableRemote.Value<bool?>() : null,

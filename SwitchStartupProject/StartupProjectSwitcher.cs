@@ -92,7 +92,12 @@ namespace LucidConcepts.SwitchStartupProject
         {
             return startupConfigurationProjects.OrderBy(proj => proj.Project != null ? proj.Project.Path : "")
                                                 .ThenBy(proj => proj.CommandLineArguments)
-                                                .ThenBy(proj => proj.WorkingDirectory);
+                                                .ThenBy(proj => proj.WorkingDirectory)
+                                                .ThenBy(proj => proj.StartProject)
+                                                .ThenBy(proj => proj.StartExternalProgram)
+                                                .ThenBy(proj => proj.StartBrowserWithUrl)
+                                                .ThenBy(proj => proj.EnableRemoteDebugging)
+                                                .ThenBy(proj => proj.RemoteDebuggingMachine);
         }
 
         private double _EqualityScore(IEnumerable<StartupConfigurationProject> sortedAvailableProjects, IEnumerable<StartupConfigurationProject> sortedCurrentProjects)
@@ -101,18 +106,37 @@ namespace LucidConcepts.SwitchStartupProject
                 .Aggregate(0.0, (accumulated, tuple) =>
                 {
                     if (tuple.Available.Project != tuple.Current.Project) return double.NegativeInfinity;   // Projects don't match => not equal
-                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.CommandLineArguments);
-                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.WorkingDirectory);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.CommandLineArguments);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.WorkingDirectory);
+                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.StartProject);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.StartExternalProgram);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.StartBrowserWithUrl);
+                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.EnableRemoteDebugging);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.RemoteDebuggingMachine);
                     return accumulated;
                 });
         }
 
-        private double _EqualityScore(StartupConfigurationProject available, StartupConfigurationProject current, Func<StartupConfigurationProject, string> getProperty)
+        private double _StringEqualityScore(StartupConfigurationProject available, StartupConfigurationProject current, Func<StartupConfigurationProject, string> getProperty)
         {
-            if (getProperty(available) == null) return 0.0;             // Property not configured => equality score 0
-            return getProperty(available) != getProperty(current) ?
+            var availableProp = getProperty(available);
+            var currentProp = getProperty(current) ?? string.Empty;     // Some properties return null instead of empty string
+            if (availableProp == null) return 0.0;                      // Property not configured => equality score 0
+            var result = availableProp != currentProp ?
                 double.NegativeInfinity :                               // Property configured but doesn't match => not equal
                 1.0;                                                    // Property configured and does match => increase equality score by 1
+            return result;
+        }
+
+        private double _EqualityScore<T>(StartupConfigurationProject available, StartupConfigurationProject current, Func<StartupConfigurationProject, T> getProperty)
+        {
+            var availableProp = getProperty(available);
+            var currentProp = getProperty(current);
+            if (availableProp == null) return 0.0;                      // Property not configured => equality score 0
+            var result = !EqualityComparer<T>.Default.Equals(availableProp, currentProp) ?
+                double.NegativeInfinity :                               // Property configured but doesn't match => not equal
+                1.0;                                                    // Property configured and does match => increase equality score by 1
+            return result;
         }
 
 
@@ -356,15 +380,16 @@ namespace LucidConcepts.SwitchStartupProject
                         var debuggerFlavor = _GetDynamicDebuggerFlavor(vcDebugSettings);
                         if (debuggerFlavor == "eLocalDebugger")
                         {
-                            startProject = true;
                             startExtProg = vcDebugSettings.Command;
                             enableRemote = false;
+                            startProject = string.IsNullOrEmpty(startExtProg);
                         }
                         else if (debuggerFlavor == "eRemoteDebugger")
                         {
                             startExtProg = vcDebugSettings.RemoteCommand;
                             enableRemote = true;
                             remoteMachine = vcDebugSettings.RemoteMachine;
+                            startProject = string.IsNullOrEmpty(startExtProg);
                         }
                         else if (debuggerFlavor == "eWebBrowserDebugger")
                         {
@@ -465,10 +490,11 @@ namespace LucidConcepts.SwitchStartupProject
                             _SetPropertyValue(v => vcDebugSettings.HttpUrl = v, startupProject.StartBrowserWithUrl);
                             _SetPropertyValue(v => vcDebugSettings.RemoteMachine = v, startupProject.RemoteDebuggingMachine);
 
-                            if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
-                            if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eWebBrowserDebugger");
                             if (startupProject.EnableRemoteDebugging == true) _SetDynamicDebuggerFlavor(vcDebugSettings, "eRemoteDebugger");
-                            if (startupProject.StartProject) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
+                            else if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eWebBrowserDebugger");
+                            else if (startupProject.EnableRemoteDebugging == false) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
+                            else if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
+                            else if (startupProject.StartProject == true) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
                         }
                     }
                     else
@@ -490,7 +516,7 @@ namespace LucidConcepts.SwitchStartupProject
 
                                 if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetPropertyValue(property, "StartAction", 1);
                                 if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetPropertyValue(property, "StartAction", 2);
-                                if (startupProject.StartProject) _SetPropertyValue(property, "StartAction", 0);
+                                if (startupProject.StartProject == true) _SetPropertyValue(property, "StartAction", 0);
                             }
                         }
                     }

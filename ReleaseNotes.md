@@ -1,6 +1,7 @@
 # Release notes
 
 ## Version 3.5
+* Fix support for configuration parameters of C++ projects (issue #55)
 
 ## Version 3.4
 * Add support for starting an external program or browser (issue #54) thanks to Jon List

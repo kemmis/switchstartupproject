@@ -8,6 +8,9 @@ using EnvDTE;
 
 using LucidConcepts.SwitchStartupProject.Helpers;
 
+using Microsoft.VisualStudio.ProjectSystem.Properties;
+using Microsoft.VisualStudio.ProjectSystem.Debug;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.VCProjectEngine;
 
@@ -366,8 +369,32 @@ namespace LucidConcepts.SwitchStartupProject
                 bool? enableRemote = null;
                 string remoteMachine = null;
 
+                // Handle CPS projects in a special way
+                if (IsCpsProject(solutionProject.Hierarchy))
+                {
+                    var context = project as IVsBrowseObjectContext;
+                    if (context == null)
+                    {
+                        // VC implements this on their DTE.Project.Object
+                        context = project.Object as IVsBrowseObjectContext;
+                    }
+                    if (context != null)
+                    {
+                        var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
+                        var launchProfile = launchSettingsProvider?.CurrentSnapshot?.ActiveProfile;
+                        if (launchProfile != null)
+                        {
+                            cla = launchProfile.CommandLineArgs;
+                            workingDir = launchProfile.WorkingDirectory;
+                            startProject = launchProfile.CommandName == "Project" && !launchProfile.LaunchBrowser;
+                            startExtProg = launchProfile.ExecutablePath;
+                            startBrowser = launchProfile.LaunchUrl;
+                            //launchProfile.OtherSettings[]
+                        }
+                    }
+                }
                 // Handle VC++ projects in a special way
-                if (project.Object is VCProject vcProject)
+                else if(project.Object is VCProject vcProject)
                 {
                     var vcConfiguration = vcProject.ActiveConfiguration;
                     if (vcConfiguration.DebugSettings is VCDebugSettings vcDebugSettings)
@@ -422,6 +449,12 @@ namespace LucidConcepts.SwitchStartupProject
             }).ToList());
         }
 
+        private bool IsCpsProject(IVsHierarchy hierarchy)
+        {
+            if (hierarchy == null) return false;
+            return hierarchy.IsCapabilityMatch("CPS");
+        }
+
         private void _ActivateSingleProjectConfiguration(SolutionProject project)
         {
             _SuspendChangedEvent(() =>
@@ -468,8 +501,52 @@ namespace LucidConcepts.SwitchStartupProject
                     var project = solutionProject.Project;
                     if (project == null) continue;
 
+                    // Handle CPS projects in a special way
+                    if (IsCpsProject(solutionProject.Hierarchy))
+                    {
+                        var context = project as IVsBrowseObjectContext;
+                        if (context == null)
+                        {
+                            // VC implements this on their DTE.Project.Object
+                            context = project.Object as IVsBrowseObjectContext;
+                        }
+                        if (context != null)
+                        {
+                            var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
+                            var launchProfiles = launchSettingsProvider?.CurrentSnapshot?.Profiles;
+                            if (launchProfiles != null)
+                            {
+                                foreach (var launchProfile in launchProfiles)
+                                {
+                                    var writableLaunchProfile = new WritableLaunchProfile(launchProfile)
+                                    {
+                                        CommandLineArgs = startupProject.CommandLineArguments,
+                                        WorkingDirectory = startupProject.WorkingDirectory,
+                                        ExecutablePath = startupProject.StartExternalProgram,
+                                        LaunchUrl = startupProject.StartBrowserWithUrl,
+                                    };
+                                    if (!string.IsNullOrEmpty(startupProject.StartExternalProgram))
+                                    {
+                                        writableLaunchProfile.CommandName = "Executable";
+                                        writableLaunchProfile.LaunchBrowser = false;
+                                    }
+                                    if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl))
+                                    {
+                                        writableLaunchProfile.LaunchBrowser = true;
+                                    }
+                                    if (startupProject.StartProject == true)
+                                    {
+                                        writableLaunchProfile.CommandName = "Project";
+                                        writableLaunchProfile.LaunchBrowser = false;
+                                    }
+
+                                    launchSettingsProvider.AddOrUpdateProfileAsync(writableLaunchProfile, false);
+                                }
+                            }
+                        }
+                    }
                     // Handle VC++ projects in a special way
-                    if (project.Object is VCProject vcProject)
+                    else if (project.Object is VCProject vcProject)
                     {
                         var vcConfiguration = vcProject.ActiveConfiguration;
                         if (vcConfiguration.DebugSettings is VCDebugSettings vcDebugSettings)

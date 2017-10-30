@@ -314,12 +314,19 @@ namespace LucidConcepts.SwitchStartupProject
 
         private StartupConfiguration _GetStartupConfiguration(MultiProjectConfiguration config)
         {
-            var startupConfigurationProjects = config.Projects.Select(configProject =>
-            {
-                var project = solution.Projects.Values.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject));
-                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory, configProject.StartProject, configProject.StartExternalProgram, configProject.StartBrowserWithUrl, configProject.EnableRemoteDebugging, configProject.RemoteDebuggingMachine);
-            }).ToList();
-            return new StartupConfiguration(config.Name, startupConfigurationProjects);
+            var startupConfigurationProjects = from configProject in config.Projects
+                                               let project = solution.Projects.Values.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject))
+                                               where project != null
+                                               select new StartupConfigurationProject(
+                                                   project,
+                                                   configProject.CommandLineArguments,
+                                                   configProject.WorkingDirectory,
+                                                   configProject.StartProject,
+                                                   configProject.StartExternalProgram,
+                                                   configProject.StartBrowserWithUrl,
+                                                   configProject.EnableRemoteDebugging,
+                                                   configProject.RemoteDebuggingMachine);
+            return new StartupConfiguration(config.Name, startupConfigurationProjects.ToList());
         }
 
         private void _ChangeStartupProject(IDropdownEntry newStartupProject)

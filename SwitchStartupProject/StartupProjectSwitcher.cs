@@ -56,35 +56,39 @@ namespace LucidConcepts.SwitchStartupProject
 
             var newStartupProjectPaths = newStartupProjects.Cast<string>().ToArray();
             var currentConfig = _GetCurrentlyActiveConfiguration(newStartupProjectPaths);
-            var sortedCurrentProjects = _SortedProjects(currentConfig.Projects);
 
-            // First try to find a matching multi-project dropdown entry
-            var bestMatch = (from dropdownEntry in dropdownService.DropdownList
-                             let multiProjectDropdownEntry = dropdownEntry as MultiProjectDropdownEntry
-                             where multiProjectDropdownEntry != null
-                             let startupConfig = multiProjectDropdownEntry.Configuration
-                             let score = _EqualityScore(_SortedProjects(startupConfig.Projects), sortedCurrentProjects)
-                             where score >= 0.0
-                             orderby score descending
-                             select multiProjectDropdownEntry)
-                            .FirstOrDefault() as IDropdownEntry;
+            if (currentConfig != null)
+            {
+                var sortedCurrentProjects = _SortedProjects(currentConfig.Projects);
 
-            // Then try to find a matching single-project dropdown entry (if feasible)
-            if (bestMatch == null && newStartupProjectPaths.Length == 1)
-            {
-                var startupProjectPath = (string)newStartupProjectPaths.GetValue(0);
-                bestMatch = (from dropdownEntry in dropdownService.DropdownList
-                             let singleProjectDropdownEntry = dropdownEntry as SingleProjectDropdownEntry
-                             where singleProjectDropdownEntry != null
-                             where singleProjectDropdownEntry.Project.Path == startupProjectPath
-                             select singleProjectDropdownEntry)
-                            .FirstOrDefault();
-            }
-            if (bestMatch != null)
-            {
-                logger.LogInfo("New startup configuration was activated outside of dropdown: {0}", bestMatch.DisplayName);
-                dropdownService.CurrentDropdownValue = bestMatch;
-                return;
+                // First try to find a matching multi-project dropdown entry
+                var bestMatch = (from dropdownEntry in dropdownService.DropdownList
+                                 let multiProjectDropdownEntry = dropdownEntry as MultiProjectDropdownEntry
+                                 where multiProjectDropdownEntry != null
+                                 let startupConfig = multiProjectDropdownEntry.Configuration
+                                 let score = _EqualityScore(_SortedProjects(startupConfig.Projects), sortedCurrentProjects)
+                                 where score >= 0.0
+                                 orderby score descending
+                                 select multiProjectDropdownEntry)
+                                .FirstOrDefault() as IDropdownEntry;
+
+                // Then try to find a matching single-project dropdown entry (if feasible)
+                if (bestMatch == null && newStartupProjectPaths.Length == 1)
+                {
+                    var startupProjectPath = (string)newStartupProjectPaths.GetValue(0);
+                    bestMatch = (from dropdownEntry in dropdownService.DropdownList
+                                 let singleProjectDropdownEntry = dropdownEntry as SingleProjectDropdownEntry
+                                 where singleProjectDropdownEntry != null
+                                 where singleProjectDropdownEntry.Project.Path == startupProjectPath
+                                 select singleProjectDropdownEntry)
+                                .FirstOrDefault();
+                }
+                if (bestMatch != null)
+                {
+                    logger.LogInfo("New startup configuration was activated outside of dropdown: {0}", bestMatch.DisplayName);
+                    dropdownService.CurrentDropdownValue = bestMatch;
+                    return;
+                }
             }
 
             logger.LogInfo("Unknown startup configuration was activated outside of dropdown");
@@ -158,6 +162,11 @@ namespace LucidConcepts.SwitchStartupProject
         // Is also called when a new solution and project have been created.
         public void AfterOpenSolution()
         {
+            if (solution == null)   // This happens when creating a new solution
+            {
+                logger.LogInfo("Created a new solution");
+                solution = new Solution();
+            }
             solution.IsOpening = false;
             logger.LogInfo("Finished to open solution");
             if (string.IsNullOrEmpty(dte.Solution.FullName))  // This happens e.g. when creating a new website
@@ -201,6 +210,9 @@ namespace LucidConcepts.SwitchStartupProject
         public void OpenProject(IVsHierarchy pHierarchy, bool isCreated)
         {
             // When project is opened: register it and its name
+
+            // Don't register project if solution path is not yet available
+            if (string.IsNullOrEmpty(dte.Solution.FullName)) return;
 
             // Filter out hierarchy elements that don't represent projects
             var project = SolutionProject.FromHierarchy(pHierarchy, dte.Solution.FullName);

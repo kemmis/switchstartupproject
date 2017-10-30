@@ -5,3 +5,4 @@ glob:_ReSharper.*
 *.suo
 **/bin/
 packages/
+.vs/

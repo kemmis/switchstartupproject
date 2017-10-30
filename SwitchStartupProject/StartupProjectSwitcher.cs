@@ -9,6 +9,7 @@ using EnvDTE;
 using LucidConcepts.SwitchStartupProject.Helpers;
 
 using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.VCProjectEngine;
 
 using Newtonsoft.Json;
 
@@ -91,7 +92,12 @@ namespace LucidConcepts.SwitchStartupProject
         {
             return startupConfigurationProjects.OrderBy(proj => proj.Project != null ? proj.Project.Path : "")
                                                 .ThenBy(proj => proj.CommandLineArguments)
-                                                .ThenBy(proj => proj.WorkingDirectory);
+                                                .ThenBy(proj => proj.WorkingDirectory)
+                                                .ThenBy(proj => proj.StartProject)
+                                                .ThenBy(proj => proj.StartExternalProgram)
+                                                .ThenBy(proj => proj.StartBrowserWithUrl)
+                                                .ThenBy(proj => proj.EnableRemoteDebugging)
+                                                .ThenBy(proj => proj.RemoteDebuggingMachine);
         }
 
         private double _EqualityScore(IEnumerable<StartupConfigurationProject> sortedAvailableProjects, IEnumerable<StartupConfigurationProject> sortedCurrentProjects)
@@ -100,18 +106,37 @@ namespace LucidConcepts.SwitchStartupProject
                 .Aggregate(0.0, (accumulated, tuple) =>
                 {
                     if (tuple.Available.Project != tuple.Current.Project) return double.NegativeInfinity;   // Projects don't match => not equal
-                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.CommandLineArguments);
-                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.WorkingDirectory);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.CommandLineArguments);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.WorkingDirectory);
+                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.StartProject);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.StartExternalProgram);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.StartBrowserWithUrl);
+                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.EnableRemoteDebugging);
+                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.RemoteDebuggingMachine);
                     return accumulated;
                 });
         }
 
-        private double _EqualityScore(StartupConfigurationProject available, StartupConfigurationProject current, Func<StartupConfigurationProject, string> getProperty)
+        private double _StringEqualityScore(StartupConfigurationProject available, StartupConfigurationProject current, Func<StartupConfigurationProject, string> getProperty)
         {
-            if (getProperty(available) == null) return 0.0;             // Property not configured => equality score 0
-            return getProperty(available) != getProperty(current) ?
+            var availableProp = getProperty(available);
+            var currentProp = getProperty(current) ?? string.Empty;     // Some properties return null instead of empty string
+            if (availableProp == null) return 0.0;                      // Property not configured => equality score 0
+            var result = availableProp != currentProp ?
                 double.NegativeInfinity :                               // Property configured but doesn't match => not equal
                 1.0;                                                    // Property configured and does match => increase equality score by 1
+            return result;
+        }
+
+        private double _EqualityScore<T>(StartupConfigurationProject available, StartupConfigurationProject current, Func<StartupConfigurationProject, T> getProperty)
+        {
+            var availableProp = getProperty(available);
+            var currentProp = getProperty(current);
+            if (availableProp == null) return 0.0;                      // Property not configured => equality score 0
+            var result = !EqualityComparer<T>.Default.Equals(availableProp, currentProp) ?
+                double.NegativeInfinity :                               // Property configured but doesn't match => not equal
+                1.0;                                                    // Property configured and does match => increase equality score by 1
+            return result;
         }
 
 
@@ -327,16 +352,77 @@ namespace LucidConcepts.SwitchStartupProject
 
             return new StartupConfiguration(null, newStartupProjectPaths.Select(projectPath =>
             {
-                var project = solution.Projects.Values.SingleOrDefault(p => p.Path == projectPath);
+                var solutionProject = solution.Projects.Values.SingleOrDefault(p => p.Path == projectPath);
+                if (solutionProject == null) return null;
+
+                var project = solutionProject.Project;
                 if (project == null) return null;
-                var cla = _GetStringProjectPropertyOrNull(project, _GetStartArgumentsPropertyOfConfiguration);
-                var workingDir = _GetStringProjectPropertyOrNull(project, _GetStartWorkingDirectoryPropertyOfConfiguration);
-                var startProject = 0 == _GetIntProjectPropertyOrNull(project, _GetStartActionPropertyOfConfiguration);
-                var startExtProg = _GetStringProjectPropertyOrNull(project, _GetStartExternalProgramPropertyOfConfiguration);
-                var startBrowser = _GetStringProjectPropertyOrNull(project, _GetStartBrowserWithUrlPropertyOfConfiguration);
-                var enableRemote = _GetBoolProjectPropertyOrNull(project, _GetEnableRemoteDebuggingPropertyOfConfiguration);
-                var remoteMachine = _GetStringProjectPropertyOrNull(project, _GetRemoteDebuggingMachinePropertyOfConfiguration);
-                return new StartupConfigurationProject(project, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine);
+
+                string cla = null;
+                string workingDir = null;
+                bool startProject = false;
+                string startExtProg = null;
+                string startBrowser = null;
+                bool? enableRemote = null;
+                string remoteMachine = null;
+
+                // Handle VC++ projects in a special way
+                if (new Guid(project.Kind) == GuidList.guidCPlusPlus)
+                {
+                    var vcProject = (dynamic)project.Object;
+                    //var vcConfiguration = vcProject.ActiveConfiguration;  // TODO: Property not available in older versions
+                    foreach (var vcConfiguration in vcProject.Configurations)
+                    {
+                        var vcDebugSettings = vcConfiguration.DebugSettings;
+                        cla = vcDebugSettings.CommandArguments;
+                        workingDir = vcDebugSettings.WorkingDirectory;
+
+                        var debuggerFlavor = _GetDynamicDebuggerFlavor(vcDebugSettings);
+                        if (debuggerFlavor == "eLocalDebugger")
+                        {
+                            startExtProg = vcDebugSettings.Command;
+                            enableRemote = false;
+                            startProject = string.IsNullOrEmpty(startExtProg);
+                        }
+                        else if (debuggerFlavor == "eRemoteDebugger")
+                        {
+                            startExtProg = vcDebugSettings.RemoteCommand;
+                            enableRemote = true;
+                            remoteMachine = vcDebugSettings.RemoteMachine;
+                            startProject = string.IsNullOrEmpty(startExtProg);
+                        }
+                        else if (debuggerFlavor == "eWebBrowserDebugger")
+                        {
+                            startBrowser = vcDebugSettings.HttpUrl;
+                            startExtProg = vcDebugSettings.Command;
+                            enableRemote = false;
+                        }
+                        break;  // Only use first configuration
+                    }
+                }
+                else
+                {
+                    var configurationManager = project.ConfigurationManager;
+                    if (configurationManager == null) return null;
+                    var configuration = configurationManager.ActiveConfiguration;
+                    if (configuration == null) return null;
+                    var properties = configuration.Properties;
+                    if (properties == null) return null;
+
+
+                    foreach (var property in properties.Cast<Property>())
+                    {
+                        if (property == null) continue;
+                        if (property.Name == solutionProject.StartArgumentsPropertyName) cla = (string)property.Value;
+                        if (property.Name == "StartWorkingDirectory") workingDir = (string)property.Value;
+                        if (property.Name == "StartAction") startProject = 0 == (int)property.Value;
+                        if (property.Name == "StartProgram") startExtProg = (string)property.Value;
+                        if (property.Name == "StartURL") startBrowser = (string)property.Value;
+                        if (property.Name == "RemoteDebugEnabled") enableRemote = (bool)property.Value;
+                        if (property.Name == "RemoteDebugMachine") remoteMachine = (string)property.Value;
+                    }
+                }
+                return new StartupConfigurationProject(solutionProject, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine);
             }).ToList());
         }
 
@@ -381,118 +467,85 @@ namespace LucidConcepts.SwitchStartupProject
                 // Set properties
                 foreach (var startupProject in startupProjects)
                 {
-                    _SetProjectProperty(startupProject.Project, _GetStartArgumentsPropertyOfConfiguration, startupProject.CommandLineArguments);
-                    _SetProjectProperty(startupProject.Project, _GetStartWorkingDirectoryPropertyOfConfiguration, startupProject.WorkingDirectory);
-                    _SetProjectProperty(startupProject.Project, _GetStartExternalProgramPropertyOfConfiguration, startupProject.StartExternalProgram);
-                    if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 1);
-                    _SetProjectProperty(startupProject.Project, _GetStartBrowserWithUrlPropertyOfConfiguration, startupProject.StartBrowserWithUrl);
-                    if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 2);
-                    if (startupProject.StartProject) _SetProjectProperty(startupProject.Project, _GetStartActionPropertyOfConfiguration, 0);
-                    _SetProjectProperty(startupProject.Project, _GetEnableRemoteDebuggingPropertyOfConfiguration, startupProject.EnableRemoteDebugging);
-                    _SetProjectProperty(startupProject.Project, _GetRemoteDebuggingMachinePropertyOfConfiguration, startupProject.RemoteDebuggingMachine);
+                    if (startupProject.Project == null) continue;
+                    var solutionProject = startupProject.Project;
+                    var project = solutionProject.Project;
+                    if (project == null) continue;
+
+                    // Handle VC++ projects in a special way
+                    if (new Guid(project.Kind) == GuidList.guidCPlusPlus)
+                    //if (project.Object is VCProject)
+                    {
+                        var vcProject = (dynamic)project.Object;
+                        foreach (var vcConfiguration in vcProject.Configurations)
+                        {
+                            var vcDebugSettings = vcConfiguration.DebugSettings;
+                            _SetPropertyValue(v => vcDebugSettings.CommandArguments = v, startupProject.CommandLineArguments);
+                            _SetPropertyValue(v => vcDebugSettings.WorkingDirectory = v, startupProject.WorkingDirectory);
+                            _SetPropertyValue(v =>
+                            {
+                                if (startupProject.EnableRemoteDebugging == true) vcDebugSettings.RemoteCommand = v;
+                                else vcDebugSettings.Command = v;
+                            }, startupProject.StartExternalProgram);
+                            _SetPropertyValue(v => vcDebugSettings.HttpUrl = v, startupProject.StartBrowserWithUrl);
+                            _SetPropertyValue(v => vcDebugSettings.RemoteMachine = v, startupProject.RemoteDebuggingMachine);
+
+                            if (startupProject.EnableRemoteDebugging == true) _SetDynamicDebuggerFlavor(vcDebugSettings, "eRemoteDebugger");
+                            else if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eWebBrowserDebugger");
+                            else if (startupProject.EnableRemoteDebugging == false) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
+                            else if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
+                            else if (startupProject.StartProject == true) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
+                        }
+                    }
+                    else
+                    {
+                        foreach (EnvDTE.Configuration configuration in project.ConfigurationManager)
+                        {
+                            if (configuration == null) continue;
+                            var properties = configuration.Properties;
+                            if (properties == null) continue;
+                            foreach (var property in properties.Cast<Property>())
+                            {
+                                if (property == null) continue;
+                                _SetPropertyValue(property, solutionProject.StartArgumentsPropertyName, startupProject.CommandLineArguments);
+                                _SetPropertyValue(property, "StartWorkingDirectory", startupProject.WorkingDirectory);
+                                _SetPropertyValue(property, "StartProgram", startupProject.StartExternalProgram);
+                                _SetPropertyValue(property, "StartURL", startupProject.StartBrowserWithUrl);
+                                _SetPropertyValue(property, "RemoteDebugEnabled", startupProject.EnableRemoteDebugging);
+                                _SetPropertyValue(property, "RemoteDebugMachine", startupProject.RemoteDebuggingMachine);
+
+                                if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetPropertyValue(property, "StartAction", 1);
+                                if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetPropertyValue(property, "StartAction", 2);
+                                if (startupProject.StartProject == true) _SetPropertyValue(property, "StartAction", 0);
+                            }
+                        }
+                    }
                 }
             });
         }
 
-        private Property _GetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
+        private string _GetDynamicDebuggerFlavor(dynamic vcDebugSettings)
         {
-            var hierarchy = solutionProject.Hierarchy;
-            var project = solutionProject.Project;
-            var configuration = _GetActiveConfigurationOfProject(project);
-            return getProperty(configuration, hierarchy);
+            // This is a workaround for enum eDebuggerTypes used with dynamic types.
+            return vcDebugSettings.DebuggerFlavor.ToString();
         }
 
-        private string _GetStringProjectPropertyOrNull(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
+        private void _SetDynamicDebuggerFlavor(dynamic vcDebugSettings, string enumValueName)
         {
-            var property = _GetProjectProperty(solutionProject, getProperty);
-            if (property == null) return null;
-            return (string)property.Value;
+            // This is a workaround for enum eDebuggerTypes used with dynamic types.
+            vcDebugSettings.DebuggerFlavor = (dynamic)Enum.Parse(vcDebugSettings.DebuggerFlavor.GetType(), enumValueName);
         }
 
-        private int? _GetIntProjectPropertyOrNull(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
+        private void _SetPropertyValue(Property property, string name, object newValue)
         {
-            var property = _GetProjectProperty(solutionProject, getProperty);
-            if (property == null) return null;
-            return (int)property.Value;
+            if (property.Name != name || newValue == null) return;
+            property.Value = newValue;
         }
 
-        private bool? _GetBoolProjectPropertyOrNull(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty)
+        private void _SetPropertyValue<T>(Action<T> setter, T newValue)
         {
-            var property = _GetProjectProperty(solutionProject, getProperty);
-            if (property == null) return null;
-            return (bool)property.Value;
-        }
-
-        private void _SetProjectProperty(SolutionProject solutionProject, Func<EnvDTE.Configuration, IVsHierarchy, Property> getProperty, object newValue)
-        {
-            if (newValue == null || solutionProject == null) return;
-            var hierarchy = solutionProject.Hierarchy;
-            var project = solutionProject.Project;
-            var configurations = _GetAllConfigurationsOfProject(project);
-            foreach (var configuration in configurations)
-            {
-                var property = getProperty(configuration, hierarchy);
-                if (property == null) continue;
-                property.Value = newValue;
-            }
-        }
-
-        private EnvDTE.Configuration _GetActiveConfigurationOfProject(Project project)
-        {
-            if (project == null) return null;
-            var configurationManager = project.ConfigurationManager;
-            return configurationManager == null ? null : configurationManager.ActiveConfiguration;
-        }
-
-        private IEnumerable<EnvDTE.Configuration> _GetAllConfigurationsOfProject(Project project)
-        {
-            if (project == null) return null;
-            var configurationManager = project.ConfigurationManager;
-            return configurationManager.Cast<EnvDTE.Configuration>();
-        }
-
-        private Property _GetPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy, Func<SolutionProject, string> getPropertyName)
-        {
-            if (configuration == null || projectHierarchy == null) return null;
-            var properties = configuration.Properties;
-            var project = solution.Projects.GetValueOrDefault(projectHierarchy);
-            if (properties == null || project == null) return null;
-            return properties.Cast<Property>().FirstOrDefault(property => property.Name == getPropertyName(project));
-        }
-
-        private Property _GetStartArgumentsPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => project.StartArgumentsPropertyName);
-        }
-
-        private Property _GetStartWorkingDirectoryPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartWorkingDirectory");
-        }
-
-        private Property _GetStartExternalProgramPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartProgram");
-        }
-
-        private Property _GetStartBrowserWithUrlPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartURL");
-        }
-
-        private Property _GetStartActionPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "StartAction");
-        }
-
-        private Property _GetEnableRemoteDebuggingPropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "RemoteDebugEnabled");
-        }
-
-        private Property _GetRemoteDebuggingMachinePropertyOfConfiguration(EnvDTE.Configuration configuration, IVsHierarchy projectHierarchy)
-        {
-            return _GetPropertyOfConfiguration(configuration, projectHierarchy, project => "RemoteDebugMachine");
+            if (newValue == null) return;
+            setter(newValue);
         }
 
         private void _SuspendChangedEvent(Action action)

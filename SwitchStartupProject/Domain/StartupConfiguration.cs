@@ -30,7 +30,7 @@ namespace LucidConcepts.SwitchStartupProject
             SolutionProject project,
             string commandLineArguments,
             string workingDirectory,
-            bool startProject,
+            bool? startProject,
             string startExternalProgram,
             string startBrowserWithUrl,
             bool? enableRemoteDebugging,
@@ -49,7 +49,7 @@ namespace LucidConcepts.SwitchStartupProject
         public SolutionProject Project { get; private set; }
         public string CommandLineArguments { get; private set; }
         public string WorkingDirectory { get; private set; }
-        public bool StartProject { get; set; }
+        public bool? StartProject { get; set; }
         public string StartExternalProgram { get; set; }
         public string StartBrowserWithUrl { get; set; }
         public bool? EnableRemoteDebugging { get; private set; }

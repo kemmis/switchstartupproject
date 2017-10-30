@@ -8,6 +8,9 @@ using EnvDTE;
 
 using LucidConcepts.SwitchStartupProject.Helpers;
 
+using Microsoft.VisualStudio.ProjectSystem.Properties;
+using Microsoft.VisualStudio.ProjectSystem.Debug;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.VCProjectEngine;
 
@@ -53,35 +56,39 @@ namespace LucidConcepts.SwitchStartupProject
 
             var newStartupProjectPaths = newStartupProjects.Cast<string>().ToArray();
             var currentConfig = _GetCurrentlyActiveConfiguration(newStartupProjectPaths);
-            var sortedCurrentProjects = _SortedProjects(currentConfig.Projects);
 
-            // First try to find a matching multi-project dropdown entry
-            var bestMatch = (from dropdownEntry in dropdownService.DropdownList
-                             let multiProjectDropdownEntry = dropdownEntry as MultiProjectDropdownEntry
-                             where multiProjectDropdownEntry != null
-                             let startupConfig = multiProjectDropdownEntry.Configuration
-                             let score = _EqualityScore(_SortedProjects(startupConfig.Projects), sortedCurrentProjects)
-                             where score >= 0.0
-                             orderby score descending
-                             select multiProjectDropdownEntry)
-                            .FirstOrDefault() as IDropdownEntry;
+            if (currentConfig != null)
+            {
+                var sortedCurrentProjects = _SortedProjects(currentConfig.Projects);
 
-            // Then try to find a matching single-project dropdown entry (if feasible)
-            if (bestMatch == null && newStartupProjectPaths.Length == 1)
-            {
-                var startupProjectPath = (string)newStartupProjectPaths.GetValue(0);
-                bestMatch = (from dropdownEntry in dropdownService.DropdownList
-                             let singleProjectDropdownEntry = dropdownEntry as SingleProjectDropdownEntry
-                             where singleProjectDropdownEntry != null
-                             where singleProjectDropdownEntry.Project.Path == startupProjectPath
-                             select singleProjectDropdownEntry)
-                            .FirstOrDefault();
-            }
-            if (bestMatch != null)
-            {
-                logger.LogInfo("New startup configuration was activated outside of dropdown: {0}", bestMatch.DisplayName);
-                dropdownService.CurrentDropdownValue = bestMatch;
-                return;
+                // First try to find a matching multi-project dropdown entry
+                var bestMatch = (from dropdownEntry in dropdownService.DropdownList
+                                 let multiProjectDropdownEntry = dropdownEntry as MultiProjectDropdownEntry
+                                 where multiProjectDropdownEntry != null
+                                 let startupConfig = multiProjectDropdownEntry.Configuration
+                                 let score = _EqualityScore(_SortedProjects(startupConfig.Projects), sortedCurrentProjects)
+                                 where score >= 0.0
+                                 orderby score descending
+                                 select multiProjectDropdownEntry)
+                                .FirstOrDefault() as IDropdownEntry;
+
+                // Then try to find a matching single-project dropdown entry (if feasible)
+                if (bestMatch == null && newStartupProjectPaths.Length == 1)
+                {
+                    var startupProjectPath = (string)newStartupProjectPaths.GetValue(0);
+                    bestMatch = (from dropdownEntry in dropdownService.DropdownList
+                                 let singleProjectDropdownEntry = dropdownEntry as SingleProjectDropdownEntry
+                                 where singleProjectDropdownEntry != null
+                                 where singleProjectDropdownEntry.Project.Path == startupProjectPath
+                                 select singleProjectDropdownEntry)
+                                .FirstOrDefault();
+                }
+                if (bestMatch != null)
+                {
+                    logger.LogInfo("New startup configuration was activated outside of dropdown: {0}", bestMatch.DisplayName);
+                    dropdownService.CurrentDropdownValue = bestMatch;
+                    return;
+                }
             }
 
             logger.LogInfo("Unknown startup configuration was activated outside of dropdown");
@@ -155,6 +162,11 @@ namespace LucidConcepts.SwitchStartupProject
         // Is also called when a new solution and project have been created.
         public void AfterOpenSolution()
         {
+            if (solution == null)   // This happens when creating a new solution
+            {
+                logger.LogInfo("Created a new solution");
+                solution = new Solution();
+            }
             solution.IsOpening = false;
             logger.LogInfo("Finished to open solution");
             if (string.IsNullOrEmpty(dte.Solution.FullName))  // This happens e.g. when creating a new website
@@ -198,6 +210,9 @@ namespace LucidConcepts.SwitchStartupProject
         public void OpenProject(IVsHierarchy pHierarchy, bool isCreated)
         {
             // When project is opened: register it and its name
+
+            // Don't register project if solution path is not yet available
+            if (string.IsNullOrEmpty(dte.Solution.FullName)) return;
 
             // Filter out hierarchy elements that don't represent projects
             var project = SolutionProject.FromHierarchy(pHierarchy, dte.Solution.FullName);
@@ -325,7 +340,8 @@ namespace LucidConcepts.SwitchStartupProject
                                                    configProject.StartExternalProgram,
                                                    configProject.StartBrowserWithUrl,
                                                    configProject.EnableRemoteDebugging,
-                                                   configProject.RemoteDebuggingMachine);
+                                                   configProject.RemoteDebuggingMachine,
+                                                   configProject.ProfileName);
             return new StartupConfiguration(config.Name, startupConfigurationProjects.ToList());
         }
 
@@ -372,39 +388,61 @@ namespace LucidConcepts.SwitchStartupProject
                 string startBrowser = null;
                 bool? enableRemote = null;
                 string remoteMachine = null;
+                string profileName = null;
 
-                // Handle VC++ projects in a special way
-                if (new Guid(project.Kind) == GuidList.guidCPlusPlus)
+                // Handle CPS projects in a special way
+                if (IsCpsProject(solutionProject.Hierarchy))
                 {
-                    var vcProject = (dynamic)project.Object;
-                    //var vcConfiguration = vcProject.ActiveConfiguration;  // TODO: Property not available in older versions
-                    foreach (var vcConfiguration in vcProject.Configurations)
+                    var context = project as IVsBrowseObjectContext;
+                    if (context == null)
                     {
-                        var vcDebugSettings = vcConfiguration.DebugSettings;
+                        // VC implements this on their DTE.Project.Object
+                        context = project.Object as IVsBrowseObjectContext;
+                    }
+                    if (context != null)
+                    {
+                        var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
+                        var launchProfile = launchSettingsProvider?.CurrentSnapshot?.ActiveProfile;
+                        if (launchProfile != null)
+                        {
+                            profileName = launchProfile.Name;
+                            cla = launchProfile.CommandLineArgs;
+                            workingDir = launchProfile.WorkingDirectory;
+                            startProject = launchProfile.CommandName == "Project" && !launchProfile.LaunchBrowser;
+                            startExtProg = launchProfile.ExecutablePath;
+                            startBrowser = launchProfile.LaunchUrl;
+                            //launchProfile.OtherSettings[]
+                        }
+                    }
+                }
+                // Handle VC++ projects in a special way
+                else if(project.Object is VCProject vcProject)
+                {
+                    var vcConfiguration = vcProject.ActiveConfiguration;
+                    if (vcConfiguration.DebugSettings is VCDebugSettings vcDebugSettings)
+                    {
                         cla = vcDebugSettings.CommandArguments;
                         workingDir = vcDebugSettings.WorkingDirectory;
 
-                        var debuggerFlavor = _GetDynamicDebuggerFlavor(vcDebugSettings);
-                        if (debuggerFlavor == "eLocalDebugger")
+                        if (vcDebugSettings.DebuggerFlavor == eDebuggerTypes.eLocalDebugger)
                         {
                             startExtProg = vcDebugSettings.Command;
                             enableRemote = false;
                             startProject = string.IsNullOrEmpty(startExtProg);
                         }
-                        else if (debuggerFlavor == "eRemoteDebugger")
+                        else if (vcDebugSettings.DebuggerFlavor == eDebuggerTypes.eRemoteDebugger)
                         {
                             startExtProg = vcDebugSettings.RemoteCommand;
                             enableRemote = true;
                             remoteMachine = vcDebugSettings.RemoteMachine;
                             startProject = string.IsNullOrEmpty(startExtProg);
                         }
-                        else if (debuggerFlavor == "eWebBrowserDebugger")
+                        else if (vcDebugSettings.DebuggerFlavor == eDebuggerTypes.eWebBrowserDebugger)
                         {
                             startBrowser = vcDebugSettings.HttpUrl;
                             startExtProg = vcDebugSettings.Command;
                             enableRemote = false;
                         }
-                        break;  // Only use first configuration
                     }
                 }
                 else
@@ -429,8 +467,14 @@ namespace LucidConcepts.SwitchStartupProject
                         if (property.Name == "RemoteDebugMachine") remoteMachine = (string)property.Value;
                     }
                 }
-                return new StartupConfigurationProject(solutionProject, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine);
+                return new StartupConfigurationProject(solutionProject, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine, profileName);
             }).ToList());
+        }
+
+        private bool IsCpsProject(IVsHierarchy hierarchy)
+        {
+            if (hierarchy == null) return false;
+            return hierarchy.IsCapabilityMatch("CPS");
         }
 
         private void _ActivateSingleProjectConfiguration(SolutionProject project)
@@ -479,14 +523,61 @@ namespace LucidConcepts.SwitchStartupProject
                     var project = solutionProject.Project;
                     if (project == null) continue;
 
-                    // Handle VC++ projects in a special way
-                    if (new Guid(project.Kind) == GuidList.guidCPlusPlus)
-                    //if (project.Object is VCProject)
+                    // Handle CPS projects in a special way
+                    if (IsCpsProject(solutionProject.Hierarchy))
                     {
-                        var vcProject = (dynamic)project.Object;
-                        foreach (var vcConfiguration in vcProject.Configurations)
+                        var context = project as IVsBrowseObjectContext;
+                        if (context == null)
                         {
-                            var vcDebugSettings = vcConfiguration.DebugSettings;
+                            // VC implements this on their DTE.Project.Object
+                            context = project.Object as IVsBrowseObjectContext;
+                        }
+                        if (context != null)
+                        {
+                            var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
+                            if (launchSettingsProvider != null)
+                            {
+                                if (startupProject.ProfileName != null)
+                                {
+                                    launchSettingsProvider.SetActiveProfileAsync(startupProject.ProfileName);
+                                }
+
+                                var launchProfile = launchSettingsProvider.CurrentSnapshot?.ActiveProfile;
+                                if (launchProfile != null)
+                                {
+                                    var writableLaunchProfile = new WritableLaunchProfile(launchProfile)
+                                    {
+                                        CommandLineArgs = startupProject.CommandLineArguments,
+                                        WorkingDirectory = startupProject.WorkingDirectory,
+                                        ExecutablePath = startupProject.StartExternalProgram,
+                                        LaunchUrl = startupProject.StartBrowserWithUrl,
+                                    };
+                                    if (!string.IsNullOrEmpty(startupProject.StartExternalProgram))
+                                    {
+                                        writableLaunchProfile.CommandName = "Executable";
+                                        writableLaunchProfile.LaunchBrowser = false;
+                                    }
+                                    if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl))
+                                    {
+                                        writableLaunchProfile.LaunchBrowser = true;
+                                    }
+                                    if (startupProject.StartProject == true)
+                                    {
+                                        writableLaunchProfile.CommandName = "Project";
+                                        writableLaunchProfile.LaunchBrowser = false;
+                                    }
+
+                                    launchSettingsProvider.AddOrUpdateProfileAsync(writableLaunchProfile, false);
+                                }
+                            }
+                        }
+                    }
+                    // Handle VC++ projects in a special way
+                    else if (project.Object is VCProject vcProject)
+                    {
+                        var vcConfiguration = vcProject.ActiveConfiguration;
+                        if (vcConfiguration.DebugSettings is VCDebugSettings vcDebugSettings)
+                        {
                             _SetPropertyValue(v => vcDebugSettings.CommandArguments = v, startupProject.CommandLineArguments);
                             _SetPropertyValue(v => vcDebugSettings.WorkingDirectory = v, startupProject.WorkingDirectory);
                             _SetPropertyValue(v =>
@@ -497,11 +588,11 @@ namespace LucidConcepts.SwitchStartupProject
                             _SetPropertyValue(v => vcDebugSettings.HttpUrl = v, startupProject.StartBrowserWithUrl);
                             _SetPropertyValue(v => vcDebugSettings.RemoteMachine = v, startupProject.RemoteDebuggingMachine);
 
-                            if (startupProject.EnableRemoteDebugging == true) _SetDynamicDebuggerFlavor(vcDebugSettings, "eRemoteDebugger");
-                            else if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eWebBrowserDebugger");
-                            else if (startupProject.EnableRemoteDebugging == false) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
-                            else if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
-                            else if (startupProject.StartProject == true) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
+                            if (startupProject.EnableRemoteDebugging == true) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eRemoteDebugger;
+                            else if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eWebBrowserDebugger;
+                            else if (startupProject.EnableRemoteDebugging == false) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eLocalDebugger;
+                            else if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eLocalDebugger;
+                            else if (startupProject.StartProject == true) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eLocalDebugger;
                         }
                     }
                     else
@@ -529,18 +620,6 @@ namespace LucidConcepts.SwitchStartupProject
                     }
                 }
             });
-        }
-
-        private string _GetDynamicDebuggerFlavor(dynamic vcDebugSettings)
-        {
-            // This is a workaround for enum eDebuggerTypes used with dynamic types.
-            return vcDebugSettings.DebuggerFlavor.ToString();
-        }
-
-        private void _SetDynamicDebuggerFlavor(dynamic vcDebugSettings, string enumValueName)
-        {
-            // This is a workaround for enum eDebuggerTypes used with dynamic types.
-            vcDebugSettings.DebuggerFlavor = (dynamic)Enum.Parse(vcDebugSettings.DebuggerFlavor.GetType(), enumValueName);
         }
 
         private void _SetPropertyValue(Property property, string name, object newValue)

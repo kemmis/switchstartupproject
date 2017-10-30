@@ -34,7 +34,8 @@ namespace LucidConcepts.SwitchStartupProject
             string startExternalProgram,
             string startBrowserWithUrl,
             bool? enableRemoteDebugging,
-            string remoteDebuggingMachine)
+            string remoteDebuggingMachine,
+            string profileName)
         {
             this.Project = project;
             this.CommandLineArguments = commandLineArguments;
@@ -44,6 +45,7 @@ namespace LucidConcepts.SwitchStartupProject
             this.StartBrowserWithUrl = startBrowserWithUrl;
             this.EnableRemoteDebugging = enableRemoteDebugging;
             this.RemoteDebuggingMachine = remoteDebuggingMachine;
+            this.ProfileName = profileName;
         }
 
         public SolutionProject Project { get; private set; }
@@ -54,6 +56,7 @@ namespace LucidConcepts.SwitchStartupProject
         public string StartBrowserWithUrl { get; set; }
         public bool? EnableRemoteDebugging { get; private set; }
         public string RemoteDebuggingMachine { get; set; }
+        public string ProfileName { get; private set; }
 
         public bool IsEqual(StartupConfigurationProject other)
         {
@@ -64,7 +67,8 @@ namespace LucidConcepts.SwitchStartupProject
                    this.StartExternalProgram == other.StartExternalProgram &&
                    this.StartBrowserWithUrl == other.StartBrowserWithUrl &&
                    this.EnableRemoteDebugging == other.EnableRemoteDebugging &&
-                   this.RemoteDebuggingMachine == other.RemoteDebuggingMachine;
+                   this.RemoteDebuggingMachine == other.RemoteDebuggingMachine &&
+                   this.ProfileName == other.ProfileName;
         }
     }
 }

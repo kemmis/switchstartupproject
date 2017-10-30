@@ -4,6 +4,7 @@
 * Fix support for configuration parameters of C++ projects (issue #55)
 * Fix detection of active configuration
 * Add support for configuration parameters of CPS (for example .NET Core) projects (issue #56)
+* Add support for switching launch profiles of CPS projects (issue #42)
 
 ## Version 3.4
 * Add support for starting an external program or browser (issue #54) thanks to Jon List

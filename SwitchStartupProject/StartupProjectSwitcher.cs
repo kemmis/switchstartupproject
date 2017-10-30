@@ -320,7 +320,7 @@ namespace LucidConcepts.SwitchStartupProject
             var startupConfigurationProjects = config.Projects.Select(configProject =>
             {
                 var project = solution.Projects.Values.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject));
-                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory, configProject.StartProject, configProject.StartExternalProgram, configProject.StartBrowserWithUrl, configProject.EnableRemoteDebugging, configProject.RemoteDebuggingMachine);
+                return new StartupConfigurationProject(project, configProject.CommandLineArguments, configProject.WorkingDirectory, configProject.StartProject, configProject.StartExternalProgram, configProject.StartBrowserWithUrl, configProject.EnableRemoteDebugging, configProject.RemoteDebuggingMachine, configProject.ProfileName);
             }).ToList();
             return new StartupConfiguration(config.Name, startupConfigurationProjects);
         }
@@ -368,6 +368,7 @@ namespace LucidConcepts.SwitchStartupProject
                 string startBrowser = null;
                 bool? enableRemote = null;
                 string remoteMachine = null;
+                string profileName = null;
 
                 // Handle CPS projects in a special way
                 if (IsCpsProject(solutionProject.Hierarchy))
@@ -384,6 +385,7 @@ namespace LucidConcepts.SwitchStartupProject
                         var launchProfile = launchSettingsProvider?.CurrentSnapshot?.ActiveProfile;
                         if (launchProfile != null)
                         {
+                            profileName = launchProfile.Name;
                             cla = launchProfile.CommandLineArgs;
                             workingDir = launchProfile.WorkingDirectory;
                             startProject = launchProfile.CommandName == "Project" && !launchProfile.LaunchBrowser;
@@ -445,7 +447,7 @@ namespace LucidConcepts.SwitchStartupProject
                         if (property.Name == "RemoteDebugMachine") remoteMachine = (string)property.Value;
                     }
                 }
-                return new StartupConfigurationProject(solutionProject, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine);
+                return new StartupConfigurationProject(solutionProject, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine, profileName);
             }).ToList());
         }
 
@@ -513,10 +515,15 @@ namespace LucidConcepts.SwitchStartupProject
                         if (context != null)
                         {
                             var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
-                            var launchProfiles = launchSettingsProvider?.CurrentSnapshot?.Profiles;
-                            if (launchProfiles != null)
+                            if (launchSettingsProvider != null)
                             {
-                                foreach (var launchProfile in launchProfiles)
+                                if (startupProject.ProfileName != null)
+                                {
+                                    launchSettingsProvider.SetActiveProfileAsync(startupProject.ProfileName);
+                                }
+
+                                var launchProfile = launchSettingsProvider.CurrentSnapshot?.ActiveProfile;
+                                if (launchProfile != null)
                                 {
                                     var writableLaunchProfile = new WritableLaunchProfile(launchProfile)
                                     {

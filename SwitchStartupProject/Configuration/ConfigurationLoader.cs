@@ -27,6 +27,7 @@ namespace LucidConcepts.SwitchStartupProject
         private const string startBrowserKey = "StartBrowserWithURL";
         private const string enableRemoteDebuggingKey = "EnableRemoteDebugging";
         private const string remoteDebuggingMachineKey = "RemoteDebuggingMachine";
+        private const string profileNameKey = "ProfileName";
 
         private readonly string configurationFilename;
         private readonly SwitchStartupProjectPackage.ActivityLogger logger;
@@ -199,6 +200,7 @@ namespace LucidConcepts.SwitchStartupProject
                                    let startBrowser = project.Value[startBrowserKey]
                                    let enableRemote = project.Value[enableRemoteDebuggingKey]
                                    let remoteMachine = project.Value[remoteDebuggingMachineKey]
+                                   let profileName = project.Value[profileNameKey]
                                    select new MultiProjectConfigurationProject(
                                        project.Name,
                                        cla != null ? cla.Value<string>() : null,
@@ -207,7 +209,8 @@ namespace LucidConcepts.SwitchStartupProject
                                        startExtProg != null ? startExtProg.Value<string>() : null,
                                        startBrowser != null ? startBrowser.Value<string>() : null,
                                        enableRemote != null ? enableRemote.Value<bool?>() : null,
-                                       remoteMachine != null ? remoteMachine.Value<string>() : null))
+                                       remoteMachine != null ? remoteMachine.Value<string>() : null,
+                                       profileName != null ? profileName.Value<string>() : null))
                    select new MultiProjectConfiguration(configuration.Name, projects.ToList());
         }
 

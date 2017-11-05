@@ -100,7 +100,7 @@ SwitchStartupProject creates an item in the dropdown for each startup configurat
 | `"StartProject"` | boolean | `true` | Starts the project. (Resets a `"StartExternalProgram"` or `"StartBrowserWithURL"` parameter specified in another configuration.) |
 | `"EnableRemoteDebugging"` | boolean | `true` | Use remote machine for debugging. |
 | `"RemoteDebuggingMachine"` | string | `"\\\\MyDomain\\MyTestMachine"` | Specify the machine name used for remote debugging. Remember to escape (double) backslashes. |
-| `"ProfileName"` | string | `"\\\\MyDomain\\MyTestMachine"` | Activates the launch profile with the given name for [CPS projects](https://github.com/Microsoft/VSProjectSystem/blob/master/doc/Index.md). |
+| `"ProfileName"` | string | `"MyLaunchProfile"` | Activates the launch profile with the given name for [CPS projects](https://github.com/Microsoft/VSProjectSystem/blob/master/doc/Index.md). (VS 2017 only) |
 
 String parameters may contain [build macros](https://docs.microsoft.com/en-us/cpp/ide/common-macros-for-build-commands-and-properties).
 

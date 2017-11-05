@@ -102,6 +102,8 @@ SwitchStartupProject creates an item in the dropdown for each startup configurat
 | `"RemoteDebuggingMachine"` | string | `"\\\\MyDomain\\MyTestMachine"` | Specify the machine name used for remote debugging. Remember to escape (double) backslashes. |
 | `"ProfileName"` | string | `"\\\\MyDomain\\MyTestMachine"` | Activates the launch profile with the given name for [CPS projects](https://github.com/Microsoft/VSProjectSystem/blob/master/doc/Index.md). |
 
+String parameters may contain [build macros](https://docs.microsoft.com/en-us/cpp/ide/common-macros-for-build-commands-and-properties).
+
 Note:
 If a startup project specifies a parameter (like command line arguments or a working directory), that parameter is (persistently) set when the configuration gets activated.
 If a startup project does not specify a parameter, the existing parameter value won't change when the configuration gets activated.

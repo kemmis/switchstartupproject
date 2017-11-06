@@ -416,33 +416,37 @@ namespace LucidConcepts.SwitchStartupProject
                     }
                 }
                 // Handle VC++ projects in a special way
-                else if(project.Object is VCProject vcProject)
+                else if (new Guid(project.Kind) == GuidList.guidCPlusPlus)
                 {
-                    var vcConfiguration = vcProject.ActiveConfiguration;
-                    if (vcConfiguration.DebugSettings is VCDebugSettings vcDebugSettings)
+                    var vcProject = (dynamic)project.Object;
+                    //var vcConfiguration = vcProject.ActiveConfiguration;  // TODO: Property not available in older versions
+                    foreach (var vcConfiguration in vcProject.Configurations)
                     {
+                        var vcDebugSettings = vcConfiguration.DebugSettings;
                         cla = vcDebugSettings.CommandArguments;
                         workingDir = vcDebugSettings.WorkingDirectory;
 
-                        if (vcDebugSettings.DebuggerFlavor == eDebuggerTypes.eLocalDebugger)
+                        var debuggerFlavor = _GetDynamicDebuggerFlavor(vcDebugSettings);
+                        if (debuggerFlavor == "eLocalDebugger")
                         {
                             startExtProg = vcDebugSettings.Command;
                             enableRemote = false;
                             startProject = string.IsNullOrEmpty(startExtProg);
                         }
-                        else if (vcDebugSettings.DebuggerFlavor == eDebuggerTypes.eRemoteDebugger)
+                        else if (debuggerFlavor == "eRemoteDebugger")
                         {
                             startExtProg = vcDebugSettings.RemoteCommand;
                             enableRemote = true;
                             remoteMachine = vcDebugSettings.RemoteMachine;
                             startProject = string.IsNullOrEmpty(startExtProg);
                         }
-                        else if (vcDebugSettings.DebuggerFlavor == eDebuggerTypes.eWebBrowserDebugger)
+                        else if (debuggerFlavor == "eWebBrowserDebugger")
                         {
                             startBrowser = vcDebugSettings.HttpUrl;
                             startExtProg = vcDebugSettings.Command;
                             enableRemote = false;
                         }
+                        break;  // Only use first configuration
                     }
                 }
                 else
@@ -573,11 +577,12 @@ namespace LucidConcepts.SwitchStartupProject
                         }
                     }
                     // Handle VC++ projects in a special way
-                    else if (project.Object is VCProject vcProject)
+                    else if (new Guid(project.Kind) == GuidList.guidCPlusPlus)
                     {
-                        var vcConfiguration = vcProject.ActiveConfiguration;
-                        if (vcConfiguration.DebugSettings is VCDebugSettings vcDebugSettings)
+                        var vcProject = (dynamic)project.Object;
+                        foreach (var vcConfiguration in vcProject.Configurations)
                         {
+                            var vcDebugSettings = vcConfiguration.DebugSettings;
                             _SetPropertyValue(v => vcDebugSettings.CommandArguments = v, startupProject.CommandLineArguments);
                             _SetPropertyValue(v => vcDebugSettings.WorkingDirectory = v, startupProject.WorkingDirectory);
                             _SetPropertyValue(v =>
@@ -588,11 +593,11 @@ namespace LucidConcepts.SwitchStartupProject
                             _SetPropertyValue(v => vcDebugSettings.HttpUrl = v, startupProject.StartBrowserWithUrl);
                             _SetPropertyValue(v => vcDebugSettings.RemoteMachine = v, startupProject.RemoteDebuggingMachine);
 
-                            if (startupProject.EnableRemoteDebugging == true) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eRemoteDebugger;
-                            else if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eWebBrowserDebugger;
-                            else if (startupProject.EnableRemoteDebugging == false) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eLocalDebugger;
-                            else if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eLocalDebugger;
-                            else if (startupProject.StartProject == true) vcDebugSettings.DebuggerFlavor = eDebuggerTypes.eLocalDebugger;
+                            if (startupProject.EnableRemoteDebugging == true) _SetDynamicDebuggerFlavor(vcDebugSettings, "eRemoteDebugger");
+                            else if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eWebBrowserDebugger");
+                            else if (startupProject.EnableRemoteDebugging == false) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
+                            else if (!string.IsNullOrEmpty(startupProject.StartExternalProgram)) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
+                            else if (startupProject.StartProject == true) _SetDynamicDebuggerFlavor(vcDebugSettings, "eLocalDebugger");
                         }
                     }
                     else
@@ -620,6 +625,18 @@ namespace LucidConcepts.SwitchStartupProject
                     }
                 }
             });
+        }
+
+        private string _GetDynamicDebuggerFlavor(dynamic vcDebugSettings)
+        {
+            // This is a workaround for enum eDebuggerTypes used with dynamic types.
+            return vcDebugSettings.DebuggerFlavor.ToString();
+        }
+
+        private void _SetDynamicDebuggerFlavor(dynamic vcDebugSettings, string enumValueName)
+        {
+            // This is a workaround for enum eDebuggerTypes used with dynamic types.
+            vcDebugSettings.DebuggerFlavor = (dynamic)Enum.Parse(vcDebugSettings.DebuggerFlavor.GetType(), enumValueName);
         }
 
         private void _SetPropertyValue(Property property, string name, object newValue)

@@ -9,7 +9,6 @@ using EnvDTE;
 using LucidConcepts.SwitchStartupProject.Helpers;
 
 using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.VCProjectEngine;
 
 using Newtonsoft.Json;
 
@@ -481,7 +480,6 @@ namespace LucidConcepts.SwitchStartupProject
 
                     // Handle VC++ projects in a special way
                     if (new Guid(project.Kind) == GuidList.guidCPlusPlus)
-                    //if (project.Object is VCProject)
                     {
                         var vcProject = (dynamic)project.Object;
                         foreach (var vcConfiguration in vcProject.Configurations)

@@ -12,7 +12,6 @@ using Microsoft.VisualStudio.ProjectSystem.Properties;
 using Microsoft.VisualStudio.ProjectSystem.Debug;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.VisualStudio.VCProjectEngine;
 
 using Newtonsoft.Json;
 

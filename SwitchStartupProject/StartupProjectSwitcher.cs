@@ -15,6 +15,8 @@ using Microsoft.VisualStudio.Shell.Interop;
 
 using Newtonsoft.Json;
 
+using Task = System.Threading.Tasks.Task;
+
 namespace LucidConcepts.SwitchStartupProject
 {
     public class StartupProjectSwitcher
@@ -32,7 +34,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             logger.LogInfo("Entering constructor of StartupProjectSwitcher");
             this.dropdownService = dropdownService;
-            dropdownService.OnListItemSelected = _ChangeStartupProject;
+            dropdownService.OnListItemSelectedAsync = _ChangeStartupProjectAsync;
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             this.dte = dte;
             this.fileChangeService = fileChangeService;
@@ -277,12 +279,12 @@ namespace LucidConcepts.SwitchStartupProject
             dropdownService.DropdownEnabled = !debuggingActive;
         }
 
-        private void _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject()
+        private async Task _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject()
         {
             var selectedDropdownValue = dropdownService.CurrentDropdownValue;
             _LoadConfigurationAndPopulateDropdown();
             var equivalentItem = dropdownService.DropdownList.FirstOrDefault(item => item.IsEqual(selectedDropdownValue));
-            _ChangeStartupProject(equivalentItem);
+            await _ChangeStartupProjectAsync(equivalentItem);
         }
 
         private void _LoadConfigurationAndPopulateDropdown()
@@ -344,7 +346,7 @@ namespace LucidConcepts.SwitchStartupProject
             return new StartupConfiguration(config.Name, startupConfigurationProjects.ToList());
         }
 
-        private void _ChangeStartupProject(IDropdownEntry newStartupProject)
+        private async Task _ChangeStartupProjectAsync(IDropdownEntry newStartupProject)
         {
             dropdownService.CurrentDropdownValue = newStartupProject;
             if (newStartupProject == null)
@@ -364,7 +366,7 @@ namespace LucidConcepts.SwitchStartupProject
             {
                 // Multiple startup projects
                 var config = (newStartupProject as MultiProjectDropdownEntry).Configuration;
-                _ActivateMultiProjectConfiguration(config);
+                await ActivateMultiProjectConfigurationAsync(config);
             }
         }
 
@@ -488,10 +490,10 @@ namespace LucidConcepts.SwitchStartupProject
             });
         }
 
-        private void _ActivateMultiProjectConfiguration(StartupConfiguration startupConfiguration)
+        private async Task ActivateMultiProjectConfigurationAsync(StartupConfiguration startupConfiguration)
         {
             var startupProjects = startupConfiguration.Projects;
-            _SuspendChangedEvent(() =>
+            await _SuspendChangedEventAsync(async () =>
             {
                 if (startupProjects.Count == 1)
                 {
@@ -542,7 +544,7 @@ namespace LucidConcepts.SwitchStartupProject
                             {
                                 if (startupProject.ProfileName != null)
                                 {
-                                    launchSettingsProvider.SetActiveProfileAsync(startupProject.ProfileName);
+                                    await launchSettingsProvider.SetActiveProfileAsync(startupProject.ProfileName);
                                 }
 
                                 var launchProfile = launchSettingsProvider.CurrentSnapshot?.ActiveProfile;
@@ -570,7 +572,7 @@ namespace LucidConcepts.SwitchStartupProject
                                         writableLaunchProfile.LaunchBrowser = false;
                                     }
 
-                                    launchSettingsProvider.AddOrUpdateProfileAsync(writableLaunchProfile, false);
+                                    await launchSettingsProvider.AddOrUpdateProfileAsync(writableLaunchProfile, false);
                                 }
                             }
                         }
@@ -654,6 +656,13 @@ namespace LucidConcepts.SwitchStartupProject
         {
             reactToChangedEvent = false;
             action();
+            reactToChangedEvent = true;
+        }
+
+        private async Task _SuspendChangedEventAsync(Func<Task> action)
+        {
+            reactToChangedEvent = false;
+            await action();
             reactToChangedEvent = true;
         }
 

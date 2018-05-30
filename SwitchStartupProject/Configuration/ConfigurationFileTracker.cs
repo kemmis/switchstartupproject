@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
+
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 
@@ -11,12 +13,12 @@ namespace LucidConcepts.SwitchStartupProject
     {
         private readonly IVsFileChangeEx fileChangeService;
         private uint fileChangeCookie;
-        private Action onConfigurationFileChanged;
+        private Func<Task> onConfigurationFileChangedAsync;
 
-        public ConfigurationFileTracker(string configurationFilename, IVsFileChangeEx fileChangeService, Action onConfigurationFileChanged)
+        public ConfigurationFileTracker(string configurationFilename, IVsFileChangeEx fileChangeService, Func<Task> onConfigurationFileChangedAsync)
         {
             this.fileChangeService = fileChangeService;
-            this.onConfigurationFileChanged = onConfigurationFileChanged;
+            this.onConfigurationFileChangedAsync = onConfigurationFileChangedAsync;
 
             fileChangeService.AdviseFileChange(
                 configurationFilename,
@@ -40,7 +42,7 @@ namespace LucidConcepts.SwitchStartupProject
         public int FilesChanged(uint cChanges, string[] rgpszFile, uint[] rggrfChange)
         {
             // Don't need to check the arguments since we ever only track the settings file
-            onConfigurationFileChanged();
+            onConfigurationFileChangedAsync();
             return VSConstants.S_OK;
         }
 

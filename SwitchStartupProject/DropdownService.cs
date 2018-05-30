@@ -7,6 +7,8 @@ using System.Text;
 
 using Microsoft.VisualStudio.Shell;
 
+using Task = System.Threading.Tasks.Task;
+
 namespace LucidConcepts.SwitchStartupProject
 {
     public class DropdownService
@@ -69,7 +71,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public Action OnConfigurationSelected { get; set; }
 
-        public Action<IDropdownEntry> OnListItemSelected { get; set; }
+        public Func<IDropdownEntry, Task> OnListItemSelectedAsync { get; set; }
 
 
 
@@ -107,7 +109,7 @@ namespace LucidConcepts.SwitchStartupProject
             else if (newChoice != null)
             {
                 // when newChoice is non-NULL, the IDE is sending the new value that has been selected in the combo
-                _ChooseNewDropdownValue(newChoice.Value);
+                _ChooseNewDropdownValueAsync(newChoice.Value);
             }
         }
 
@@ -124,7 +126,7 @@ namespace LucidConcepts.SwitchStartupProject
                 // We should never get here; EventArgs are required.
                 throw (new ArgumentException("EventArgs are required"));
             }
-            
+
             var inParam = eventArgs.InValue;
             var listHolder = eventArgs.OutValue;
 
@@ -140,7 +142,7 @@ namespace LucidConcepts.SwitchStartupProject
             Marshal.GetNativeVariantForObject(dropdownList.Select(item => item.DisplayName).ToArray(), listHolder);
         }
 
-        private void _ChooseNewDropdownValue(int index)
+        private async Task _ChooseNewDropdownValueAsync(int index)
         {
             var item = dropdownList[index];
 
@@ -155,11 +157,11 @@ namespace LucidConcepts.SwitchStartupProject
             // see if it is the sentinel
             if (item == sentinel)   // TODO: this cannot happen because sentinel is not in list!
             {
-                if (OnListItemSelected != null) OnListItemSelected(null);
+                if (OnListItemSelectedAsync != null) await OnListItemSelectedAsync(null);
                 return;
             }
 
-            if (OnListItemSelected != null) OnListItemSelected(item);
+            if (OnListItemSelectedAsync != null) await OnListItemSelectedAsync(item);
         }
 
     }

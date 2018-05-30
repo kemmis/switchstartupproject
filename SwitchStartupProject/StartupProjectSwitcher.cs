@@ -542,12 +542,9 @@ namespace LucidConcepts.SwitchStartupProject
                             var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
                             if (launchSettingsProvider != null)
                             {
-                                if (startupProject.ProfileName != null)
-                                {
-                                    await launchSettingsProvider.SetActiveProfileAsync(startupProject.ProfileName);
-                                }
-
-                                var launchProfile = launchSettingsProvider.CurrentSnapshot?.ActiveProfile;
+                                var launchProfile = startupProject.ProfileName != null ?
+                                    launchSettingsProvider.CurrentSnapshot?.Profiles.SingleOrDefault(profile => profile.Name == startupProject.ProfileName) :
+                                    launchSettingsProvider.ActiveProfile;
                                 if (launchProfile != null)
                                 {
                                     var writableLaunchProfile = new WritableLaunchProfile(launchProfile)
@@ -573,6 +570,10 @@ namespace LucidConcepts.SwitchStartupProject
                                     }
 
                                     await launchSettingsProvider.AddOrUpdateProfileAsync(writableLaunchProfile, false);
+                                }
+                                if (startupProject.ProfileName != null)
+                                {
+                                    await launchSettingsProvider.SetActiveProfileAsync(startupProject.ProfileName);
                                 }
                             }
                         }

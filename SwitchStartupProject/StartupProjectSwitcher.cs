@@ -547,12 +547,22 @@ namespace LucidConcepts.SwitchStartupProject
                                     launchSettingsProvider.ActiveProfile;
                                 if (launchProfile != null)
                                 {
-                                    var writableLaunchProfile = new WritableLaunchProfile(launchProfile)
+                                    var writableLaunchProfile = new WritableLaunchProfile(launchProfile);
+                                    if (startupProject.CommandLineArguments != null)
                                     {
-                                        CommandLineArgs = startupProject.CommandLineArguments,
-                                        WorkingDirectory = startupProject.WorkingDirectory,
-                                        ExecutablePath = startupProject.StartExternalProgram,
-                                        LaunchUrl = startupProject.StartBrowserWithUrl,
+                                        writableLaunchProfile.CommandLineArgs = startupProject.CommandLineArguments;
+                                    }
+                                    if (startupProject.WorkingDirectory != null)
+                                    {
+                                        writableLaunchProfile.WorkingDirectory = startupProject.WorkingDirectory;
+                                    }
+                                    if (startupProject.StartExternalProgram != null)
+                                    {
+                                        writableLaunchProfile.ExecutablePath = startupProject.StartExternalProgram;
+                                    }
+                                    if (startupProject.StartBrowserWithUrl != null)
+                                    {
+                                        writableLaunchProfile.LaunchUrl = startupProject.StartBrowserWithUrl;
                                     };
                                     if (!string.IsNullOrEmpty(startupProject.StartExternalProgram))
                                     {

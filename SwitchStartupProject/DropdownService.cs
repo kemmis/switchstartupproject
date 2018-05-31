@@ -109,7 +109,7 @@ namespace LucidConcepts.SwitchStartupProject
             else if (newChoice != null)
             {
                 // when newChoice is non-NULL, the IDE is sending the new value that has been selected in the combo
-                _ChooseNewDropdownValueAsync(newChoice.Value);
+                _ChooseNewDropdownValueAsync(newChoice.Value).LogExceptions("Exception:");
             }
         }
 

@@ -42,7 +42,7 @@ namespace LucidConcepts.SwitchStartupProject
         public int FilesChanged(uint cChanges, string[] rgpszFile, uint[] rggrfChange)
         {
             // Don't need to check the arguments since we ever only track the settings file
-            onConfigurationFileChangedAsync();
+            onConfigurationFileChangedAsync().LogExceptions("Exception:");
             return VSConstants.S_OK;
         }
 

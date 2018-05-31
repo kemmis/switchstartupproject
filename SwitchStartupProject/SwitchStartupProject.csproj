@@ -220,6 +220,7 @@
     <Compile Include="Configuration\MultiProjectConfigurationProject.cs" />
     <Compile Include="Helpers\GlobalSuppressions.cs" />
     <Compile Include="Domain\SolutionProject.cs" />
+    <Compile Include="Helpers\TaskExtensions.cs" />
     <Compile Include="Helpers\WritableLaunchProfile.cs" />
     <Compile Include="StartupProjectSwitcher.cs" />
     <Compile Include="SwitchStartupProjectPackage.cs" />

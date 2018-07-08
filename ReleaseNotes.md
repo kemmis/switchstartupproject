@@ -1,10 +1,10 @@
 # Release notes
 
 ## Version 3.5
-* Fix support for configuration parameters of C++ projects (issue #55)
+* Fix support for configuration parameters of C++ projects (issues #55, #61)
 * Fix detection of active configuration
 * Add support for configuration parameters of CPS (for example .NET Core) projects (issue #56)
-* Add support for switching launch profiles of CPS projects (issue #42)
+* Add support for switching launch profiles of CPS projects (issues #42, #65, #66)
 * Add support for build macros in configuration parameters, thanks to Chris Huseman
 
 ## Version 3.4

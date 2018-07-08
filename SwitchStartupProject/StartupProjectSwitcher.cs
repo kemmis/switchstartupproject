@@ -402,17 +402,20 @@ namespace LucidConcepts.SwitchStartupProject
                     }
                     if (context != null)
                     {
-                        var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
-                        var launchProfile = launchSettingsProvider?.CurrentSnapshot?.ActiveProfile;
-                        if (launchProfile != null)
+                        if (IsProjectWithLaunchSettings(solutionProject.Hierarchy))
                         {
-                            profileName = launchProfile.Name;
-                            cla = launchProfile.CommandLineArgs;
-                            workingDir = launchProfile.WorkingDirectory;
-                            startProject = launchProfile.CommandName == "Project" && !launchProfile.LaunchBrowser;
-                            startExtProg = launchProfile.ExecutablePath;
-                            startBrowser = launchProfile.LaunchUrl;
-                            //launchProfile.OtherSettings[]
+                            var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
+                            var launchProfile = launchSettingsProvider?.CurrentSnapshot?.ActiveProfile;
+                            if (launchProfile != null)
+                            {
+                                profileName = launchProfile.Name;
+                                cla = launchProfile.CommandLineArgs;
+                                workingDir = launchProfile.WorkingDirectory;
+                                startProject = launchProfile.CommandName == "Project" && !launchProfile.LaunchBrowser;
+                                startExtProg = launchProfile.ExecutablePath;
+                                startBrowser = launchProfile.LaunchUrl;
+                                //launchProfile.OtherSettings[]
+                            }
                         }
                     }
                 }
@@ -482,6 +485,12 @@ namespace LucidConcepts.SwitchStartupProject
             return hierarchy.IsCapabilityMatch("CPS");
         }
 
+        private bool IsProjectWithLaunchSettings(IVsHierarchy hierarchy)
+        {
+            if (hierarchy == null) return false;
+            return hierarchy.IsCapabilityMatch("LaunchProfiles");
+        }
+
         private void _ActivateSingleProjectConfiguration(SolutionProject project)
         {
             _SuspendChangedEvent(() =>
@@ -539,51 +548,54 @@ namespace LucidConcepts.SwitchStartupProject
                         }
                         if (context != null)
                         {
-                            var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
-                            if (launchSettingsProvider != null)
+                            if (IsProjectWithLaunchSettings(solutionProject.Hierarchy))
                             {
-                                var launchProfile = startupProject.ProfileName != null ?
-                                    launchSettingsProvider.CurrentSnapshot?.Profiles.SingleOrDefault(profile => profile.Name == startupProject.ProfileName) :
-                                    launchSettingsProvider.ActiveProfile;
-                                if (launchProfile != null)
+                                var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
+                                if (launchSettingsProvider != null)
                                 {
-                                    var writableLaunchProfile = new WritableLaunchProfile(launchProfile);
-                                    if (startupProject.CommandLineArguments != null)
+                                    var launchProfile = startupProject.ProfileName != null ?
+                                        launchSettingsProvider.CurrentSnapshot?.Profiles.SingleOrDefault(profile => profile.Name == startupProject.ProfileName) :
+                                        launchSettingsProvider.ActiveProfile;
+                                    if (launchProfile != null)
                                     {
-                                        writableLaunchProfile.CommandLineArgs = startupProject.CommandLineArguments;
-                                    }
-                                    if (startupProject.WorkingDirectory != null)
-                                    {
-                                        writableLaunchProfile.WorkingDirectory = startupProject.WorkingDirectory;
-                                    }
-                                    if (startupProject.StartExternalProgram != null)
-                                    {
-                                        writableLaunchProfile.ExecutablePath = startupProject.StartExternalProgram;
-                                    }
-                                    if (startupProject.StartBrowserWithUrl != null)
-                                    {
-                                        writableLaunchProfile.LaunchUrl = startupProject.StartBrowserWithUrl;
-                                    };
-                                    if (!string.IsNullOrEmpty(startupProject.StartExternalProgram))
-                                    {
-                                        writableLaunchProfile.CommandName = "Executable";
-                                        writableLaunchProfile.LaunchBrowser = false;
-                                    }
-                                    if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl))
-                                    {
-                                        writableLaunchProfile.LaunchBrowser = true;
-                                    }
-                                    if (startupProject.StartProject == true)
-                                    {
-                                        writableLaunchProfile.CommandName = "Project";
-                                        writableLaunchProfile.LaunchBrowser = false;
-                                    }
+                                        var writableLaunchProfile = new WritableLaunchProfile(launchProfile);
+                                        if (startupProject.CommandLineArguments != null)
+                                        {
+                                            writableLaunchProfile.CommandLineArgs = startupProject.CommandLineArguments;
+                                        }
+                                        if (startupProject.WorkingDirectory != null)
+                                        {
+                                            writableLaunchProfile.WorkingDirectory = startupProject.WorkingDirectory;
+                                        }
+                                        if (startupProject.StartExternalProgram != null)
+                                        {
+                                            writableLaunchProfile.ExecutablePath = startupProject.StartExternalProgram;
+                                        }
+                                        if (startupProject.StartBrowserWithUrl != null)
+                                        {
+                                            writableLaunchProfile.LaunchUrl = startupProject.StartBrowserWithUrl;
+                                        };
+                                        if (!string.IsNullOrEmpty(startupProject.StartExternalProgram))
+                                        {
+                                            writableLaunchProfile.CommandName = "Executable";
+                                            writableLaunchProfile.LaunchBrowser = false;
+                                        }
+                                        if (!string.IsNullOrEmpty(startupProject.StartBrowserWithUrl))
+                                        {
+                                            writableLaunchProfile.LaunchBrowser = true;
+                                        }
+                                        if (startupProject.StartProject == true)
+                                        {
+                                            writableLaunchProfile.CommandName = "Project";
+                                            writableLaunchProfile.LaunchBrowser = false;
+                                        }
 
-                                    await launchSettingsProvider.AddOrUpdateProfileAsync(writableLaunchProfile, false);
-                                }
-                                if (startupProject.ProfileName != null)
-                                {
-                                    await launchSettingsProvider.SetActiveProfileAsync(startupProject.ProfileName);
+                                        await launchSettingsProvider.AddOrUpdateProfileAsync(writableLaunchProfile, false);
+                                    }
+                                    if (startupProject.ProfileName != null)
+                                    {
+                                        await launchSettingsProvider.SetActiveProfileAsync(startupProject.ProfileName);
+                                    }
                                 }
                             }
                         }

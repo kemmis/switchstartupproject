@@ -29,6 +29,7 @@
     <Combos>
       <Combo guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" type="IndexCombo" defaultWidth="150" idCommandList="cmdidSwitchStartupProjectComboGetList">
         <CommandFlag>CommandWellOnly</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
           <ButtonText>SwitchStartupProject</ButtonText>
           <CommandName>SwitchStartupProject</CommandName>
@@ -36,6 +37,10 @@
       </Combo>
     </Combos>
   </Commands>
+
+  <VisibilityConstraints>
+    <VisibilityItem guid="guidSwitchStartupProjectCmdSet" id="cmdidSwitchStartupProjectCombo" context="uiContextSolutionExists" />
+  </VisibilityConstraints>
 
   <!-- Place the combo command into two parents: -->
   <CommandPlacements>
@@ -66,7 +71,7 @@
 
     </GuidSymbol>
 
-
+    <GuidSymbol name="uiContextSolutionExists" value="{F1536EF8-92EC-443C-9ED7-FDADF150DA82}" />
   </Symbols>
 
 </CommandTable>

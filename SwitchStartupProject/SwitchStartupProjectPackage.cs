@@ -30,6 +30,7 @@ namespace LucidConcepts.SwitchStartupProject
     [InstalledProductRegistration("#110", "#112", AssemblyInfoVersion.Version, IconResourceID = 400)]
     // This attribute is needed to let the shell know that this package exposes some menus.
     [ProvideMenuResource("Menus.ctmenu", 1)]
+    [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExists_string, PackageAutoLoadFlags.BackgroundLoad)]
     [Guid(GuidList.guidSwitchStartupProjectPkgString)]
     public sealed class SwitchStartupProjectPackage : AsyncPackage, IVsSolutionEvents, IVsSolutionEvents4, IVsSolutionLoadEvents, IVsSelectionEvents
     {
@@ -102,6 +103,16 @@ namespace LucidConcepts.SwitchStartupProject
             var fileChangeService = await GetServiceAsync(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
 
             switcher = new StartupProjectSwitcher(dropdownService, dte, fileChangeService);
+
+            // Package is loaded after a solution was opened
+            if (solution != null)
+            {
+                solution.GetProperty((int)__VSPROPID.VSPROPID_IsSolutionOpen, out var value);
+                if (value is bool isSolutionOpen && isSolutionOpen)
+                {
+                    switcher.AfterOpenSolution();
+                }
+            }
         }
 
         #region IVsSolutionEvents Members

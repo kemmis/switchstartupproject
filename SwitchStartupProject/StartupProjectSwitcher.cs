@@ -89,9 +89,8 @@ namespace LucidConcepts.SwitchStartupProject
         public void AfterOpenSolution()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            if (solution == null)   // This happens when creating a new solution
+            if (solution == null)   // This happens when creating a new solution, or when package was loaded after opening a solution
             {
-                Logger.Log("Created a new solution");
                 solution = new Solution();
             }
             solution.IsOpening = false;

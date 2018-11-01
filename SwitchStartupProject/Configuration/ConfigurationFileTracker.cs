@@ -49,7 +49,15 @@ namespace LucidConcepts.SwitchStartupProject
             // Don't need to check the arguments since we ever only track the settings file
             ThreadHelper.JoinableTaskFactory.Run(async () =>
             {
-                await onConfigurationFileChangedAsync();
+                try
+                {
+                    await onConfigurationFileChangedAsync();
+                }
+                catch (Exception e)
+                {
+                    Logger.LogActive("\nERROR: Unhandled exception:");
+                    Logger.LogException(e);
+                }
             });
             return VSConstants.S_OK;
         }

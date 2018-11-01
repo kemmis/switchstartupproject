@@ -531,8 +531,8 @@ namespace LucidConcepts.SwitchStartupProject
 
         private bool _ConfigRefersToProject(MultiProjectConfigurationProject configProject, SolutionProject project)
         {
-            return configProject.NameOrPath == project.Name ||
-                   configProject.NameOrPath == project.Path;
+            return configProject.NameOrPath.Equals(project.Name, StringComparison.OrdinalIgnoreCase) ||
+                   configProject.NameOrPath.Equals(project.Path, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

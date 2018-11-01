@@ -48,7 +48,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public bool MatchesPaths(string[] paths) =>
             paths.Length == Configuration.Projects.Count &&
-            paths.All(path => Configuration.Projects.Any(p => p.Project.Path == path));
+            paths.All(path => Configuration.Projects.Any(p => p.Project.Path.Equals(path, StringComparison.OrdinalIgnoreCase)));
     }
 
     public class OtherDropdownEntry : IDropdownEntry

@@ -5,6 +5,7 @@
 * Replace ActivityLog messages and popup messages with log messages in Output Window (issue #60)
 * Rename command and tooltip of dropdown to "SwitchStartupProject" to avoid confusion (issue #67)
 * To improve Visual Studio responsiveness load the SwitchStartupProject extension in the background when a solution is opened
+* Make project names and paths in config file case insensitive (issue #63)
 
 ## Version 3.5
 * Fix support for configuration parameters of C++ projects (issues #55, #61)

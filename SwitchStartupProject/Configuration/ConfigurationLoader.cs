@@ -203,14 +203,14 @@ namespace LucidConcepts.SwitchStartupProject
                                    let profileName = project.Value[profileNameKey]
                                    select new MultiProjectConfigurationProject(
                                        project.Name,
-                                       cla != null ? cla.Value<string>() : null,
-                                       workingDir != null ? workingDir.Value<string>() : null,
-                                       startProject != null ? startProject.Value<bool?>() : null,
-                                       startExtProg != null ? startExtProg.Value<string>() : null,
-                                       startBrowser != null ? startBrowser.Value<string>() : null,
-                                       enableRemote != null ? enableRemote.Value<bool?>() : null,
-                                       remoteMachine != null ? remoteMachine.Value<string>() : null,
-                                       profileName != null ? profileName.Value<string>() : null))
+                                       cla?.Value<string>(),
+                                       workingDir?.Value<string>(),
+                                       startProject?.Value<bool?>(),
+                                       startExtProg?.Value<string>(),
+                                       startBrowser?.Value<string>(),
+                                       enableRemote?.Value<bool?>(),
+                                       remoteMachine?.Value<string>(),
+                                       profileName?.Value<string>()))
                    select new MultiProjectConfiguration(configuration.Name, projects.ToList());
         }
 

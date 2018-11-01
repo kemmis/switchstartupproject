@@ -205,6 +205,7 @@ namespace LucidConcepts.SwitchStartupProject
             var selectedDropdownValue = dropdownService.CurrentDropdownValue;
             _LoadConfigurationAndPopulateDropdown();
             var equivalentItem = dropdownService.DropdownList.FirstOrDefault(item => item.IsEqual(selectedDropdownValue));
+            if (equivalentItem == null) return;
             await _ChangeStartupProjectAsync(equivalentItem, store: false);
         }
 

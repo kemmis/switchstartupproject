@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using EnvDTE;
 
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
 namespace LucidConcepts.SwitchStartupProject
@@ -24,6 +25,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         protected SolutionProject(IVsHierarchy hierarchy, Project project, string name, IList<Guid> projectTypeGuids, string solutionFullName)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             this.Hierarchy = hierarchy;
             this.Project = project;
             this.Name = name;
@@ -37,6 +39,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public static SolutionProject FromHierarchy(IVsHierarchy hierarchy, string solutionFullName)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var name = _GetProjectStringProperty(hierarchy, __VSHPROPID.VSHPROPID_Name);
 
             var project = _GetProjectFromHierarchy(hierarchy);
@@ -50,6 +53,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private static string _GetProjectPath(Project project, string solutionFullName, bool isWebSiteProject)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var fullPath = project.FullName;
             if (isWebSiteProject) return fullPath;  // Website projects need to be set using the full path
             var solutionPath = System.IO.Path.GetDirectoryName(solutionFullName) + @"\";
@@ -58,18 +62,21 @@ namespace LucidConcepts.SwitchStartupProject
 
         private static string _GetProjectStringProperty(IVsHierarchy pHierarchy, __VSHPROPID property)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             object valueObject = null;
             return pHierarchy.GetProperty((uint)VSConstants.VSITEMID.Root, (int)property, out valueObject) == VSConstants.S_OK ? (string)valueObject : null;
         }
 
         private static Guid? _GetProjectGuidProperty(IVsHierarchy pHierarchy, __VSHPROPID property)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Guid guid = Guid.Empty;
             return pHierarchy.GetGuidProperty((uint)VSConstants.VSITEMID.Root, (int)property, out guid) == VSConstants.S_OK ? guid : (Guid?)null;
         }
 
         private static IEnumerable<Guid> _GetProjectTypeGuids(IVsHierarchy pHierarchy, Project project)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             IEnumerable<Guid> projectTypeGuids;
             var aggregatableProject = pHierarchy as IVsAggregatableProject;
             if (aggregatableProject != null)
@@ -89,6 +96,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private static Project _GetProjectFromHierarchy(IVsHierarchy pHierarchy)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             object project;
             ErrorHandler.ThrowOnFailure(pHierarchy.GetProperty(VSConstants.VSITEMID_ROOT,
                                                                (int)__VSHPROPID.VSHPROPID_ExtObject,
@@ -98,6 +106,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private static List<string> _GetSolutionFolders(IVsHierarchy hierarchy)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var parents = new List<string>();
             var current = hierarchy;
             while (true)
@@ -115,6 +124,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private static IVsHierarchy _GetParentHierarchy(IVsHierarchy pHierarchy)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             object parentHierarchy;
             return (pHierarchy.GetProperty(VSConstants.VSITEMID_ROOT, (int)__VSHPROPID.VSHPROPID_ParentHierarchy, out parentHierarchy)) == VSConstants.S_OK ?
                 parentHierarchy as IVsHierarchy :
@@ -123,6 +133,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public string EvaluateBuildMacros(string input)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var macroInfo = Hierarchy as IVsBuildMacroInfo;
             if (macroInfo == null) return input;
             if (string.IsNullOrEmpty(input)) return input;

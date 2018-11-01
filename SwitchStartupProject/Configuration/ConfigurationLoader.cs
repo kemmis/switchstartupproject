@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Text;
 using System.Windows;
 
+using Microsoft.VisualStudio.Shell;
+
 using Newtonsoft.Json.Linq;
 
 using NJsonSchema;
@@ -52,6 +54,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public Configuration Load()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Logger.Log("Loading configuration for solution");
             if (!_ConfigurationFileExists())
             {

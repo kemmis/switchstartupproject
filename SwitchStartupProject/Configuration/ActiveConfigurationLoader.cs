@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
 
+using Microsoft.VisualStudio.Shell;
+
 namespace LucidConcepts.SwitchStartupProject
 {
     public class ActiveConfigurationLoader
@@ -26,6 +28,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public JObject Load()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Logger.Log("Loading active configuration");
 
             if (!File.Exists(configurationFilename)) return null;
@@ -43,6 +46,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void Save(JObject activeConfiguration)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Logger.Log("Saving active configuration");
             try
             {
@@ -58,6 +62,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public IDropdownEntry Load(IEnumerable<IDropdownEntry> entries)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var config = Load();
             if (config == null) return null;
             var type = config["Type"].Value<string>();
@@ -75,6 +80,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void Save(IDropdownEntry entry)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (entry is SingleProjectDropdownEntry singleEntry)
             {
                 Save(new JObject(

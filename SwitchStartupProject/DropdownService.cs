@@ -4,6 +4,7 @@ using System.ComponentModel.Design;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 
 using Microsoft.VisualStudio.Shell;
 
@@ -109,7 +110,10 @@ namespace LucidConcepts.SwitchStartupProject
             else if (newChoice != null)
             {
                 // when newChoice is non-NULL, the IDE is sending the new value that has been selected in the combo
-                _ChooseNewDropdownValueAsync(newChoice.Value).LogExceptions("Exception:");
+                ThreadHelper.JoinableTaskFactory.Run(async () =>
+                {
+                    await _ChooseNewDropdownValueAsync(newChoice.Value);
+                });
             }
         }
 

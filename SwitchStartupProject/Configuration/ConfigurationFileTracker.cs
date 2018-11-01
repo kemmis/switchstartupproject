@@ -5,7 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+
+using Task = System.Threading.Tasks.Task;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -17,6 +20,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public ConfigurationFileTracker(string configurationFilename, IVsFileChangeEx fileChangeService, Func<Task> onConfigurationFileChangedAsync)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             this.fileChangeService = fileChangeService;
             this.onConfigurationFileChangedAsync = onConfigurationFileChangedAsync;
 
@@ -29,6 +33,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void Stop()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             fileChangeService.UnadviseFileChange(fileChangeCookie);
         }
 
@@ -42,7 +47,10 @@ namespace LucidConcepts.SwitchStartupProject
         public int FilesChanged(uint cChanges, string[] rgpszFile, uint[] rggrfChange)
         {
             // Don't need to check the arguments since we ever only track the settings file
-            onConfigurationFileChangedAsync().LogExceptions("Exception:");
+            ThreadHelper.JoinableTaskFactory.Run(async () =>
+            {
+                await onConfigurationFileChangedAsync();
+            });
             return VSConstants.S_OK;
         }
 

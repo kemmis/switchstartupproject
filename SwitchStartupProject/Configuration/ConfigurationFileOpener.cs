@@ -6,6 +6,7 @@ using System.Text;
 using System.Windows;
 
 using EnvDTE;
+using Microsoft.VisualStudio.Shell;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -26,6 +27,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void Open()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!File.Exists(configurationFilename))
             {
                 try

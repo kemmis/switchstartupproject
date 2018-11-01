@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using Microsoft.VisualStudio.Shell;
+
 namespace LucidConcepts.SwitchStartupProject
 {
     public class StartupConfiguration
@@ -36,6 +38,7 @@ namespace LucidConcepts.SwitchStartupProject
             string remoteDebuggingMachine,
             string profileName)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             this.Project = project;
             this.CommandLineArguments = project.EvaluateBuildMacros(commandLineArguments);
             this.WorkingDirectory = project.EvaluateBuildMacros(workingDirectory);

@@ -4,6 +4,7 @@ using System.ComponentModel.Design;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
@@ -44,6 +45,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         protected override void Dispose(bool disposing)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             base.Dispose(disposing);
 
             // Unadvise all events
@@ -61,6 +63,8 @@ namespace LucidConcepts.SwitchStartupProject
         /// </summary>
         protected override void Initialize()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
             // Get VS Automation object
             var dte = (EnvDTE.DTE)GetGlobalService(typeof(EnvDTE.DTE));
 
@@ -107,18 +111,21 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterCloseSolution(object pUnkReserved)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switcher.AfterCloseSolution();
             return VSConstants.S_OK;
         }
 
         public int OnAfterLoadProject(IVsHierarchy pStubHierarchy, IVsHierarchy pRealHierarchy)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switcher.UpdateStartupProject();
             return VSConstants.S_OK;
         }
 
         public int OnAfterOpenProject(IVsHierarchy pHierarchy, int fAdded)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switcher.OpenProject(pHierarchy, fAdded == 1);
             return VSConstants.S_OK;
         }
@@ -126,6 +133,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterOpenSolution(object pUnkReserved, int fNewSolution)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (!projectsAreLoadedInBatches)
             {
                 switcher.AfterOpenSolution();
@@ -135,12 +143,14 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnBeforeCloseProject(IVsHierarchy pHierarchy, int fRemoved)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switcher.CloseProject(pHierarchy);
             return VSConstants.S_OK;
         }
 
         public int OnBeforeCloseSolution(object pUnkReserved)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switcher.BeforeCloseSolution();
             return VSConstants.S_OK;
         }
@@ -181,6 +191,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterRenameProject(IVsHierarchy pHierarchy)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switcher.RenameProject(pHierarchy);
             return VSConstants.S_OK;
         }
@@ -196,6 +207,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterBackgroundSolutionLoadComplete()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switcher.AfterOpenSolution();
             return VSConstants.S_OK;
         }
@@ -218,6 +230,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnBeforeOpenSolution(string pszSolutionFilename)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             projectsAreLoadedInBatches = false;
             switcher.BeforeOpenSolution(pszSolutionFilename);
             return VSConstants.S_OK;
@@ -235,6 +248,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnCmdUIContextChanged(uint dwCmdUICookie, int fActive)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (dwCmdUICookie == debuggingCookie)
             {
                 switcher.ToggleDebuggingActive(fActive != 0);
@@ -244,6 +258,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnElementValueChanged(uint elementid, object varValueOld, object varValueNew)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (elementid == (uint)VSConstants.VSSELELEMID.SEID_StartupProject)
             {
                 switcher.UpdateStartupProject();

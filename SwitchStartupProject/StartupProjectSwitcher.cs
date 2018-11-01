@@ -30,6 +30,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public StartupProjectSwitcher(DropdownService dropdownService, DTE dte, IVsFileChangeEx fileChangeService)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             this.dropdownService = dropdownService;
             dropdownService.OnListItemSelectedAsync = entry => _ChangeStartupProjectAsync(entry, store: true);
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
@@ -42,6 +43,7 @@ namespace LucidConcepts.SwitchStartupProject
         /// </summary>
         public void UpdateStartupProject()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             // When startup project is set through dropdown, don't do anything
             if (!reactToChangedEvent) return;
             // Don't react to startup project changes while opening the solution or when multi-project configurations have not yet been loaded.
@@ -75,6 +77,7 @@ namespace LucidConcepts.SwitchStartupProject
         // Is NOT called when a new solution and project are created.
         public void BeforeOpenSolution(string solutionFileName)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             solution = new Solution
             {
                 IsOpening = true
@@ -85,6 +88,7 @@ namespace LucidConcepts.SwitchStartupProject
         // Is also called when a new solution and project have been created.
         public void AfterOpenSolution()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (solution == null)   // This happens when creating a new solution
             {
                 Logger.Log("Created a new solution");
@@ -99,7 +103,7 @@ namespace LucidConcepts.SwitchStartupProject
             var configurationFilename = ConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
             var oldConfigurationFilename = ConfigurationLoader.GetOldConfigurationFilename(dte.Solution.FullName);
             solution.ConfigurationLoader = new ConfigurationLoader(configurationFilename);
-            solution.ConfigurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject);
+            solution.ConfigurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateSettingsOfCurrentStartupProjectAsync);
             var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, oldConfigurationFilename, solution.ConfigurationLoader);
             dropdownService.OnConfigurationSelected = configurationFileOpener.Open;
             var activeConfigurationFilename = ActiveConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
@@ -112,6 +116,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void BeforeCloseSolution()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (solution == null || solution.ConfigurationFileTracker == null)
             {
                 return;
@@ -122,6 +127,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void AfterCloseSolution()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             // When solution is closed: choose no project
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             dropdownService.CurrentDropdownValue = null;
@@ -131,6 +137,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void OpenProject(IVsHierarchy pHierarchy, bool isCreated)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             // When project is opened: register it and its name
 
             // Don't register project if solution path is not yet available
@@ -155,11 +162,13 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void RenameProject(IVsHierarchy pHierarchy)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             _PopulateDropdownList();
         }
 
         public void CloseProject(IVsHierarchy pHierarchy)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             // When project is closed: remove it from list of startup projects
             //if ((dropdownService.CurrentDropdownValue is SingleProjectDropdownEntry) &&
             //    (dropdownService.CurrentDropdownValue as SingleProjectDropdownEntry).Project == project)
@@ -171,12 +180,14 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void ToggleDebuggingActive(bool debuggingActive)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             // When debugging command UI context is activated, disable combobox, otherwise enable combobox
             dropdownService.DropdownEnabled = !debuggingActive;
         }
 
         private IList<SolutionProject> _GetProjects()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             return (from hierarchy in _GetProjectHierarchies()
                 let project = SolutionProject.FromHierarchy(hierarchy, dte.Solution.FullName)
                 where project != null
@@ -185,6 +196,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private IEnumerable<IVsHierarchy> _GetProjectHierarchies()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var solution = ServiceProvider.GlobalProvider.GetService(typeof(SVsSolution)) as IVsSolution2;
             if (solution == null) yield break;
 
@@ -200,8 +212,9 @@ namespace LucidConcepts.SwitchStartupProject
             }
         }
 
-        private async Task _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject()
+        private async Task _LoadConfigurationAndUpdateSettingsOfCurrentStartupProjectAsync()
         {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var selectedDropdownValue = dropdownService.CurrentDropdownValue;
             _LoadConfigurationAndPopulateDropdown();
             var equivalentItem = dropdownService.DropdownList.FirstOrDefault(item => item.IsEqual(selectedDropdownValue));
@@ -211,6 +224,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _LoadConfigurationAndPopulateDropdown()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             solution.Configuration = solution.ConfigurationLoader.Load();
             // Check if any manually configured startup project references need to be disambiguated
             var projectsByName = _GetProjects().ToLookup(project => project.Name);
@@ -235,6 +249,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _PopulateDropdownList()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             var startupProjects = new List<IDropdownEntry>();
             if (solution != null)   // Solution may be null e.g. when creating a new website
             {
@@ -273,6 +288,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private async Task _ChangeStartupProjectAsync(IDropdownEntry newStartupProject, bool store)
         {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             dropdownService.CurrentDropdownValue = newStartupProject;
             if (newStartupProject == null)
             {
@@ -312,6 +328,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             _SuspendChangedEvent(() =>
             {
+                ThreadHelper.ThrowIfNotOnUIThread();
                 dte.Solution.SolutionBuild.StartupProjects = project != null ? project.Path : null;
             });
         }
@@ -321,6 +338,7 @@ namespace LucidConcepts.SwitchStartupProject
             var startupProjects = startupConfiguration.Projects;
             await _SuspendChangedEventAsync(async () =>
             {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 if (startupProjects.Count == 1)
                 {
                     // If the multi-project startup configuration contains a single project only, handle it as if it was a single-project configuration
@@ -478,6 +496,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _SetPropertyValue(Property property, string name, object newValue)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             if (property.Name != name || newValue == null) return;
             property.Value = newValue;
         }
@@ -504,6 +523,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _ShowMsgOpenSolution()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             Logger.LogActive("\nERROR: Please open a solution before you configure its startup projects.");
             Logger.Log("In case a solution is open, something went wrong loading it.");
             Logger.Log("Maybe it helps to delete the solution .suo file and reload the solution?");

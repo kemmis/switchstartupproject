@@ -48,12 +48,6 @@ namespace LucidConcepts.SwitchStartupProject
             return new SolutionProject(hierarchy, project, name, projectTypeGuids, solutionFullName);
         }
 
-        public void Rename()
-        {
-            Name = _GetProjectStringProperty(Hierarchy, __VSHPROPID.VSHPROPID_Name);
-            Path = _GetProjectPath(Project, solutionFullName, isWebSiteProject);
-        }
-
         private static string _GetProjectPath(Project project, string solutionFullName, bool isWebSiteProject)
         {
             var fullPath = project.FullName;

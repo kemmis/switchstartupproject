@@ -214,7 +214,6 @@
     <Compile Include="DropdownService.cs" />
     <Compile Include="Guids.cs" />
     <Compile Include="Configuration\ConfigurationLoader.cs" />
-    <Compile Include="Helpers\DictionaryExtensions.cs" />
     <Compile Include="Helpers\EnumerableExtensions.cs" />
     <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Helpers\Paths.cs" />

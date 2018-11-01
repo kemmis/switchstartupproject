@@ -59,7 +59,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public bool IsEqual(StartupConfigurationProject other)
         {
-            return this.Project == other.Project &&
+            return this.Project.Path == other.Project.Path &&
                    this.CommandLineArguments == other.CommandLineArguments &&
                    this.WorkingDirectory == other.WorkingDirectory &&
                    this.StartProject == other.StartProject &&

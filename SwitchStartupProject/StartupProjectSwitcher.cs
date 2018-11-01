@@ -6,8 +6,7 @@ using System.Windows;
 
 using EnvDTE;
 
-using LucidConcepts.SwitchStartupProject.Helpers;
-
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ProjectSystem.Properties;
 using Microsoft.VisualStudio.ProjectSystem.Debug;
 using Microsoft.VisualStudio.Shell;
@@ -126,7 +125,6 @@ namespace LucidConcepts.SwitchStartupProject
             // When solution is closed: choose no project
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             dropdownService.CurrentDropdownValue = null;
-            solution.Projects.Clear();
             solution = null;
             dropdownService.DropdownList = null;
         }
@@ -149,7 +147,6 @@ namespace LucidConcepts.SwitchStartupProject
                     IsOpening = true,
                 };
             }
-            solution.Projects.Add(pHierarchy, project);
             if (!solution.IsOpening)
             {
                 _PopulateDropdownList(); // when reopening a single project, refresh list
@@ -158,40 +155,17 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void RenameProject(IVsHierarchy pHierarchy)
         {
-            var project = solution.Projects.GetValueOrDefault(pHierarchy);
-            if (project == null) return;
-
-            var showMessage = solution.Configuration.MultiProjectConfigurations.Any(config => config.Projects.Any(configProject => _ConfigRefersToProject(configProject, project)));
-
-            var oldName = project.Name;
-            var oldPath = project.Path;
-            project.Rename();
-            var newName = project.Name;
-            var newPath = project.Path;
-
-            Logger.Log("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
             _PopulateDropdownList();
-
-            if (showMessage)
-            {
-                Logger.LogActive("The renamed project is part of a startup configuration.");
-                Logger.Log("Please update your configuration file!");
-            }
         }
 
         public void CloseProject(IVsHierarchy pHierarchy)
         {
-            var project = solution.Projects.GetValueOrDefault(pHierarchy);
-            if (project == null) return;
-
-            Logger.Log("Closing project: {0}", project.Name);
             // When project is closed: remove it from list of startup projects
-            solution.Projects.Remove(pHierarchy);
-            if ((dropdownService.CurrentDropdownValue is SingleProjectDropdownEntry) &&
-                (dropdownService.CurrentDropdownValue as SingleProjectDropdownEntry).Project == project)
-            {
-                dropdownService.CurrentDropdownValue = null;
-            }
+            //if ((dropdownService.CurrentDropdownValue is SingleProjectDropdownEntry) &&
+            //    (dropdownService.CurrentDropdownValue as SingleProjectDropdownEntry).Project == project)
+            //{
+            //    dropdownService.CurrentDropdownValue = null;
+            //}
             _PopulateDropdownList();
         }
 
@@ -199,6 +173,31 @@ namespace LucidConcepts.SwitchStartupProject
         {
             // When debugging command UI context is activated, disable combobox, otherwise enable combobox
             dropdownService.DropdownEnabled = !debuggingActive;
+        }
+
+        private IList<SolutionProject> _GetProjects()
+        {
+            return (from hierarchy in _GetProjectHierarchies()
+                let project = SolutionProject.FromHierarchy(hierarchy, dte.Solution.FullName)
+                where project != null
+                select project).ToArray();
+        }
+
+        private IEnumerable<IVsHierarchy> _GetProjectHierarchies()
+        {
+            var solution = ServiceProvider.GlobalProvider.GetService(typeof(SVsSolution)) as IVsSolution2;
+            if (solution == null) yield break;
+
+            IEnumHierarchies enumerator = null;
+            Guid guid = Guid.Empty;
+            solution.GetProjectEnum((uint)__VSENUMPROJFLAGS.EPF_LOADEDINSOLUTION, ref guid, out enumerator);
+            IVsHierarchy[] hierarchy = new IVsHierarchy[1] { null };
+            uint fetched = 0;
+            enumerator.Reset();
+            while (enumerator.Next(1, hierarchy, out fetched) == VSConstants.S_OK && fetched == 1)
+            {
+                yield return hierarchy[0];
+            }
         }
 
         private async Task _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject()
@@ -213,7 +212,7 @@ namespace LucidConcepts.SwitchStartupProject
         {
             solution.Configuration = solution.ConfigurationLoader.Load();
             // Check if any manually configured startup project references need to be disambiguated
-            var projectsByName = solution.Projects.Values.ToLookup(project => project.Name);
+            var projectsByName = _GetProjects().ToLookup(project => project.Name);
             var projectNamesThatNeedDisambiguation = projectsByName.Where(kvp => kvp.Count() > 1).Select(kvp => kvp.Key).ToList();
             if (projectNamesThatNeedDisambiguation.Any())
             {
@@ -238,23 +237,25 @@ namespace LucidConcepts.SwitchStartupProject
             var startupProjects = new List<IDropdownEntry>();
             if (solution != null)   // Solution may be null e.g. when creating a new website
             {
+                var projects = _GetProjects();
                 if (solution.Configuration.ListAllProjects)
                 {
-                    var projectsByName = solution.Projects.Values.ToLookup(project => project.Name);
-                    solution.Projects.Values.OrderBy(project => project.Name).ForEach(project => startupProjects.Add(new SingleProjectDropdownEntry(project)
+                    var projectsByName = projects.ToLookup(project => project.Name);
+                    projects.OrderBy(project => project.Name).ForEach(project => startupProjects.Add(new SingleProjectDropdownEntry(project)
                     {
                         Disambiguate = projectsByName[project.Name].Count() > 1
                     }));
+
                 }
-                solution.Configuration.MultiProjectConfigurations.ForEach(config => startupProjects.Add(new MultiProjectDropdownEntry(_GetStartupConfiguration(config))));
+                solution.Configuration.MultiProjectConfigurations.ForEach(config => startupProjects.Add(new MultiProjectDropdownEntry(_GetStartupConfiguration(config, projects))));
             }
             dropdownService.DropdownList = startupProjects;
         }
 
-        private StartupConfiguration _GetStartupConfiguration(MultiProjectConfiguration config)
+        private StartupConfiguration _GetStartupConfiguration(MultiProjectConfiguration config, IList<SolutionProject> projects)
         {
             var startupConfigurationProjects = from configProject in config.Projects
-                                               let project = solution.Projects.Values.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject))
+                                               let project = projects.FirstOrDefault(solutionProject => _ConfigRefersToProject(configProject, solutionProject))
                                                where project != null
                                                select new StartupConfigurationProject(
                                                    project,

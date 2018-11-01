@@ -215,6 +215,7 @@
     <Compile Include="Configuration\ConfigurationLoader.cs" />
     <Compile Include="Helpers\DictionaryExtensions.cs" />
     <Compile Include="Helpers\EnumerableExtensions.cs" />
+    <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Helpers\Paths.cs" />
     <Compile Include="Configuration\MultiProjectConfiguration.cs" />
     <Compile Include="Configuration\MultiProjectConfigurationProject.cs" />

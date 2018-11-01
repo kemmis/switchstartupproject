@@ -11,6 +11,8 @@ namespace LucidConcepts.SwitchStartupProject
 
         public static readonly Guid guidSwitchStartupProjectCmdSet = new Guid(guidSwitchStartupProjectCmdSetString);
 
+        public static readonly Guid guidOutputWindowPane = new Guid("{AB14D0D4-2687-4580-86A4-CB46A5532AFE}");
+
         public static readonly Guid guidCPlusPlus = new Guid("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}");
         public static readonly Guid guidWebApp = new Guid("{349c5851-65df-11da-9384-00065b846f21}");
         public static readonly Guid guidWebSite = new Guid("{e24c65dc-7377-472b-9aba-bc803b73c61a}");

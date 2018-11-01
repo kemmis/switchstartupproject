@@ -30,7 +30,6 @@ namespace LucidConcepts.SwitchStartupProject
         private const string profileNameKey = "ProfileName";
 
         private readonly string configurationFilename;
-        private readonly SwitchStartupProjectPackage.ActivityLogger logger;
 
         public static string GetConfigurationFilename(string solutionFilename)
         {
@@ -46,18 +45,17 @@ namespace LucidConcepts.SwitchStartupProject
             return Path.Combine(solutionPath, Path.GetFileNameWithoutExtension(solutionFilename) + oldConfigurationFileExtension);
         }
 
-        public ConfigurationLoader(string configurationFilename, SwitchStartupProjectPackage.ActivityLogger logger)
+        public ConfigurationLoader(string configurationFilename)
         {
             this.configurationFilename = configurationFilename;
-            this.logger = logger;
         }
 
         public Configuration Load()
         {
-            logger.LogInfo("Loading configuration for solution");
+            Logger.Log("Loading configuration for solution");
             if (!_ConfigurationFileExists())
             {
-                logger.LogInfo("No configuration file found, using default configuration.");
+                Logger.Log("No configuration file found, using default configuration.");
                 return _GetDefaultConfiguration();
             }
 
@@ -68,10 +66,10 @@ namespace LucidConcepts.SwitchStartupProject
             }
             catch (Exception e)
             {
-                MessageBox.Show("Could not parse configuration file.\nPlease check the syntax of your configuration file!\nUsing default configuration instead.\n\nError:\n" + e.ToString(), "SwitchStartupProject Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                logger.LogError("Error while parsing configuration file:");
-                logger.LogError(e.ToString());
-                logger.LogInfo("Using default configuration.");
+                Logger.Log("\nERROR: Could not parse configuration file.");
+                Logger.Log("Please check the syntax of your configuration file!");
+                Logger.LogException(e);
+                Logger.Log("Using default configuration instead.");
                 return _GetDefaultConfiguration();
             }
             JsonSchema4 schema = null;
@@ -85,10 +83,9 @@ namespace LucidConcepts.SwitchStartupProject
             }
             catch (Exception e)
             {
-                MessageBox.Show("Could not parse schema.\nError:\n" + e.ToString(), "SwitchStartupProject Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                logger.LogError("Error while parsing schema:");
-                logger.LogError(e.ToString());
-                logger.LogInfo("Using default configuration.");
+                Logger.Log("\nERROR: Could not parse schema:");
+                Logger.LogException(e);
+                Logger.Log("Using default configuration.");
                 return _GetDefaultConfiguration();
             }
 
@@ -96,18 +93,18 @@ namespace LucidConcepts.SwitchStartupProject
             if (validationErrors.Any())
             {
                 var messages = string.Join("\n", validationErrors.Select(err => string.Format("{0}: {1}", err.Path, err.Kind)));
-                MessageBox.Show("Could not validate schema of configuration file.\nPlease check your configuration file!\nUsing default configuration instead.\n\nErrors:\n" + messages, "SwitchStartupProject Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                logger.LogError("Could not validate schema of configuration file.");
-                logger.LogInfo("Using default configuration.");
+                Logger.LogActive("\nERROR: Could not validate schema of configuration file.");
+                Logger.Log("Please check your configuration file!");
+                Logger.LogActive(messages);
+                Logger.Log("Using default configuration instead.");
                 return _GetDefaultConfiguration();
             }
 
             var version = _GetVersion(settings);
             if (version != knownVersion)
             {
-                MessageBox.Show("Configuration file has unknown version " + version + ".\nVersion should be " + knownVersion + ".\nUsing default configuration instead.", "SwitchStartupProject Error", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                logger.LogError("Unknown configuration version " + version);
-                logger.LogInfo("Using default configuration.");
+                Logger.LogActive("\nERROR: Configuration file has unknown version {0}. Version should be {1}.", version , knownVersion);
+                Logger.Log("Using default configuration instead.");
                 return _GetDefaultConfiguration();
             }
 

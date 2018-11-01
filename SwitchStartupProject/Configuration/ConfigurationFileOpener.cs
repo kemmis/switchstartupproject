@@ -34,7 +34,8 @@ namespace LucidConcepts.SwitchStartupProject
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show("Could not create default configuration file " + configurationFilename + "\nError:\n" + e.ToString(), "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    Logger.LogActive("\nERROR: Could not create default configuration file {0}", configurationFilename);
+                    Logger.LogException(e);
                 }
 
                 if (File.Exists(oldConfigurationFilename))
@@ -42,11 +43,13 @@ namespace LucidConcepts.SwitchStartupProject
                     try
                     {
                         dte.ItemOperations.OpenFile(oldConfigurationFilename, EnvDTE.Constants.vsViewKindCode);
-                        MessageBox.Show("Found old configuration file!\n\nYou may want to transfer your existing multi-project startup configurations to the new configuration file.", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
+                        Logger.LogActive("\nINFO: Found old configuration file!");
+                        Logger.Log("You may want to transfer your existing multi-project startup configurations to the new configuration file.");
                     }
                     catch (Exception e)
                     {
-                        MessageBox.Show("Could not open configuration file " + configurationFilename + "\nError:\n" + e.ToString(), "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        Logger.LogActive("\nERROR: Could not open configuration file {0}", configurationFilename);
+                        Logger.LogException(e);
                     }
                 }
             }
@@ -57,7 +60,8 @@ namespace LucidConcepts.SwitchStartupProject
             }
             catch (Exception e)
             {
-                MessageBox.Show("Could not open configuration file " + configurationFilename + "\nError:\n" + e.ToString(), "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                Logger.LogActive("\nERROR: Could not open configuration file {0}", configurationFilename);
+                Logger.LogException(e);
             }
         }
     }

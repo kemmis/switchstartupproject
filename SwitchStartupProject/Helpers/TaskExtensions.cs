@@ -13,7 +13,8 @@ namespace LucidConcepts.SwitchStartupProject
         {
             that.ContinueWith(t => t.Exception?.Flatten().Handle(e =>
             {
-                MessageBox.Show(summary + Environment.NewLine + e.Message, "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                Logger.LogActive(summary);
+                Logger.LogException(e);
                 return true;
             }));
         }

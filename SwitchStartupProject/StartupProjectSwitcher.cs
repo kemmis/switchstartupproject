@@ -22,7 +22,6 @@ namespace LucidConcepts.SwitchStartupProject
     public class StartupProjectSwitcher
     {
         private readonly DropdownService dropdownService;
-        private readonly SwitchStartupProjectPackage.ActivityLogger logger;
 
         private Solution solution = null;
         private bool reactToChangedEvent = true;
@@ -30,15 +29,13 @@ namespace LucidConcepts.SwitchStartupProject
         private readonly DTE dte;
         private readonly IVsFileChangeEx fileChangeService;
 
-        public StartupProjectSwitcher(DropdownService dropdownService, DTE dte, IVsFileChangeEx fileChangeService, SwitchStartupProjectPackage.ActivityLogger logger)
+        public StartupProjectSwitcher(DropdownService dropdownService, DTE dte, IVsFileChangeEx fileChangeService)
         {
-            logger.LogInfo("Entering constructor of StartupProjectSwitcher");
             this.dropdownService = dropdownService;
             dropdownService.OnListItemSelectedAsync = _ChangeStartupProjectAsync;
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             this.dte = dte;
             this.fileChangeService = fileChangeService;
-            this.logger = logger;
         }
 
         /// <summary>
@@ -86,13 +83,13 @@ namespace LucidConcepts.SwitchStartupProject
                 }
                 if (bestMatch != null)
                 {
-                    logger.LogInfo("New startup configuration was activated outside of dropdown: {0}", bestMatch.DisplayName);
+                    Logger.Log("New startup configuration was activated outside of dropdown: {0}", bestMatch.DisplayName);
                     dropdownService.CurrentDropdownValue = bestMatch;
                     return;
                 }
             }
 
-            logger.LogInfo("Unknown startup configuration was activated outside of dropdown");
+            Logger.Log("Unknown startup configuration was activated outside of dropdown");
             dropdownService.CurrentDropdownValue = DropdownService.OtherItem;
         }
 
@@ -152,7 +149,6 @@ namespace LucidConcepts.SwitchStartupProject
         // Is NOT called when a new solution and project are created.
         public void BeforeOpenSolution(string solutionFileName)
         {
-            logger.LogInfo("Starting to open solution: {0}", solutionFileName);
             solution = new Solution
             {
                 IsOpening = true
@@ -165,19 +161,18 @@ namespace LucidConcepts.SwitchStartupProject
         {
             if (solution == null)   // This happens when creating a new solution
             {
-                logger.LogInfo("Created a new solution");
+                Logger.Log("Created a new solution");
                 solution = new Solution();
             }
             solution.IsOpening = false;
-            logger.LogInfo("Finished to open solution");
             if (string.IsNullOrEmpty(dte.Solution.FullName))  // This happens e.g. when creating a new website
             {
-                logger.LogInfo("Solution path not yet known. Skipping initialization of configuration persister and loading of settings.");
+                Logger.Log("Solution path not yet known. Skipping initialization of configuration persister and loading of settings.");
                 return;
             }
             var configurationFilename = ConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
             var oldConfigurationFilename = ConfigurationLoader.GetOldConfigurationFilename(dte.Solution.FullName);
-            solution.ConfigurationLoader = new ConfigurationLoader(configurationFilename, logger);
+            solution.ConfigurationLoader = new ConfigurationLoader(configurationFilename);
             solution.ConfigurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject);
             var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, oldConfigurationFilename, solution.ConfigurationLoader);
             dropdownService.OnConfigurationSelected = configurationFileOpener.Open;
@@ -188,7 +183,6 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void BeforeCloseSolution()
         {
-            logger.LogInfo("Starting to close solution");
             if (solution == null || solution.ConfigurationFileTracker == null)
             {
                 return;
@@ -199,7 +193,6 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void AfterCloseSolution()
         {
-            logger.LogInfo("Finished to close solution");
             // When solution is closed: choose no project
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             dropdownService.CurrentDropdownValue = null;
@@ -219,7 +212,6 @@ namespace LucidConcepts.SwitchStartupProject
             var project = SolutionProject.FromHierarchy(pHierarchy, dte.Solution.FullName);
             if (project == null) return;
 
-            logger.LogInfo("{0} project: {1}", isCreated ? "Creating" : "Opening", project.Name);
             if (solution == null)   // This happens e.g. when creating a new project or website solution
             {
                 solution = new Solution
@@ -247,12 +239,13 @@ namespace LucidConcepts.SwitchStartupProject
             var newName = project.Name;
             var newPath = project.Path;
 
-            logger.LogInfo("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
+            Logger.Log("Renaming project {0} ({1}) into {2} ({3}) ", oldName, oldPath, newName, newPath);
             _PopulateDropdownList();
 
             if (showMessage)
             {
-                MessageBox.Show("The renamed project is part of a startup configuration.\nPlease update your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
+                Logger.LogActive("The renamed project is part of a startup configuration.");
+                Logger.Log("Please update your configuration file!");
             }
         }
 
@@ -261,7 +254,7 @@ namespace LucidConcepts.SwitchStartupProject
             var project = solution.Projects.GetValueOrDefault(pHierarchy);
             if (project == null) return;
 
-            logger.LogInfo("Closing project: {0}", project.Name);
+            Logger.Log("Closing project: {0}", project.Name);
             // When project is closed: remove it from list of startup projects
             solution.Projects.Remove(pHierarchy);
             if ((dropdownService.CurrentDropdownValue is SingleProjectDropdownEntry) &&
@@ -274,7 +267,6 @@ namespace LucidConcepts.SwitchStartupProject
 
         public void ToggleDebuggingActive(bool debuggingActive)
         {
-            logger.LogInfo(debuggingActive ? "Start debugging, disable combobox" : "Stop debugging, enable combobox");
             // When debugging command UI context is activated, disable combobox, otherwise enable combobox
             dropdownService.DropdownEnabled = !debuggingActive;
         }
@@ -304,7 +296,8 @@ namespace LucidConcepts.SwitchStartupProject
                     var projectNameToPath = string.Join("\n", from projectName in ambiguousProjectNameReferences
                                                               from project in projectsByName[projectName]
                                                               select string.Format("• {0}", JsonConvert.ToString(project.Path)));
-                    MessageBox.Show("The configuration file refers to ambiguous project names.\nPlease use either of the following project paths instead:\n\n" + projectNameToPath, "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    Logger.LogActive("\nWARNING: The configuration file refers to ambiguous project names.");
+                    Logger.Log("Please use either of the following project paths instead:\n\n" + projectNameToPath);
                 }
             }
             _PopulateDropdownList();
@@ -510,7 +503,8 @@ namespace LucidConcepts.SwitchStartupProject
                     var project = startupProjects.Single().Project;
                     if (project == null)
                     {
-                        MessageBox.Show("The activated configuration refers to an inexistent project.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        Logger.LogActive("\nERROR: The activated configuration refers to an inexistent project.");
+                        Logger.Log("Please check your configuration file!");
                         return;
                     }
                     dte.Solution.SolutionBuild.StartupProjects = project.Path;
@@ -524,7 +518,8 @@ namespace LucidConcepts.SwitchStartupProject
                                            select (object)project.Path).ToArray();
                     if (startupProjects.Count != projectPathArray.Length)
                     {
-                        MessageBox.Show("The activated configuration refers to inexistent projects.\nPlease check your configuration file!", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                        Logger.LogActive("\nERROR: The activated configuration refers to inexistent projects.");
+                        Logger.Log("Please check your configuration file!");
                     }
                     dte.Solution.SolutionBuild.StartupProjects = projectPathArray;
                 }
@@ -691,7 +686,9 @@ namespace LucidConcepts.SwitchStartupProject
 
         private void _ShowMsgOpenSolution()
         {
-            MessageBox.Show("Please open a solution before you configure its startup projects.\n\nIn case a solution is open, something went wrong loading it.\nMaybe it helps to delete the solution .suo file and reload the solution?", "SwitchStartupProject", MessageBoxButton.OK, MessageBoxImage.Information);
+            Logger.LogActive("\nERROR: Please open a solution before you configure its startup projects.");
+            Logger.Log("In case a solution is open, something went wrong loading it.");
+            Logger.Log("Maybe it helps to delete the solution .suo file and reload the solution?");
         }
 
         private bool _ConfigRefersToProject(MultiProjectConfigurationProject configProject, SolutionProject project)

@@ -1,6 +1,8 @@
 # Release notes
 
 ## Version 4.0
+* Add Output Window pane named "SwitchStartupProject"
+* Replace ActivityLog messages and popup messages with log messages in Output Window (issue #60)
 
 ## Version 3.5
 * Fix support for configuration parameters of C++ projects (issues #55, #61)

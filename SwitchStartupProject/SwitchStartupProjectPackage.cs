@@ -61,21 +61,23 @@ namespace LucidConcepts.SwitchStartupProject
         /// </summary>
         protected override void Initialize()
         {
-            Logger = new ActivityLogger(this);
-            Logger.LogInfo("Entering initializer for: {0}", this.ToString());
+            // Get VS Automation object
+            var dte = (EnvDTE.DTE)GetGlobalService(typeof(EnvDTE.DTE));
+
+            IVsOutputWindow outputWindow = (IVsOutputWindow)GetService(typeof(SVsOutputWindow));
+            var outputWindow2 = dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput);
+            Logger.Initialize(outputWindow, outputWindow2);
+
             base.Initialize();
 
             // Add our command handlers for menu (commands must exist in the .vsct file)
             var mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
             if ( null == mcs )
             {
-                Logger.LogInfo("Could not get OleMenuCommandService");
+                Logger.LogActive("\nERROR: Could not get OleMenuCommandService");
                 return;
             }
             var dropdownService = new DropdownService(mcs);
-
-            // Get VS Automation object
-            var dte = (EnvDTE.DTE)GetGlobalService(typeof(EnvDTE.DTE));
 
             // Get solution
             solution = ServiceProvider.GlobalProvider.GetService(typeof(SVsSolution)) as IVsSolution2;
@@ -97,7 +99,7 @@ namespace LucidConcepts.SwitchStartupProject
 
             var fileChangeService = ServiceProvider.GlobalProvider.GetService(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
 
-            switcher = new StartupProjectSwitcher(dropdownService, dte, fileChangeService, Logger);
+            switcher = new StartupProjectSwitcher(dropdownService, dte, fileChangeService);
         }
         #endregion
 
@@ -252,44 +254,6 @@ namespace LucidConcepts.SwitchStartupProject
         public int OnSelectionChanged(IVsHierarchy pHierOld, uint itemidOld, IVsMultiItemSelect pMISOld, ISelectionContainer pSCOld, IVsHierarchy pHierNew, uint itemidNew, IVsMultiItemSelect pMISNew, ISelectionContainer pSCNew)
         {
             return VSConstants.S_OK;
-        }
-
-        #endregion
-
-        #region Activity Log
-
-        public ActivityLogger Logger { get; set; }
-
-        public class ActivityLogger
-        {
-            private readonly SwitchStartupProjectPackage package;
-
-            public ActivityLogger(SwitchStartupProjectPackage package)
-            {
-                this.package = package;
-            }
-
-            public void LogInfo(string message, params object[] arguments)
-            {
-                Log(__ACTIVITYLOG_ENTRYTYPE.ALE_INFORMATION, message, arguments);
-            }
-
-            public void LogWarning(string message, params object[] arguments)
-            {
-                Log(__ACTIVITYLOG_ENTRYTYPE.ALE_WARNING, message, arguments);
-            }
-
-            public void LogError(string message, params object[] arguments)
-            {
-                Log(__ACTIVITYLOG_ENTRYTYPE.ALE_ERROR, message, arguments);
-            }
-
-            private void Log(__ACTIVITYLOG_ENTRYTYPE type, string message, params object[] arguments)
-            {
-                var log = package.GetService(typeof (SVsActivityLog)) as IVsActivityLog;
-                if (log == null) return;
-                log.LogEntry((UInt32)type, "SwitchStartupProject", string.Format(CultureInfo.CurrentCulture, message, arguments));
-            }
         }
 
         #endregion

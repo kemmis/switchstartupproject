@@ -18,6 +18,7 @@ namespace LucidConcepts.SwitchStartupProject
         public Dictionary<IVsHierarchy, SolutionProject> Projects { get; private set; }
         public ConfigurationFileTracker ConfigurationFileTracker { get; set; }
         public ConfigurationLoader ConfigurationLoader { get; set; }
+        public ActiveConfigurationLoader ActiveConfigurationLoader { get; set; }
         public Configuration Configuration { get; set; }
         public bool IsOpening { get; set; }
 

@@ -29,11 +29,9 @@ namespace LucidConcepts.SwitchStartupProject
             }
         }
 
-        public bool IsEqual(IDropdownEntry other)
-        {
-            var otherSingle = other as SingleProjectDropdownEntry;
-            return otherSingle != null && this.Project == otherSingle.Project;
-        }
+        public bool IsEqual(IDropdownEntry other) => other is SingleProjectDropdownEntry otherSingle && this.Project == otherSingle.Project;
+
+        public bool MatchesPaths(string[] paths) => paths.Length == 1 && Project.Path == paths[0];
     }
 
     public class MultiProjectDropdownEntry : IDropdownEntry
@@ -46,11 +44,11 @@ namespace LucidConcepts.SwitchStartupProject
         public StartupConfiguration Configuration { get; private set; }
         public string DisplayName { get { return Configuration.Name; } }
 
-        public bool IsEqual(IDropdownEntry other)
-        {
-            var otherMulti = other as MultiProjectDropdownEntry;
-            return otherMulti != null && this.Configuration.IsEqual(otherMulti.Configuration);
-        }
+        public bool IsEqual(IDropdownEntry other) => other is MultiProjectDropdownEntry otherMulti && this.Configuration.IsEqual(otherMulti.Configuration);
+
+        public bool MatchesPaths(string[] paths) =>
+            paths.Length == Configuration.Projects.Count &&
+            paths.All(path => Configuration.Projects.Any(p => p.Project.Path == path));
     }
 
     public class OtherDropdownEntry : IDropdownEntry

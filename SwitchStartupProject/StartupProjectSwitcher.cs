@@ -32,7 +32,7 @@ namespace LucidConcepts.SwitchStartupProject
         public StartupProjectSwitcher(DropdownService dropdownService, DTE dte, IVsFileChangeEx fileChangeService)
         {
             this.dropdownService = dropdownService;
-            dropdownService.OnListItemSelectedAsync = _ChangeStartupProjectAsync;
+            dropdownService.OnListItemSelectedAsync = entry => _ChangeStartupProjectAsync(entry, store: true);
             dropdownService.OnConfigurationSelected = _ShowMsgOpenSolution;
             this.dte = dte;
             this.fileChangeService = fileChangeService;
@@ -53,97 +53,24 @@ namespace LucidConcepts.SwitchStartupProject
             if (newStartupProjects == null) return;
 
             var newStartupProjectPaths = newStartupProjects.Cast<string>().ToArray();
-            var currentConfig = _GetCurrentlyActiveConfiguration(newStartupProjectPaths);
 
-            if (currentConfig != null)
+            // If new startup project(s) are the same as the already selected do nothing
+            if (dropdownService.CurrentDropdownValue is SingleProjectDropdownEntry singleEntry && singleEntry.MatchesPaths(newStartupProjectPaths)) return;
+            if (dropdownService.CurrentDropdownValue is MultiProjectDropdownEntry multiEntry && multiEntry.MatchesPaths(newStartupProjectPaths)) return;
+
+            // Try to find a matching dropdown entry
+            var bestMatch = dropdownService.DropdownList.OfType<SingleProjectDropdownEntry>().SingleOrDefault(entry => entry.MatchesPaths(newStartupProjectPaths)) ??
+                (IDropdownEntry) dropdownService.DropdownList.OfType<MultiProjectDropdownEntry>().FirstOrDefault(entry => entry.MatchesPaths(newStartupProjectPaths));
+            if (bestMatch != null)
             {
-                var sortedCurrentProjects = _SortedProjects(currentConfig.Projects);
-
-                // First try to find a matching multi-project dropdown entry
-                var bestMatch = (from dropdownEntry in dropdownService.DropdownList
-                                 let multiProjectDropdownEntry = dropdownEntry as MultiProjectDropdownEntry
-                                 where multiProjectDropdownEntry != null
-                                 let startupConfig = multiProjectDropdownEntry.Configuration
-                                 let score = _EqualityScore(_SortedProjects(startupConfig.Projects), sortedCurrentProjects)
-                                 where score >= 0.0
-                                 orderby score descending
-                                 select multiProjectDropdownEntry)
-                                .FirstOrDefault() as IDropdownEntry;
-
-                // Then try to find a matching single-project dropdown entry (if feasible)
-                if (bestMatch == null && newStartupProjectPaths.Length == 1)
-                {
-                    var startupProjectPath = (string)newStartupProjectPaths.GetValue(0);
-                    bestMatch = (from dropdownEntry in dropdownService.DropdownList
-                                 let singleProjectDropdownEntry = dropdownEntry as SingleProjectDropdownEntry
-                                 where singleProjectDropdownEntry != null
-                                 where singleProjectDropdownEntry.Project.Path == startupProjectPath
-                                 select singleProjectDropdownEntry)
-                                .FirstOrDefault();
-                }
-                if (bestMatch != null)
-                {
-                    Logger.Log("New startup configuration was activated outside of dropdown: {0}", bestMatch.DisplayName);
-                    dropdownService.CurrentDropdownValue = bestMatch;
-                    return;
-                }
+                Logger.Log("New startup configuration was activated outside of dropdown: {0}", bestMatch.DisplayName);
+                dropdownService.CurrentDropdownValue = bestMatch;
+                return;
             }
 
             Logger.Log("Unknown startup configuration was activated outside of dropdown");
             dropdownService.CurrentDropdownValue = DropdownService.OtherItem;
         }
-
-        private IEnumerable<StartupConfigurationProject> _SortedProjects(IEnumerable<StartupConfigurationProject> startupConfigurationProjects)
-        {
-            return startupConfigurationProjects.OrderBy(proj => proj.Project != null ? proj.Project.Path : "")
-                                                .ThenBy(proj => proj.CommandLineArguments)
-                                                .ThenBy(proj => proj.WorkingDirectory)
-                                                .ThenBy(proj => proj.StartProject)
-                                                .ThenBy(proj => proj.StartExternalProgram)
-                                                .ThenBy(proj => proj.StartBrowserWithUrl)
-                                                .ThenBy(proj => proj.EnableRemoteDebugging)
-                                                .ThenBy(proj => proj.RemoteDebuggingMachine);
-        }
-
-        private double _EqualityScore(IEnumerable<StartupConfigurationProject> sortedAvailableProjects, IEnumerable<StartupConfigurationProject> sortedCurrentProjects)
-        {
-            return sortedAvailableProjects.Zip(sortedCurrentProjects, (available, current) => new { Available = available, Current = current})
-                .Aggregate(0.0, (accumulated, tuple) =>
-                {
-                    if (tuple.Available.Project != tuple.Current.Project) return double.NegativeInfinity;   // Projects don't match => not equal
-                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.CommandLineArguments);
-                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.WorkingDirectory);
-                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.StartProject);
-                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.StartExternalProgram);
-                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.StartBrowserWithUrl);
-                    accumulated += _EqualityScore(tuple.Available, tuple.Current, proj => proj.EnableRemoteDebugging);
-                    accumulated += _StringEqualityScore(tuple.Available, tuple.Current, proj => proj.RemoteDebuggingMachine);
-                    return accumulated;
-                });
-        }
-
-        private double _StringEqualityScore(StartupConfigurationProject available, StartupConfigurationProject current, Func<StartupConfigurationProject, string> getProperty)
-        {
-            var availableProp = getProperty(available);
-            var currentProp = getProperty(current) ?? string.Empty;     // Some properties return null instead of empty string
-            if (availableProp == null) return 0.0;                      // Property not configured => equality score 0
-            var result = availableProp != currentProp ?
-                double.NegativeInfinity :                               // Property configured but doesn't match => not equal
-                1.0;                                                    // Property configured and does match => increase equality score by 1
-            return result;
-        }
-
-        private double _EqualityScore<T>(StartupConfigurationProject available, StartupConfigurationProject current, Func<StartupConfigurationProject, T> getProperty)
-        {
-            var availableProp = getProperty(available);
-            var currentProp = getProperty(current);
-            if (availableProp == null) return 0.0;                      // Property not configured => equality score 0
-            var result = !EqualityComparer<T>.Default.Equals(availableProp, currentProp) ?
-                double.NegativeInfinity :                               // Property configured but doesn't match => not equal
-                1.0;                                                    // Property configured and does match => increase equality score by 1
-            return result;
-        }
-
 
         // Is called before a solution and its projects are loaded.
         // Is NOT called when a new solution and project are created.
@@ -176,9 +103,12 @@ namespace LucidConcepts.SwitchStartupProject
             solution.ConfigurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateSettingsOfCurrentStartupProject);
             var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, oldConfigurationFilename, solution.ConfigurationLoader);
             dropdownService.OnConfigurationSelected = configurationFileOpener.Open;
+            var activeConfigurationFilename = ActiveConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
+            solution.ActiveConfigurationLoader = new ActiveConfigurationLoader(activeConfigurationFilename);
+
             _LoadConfigurationAndPopulateDropdown();
-            // Determine the currently active startup configuration and select it in the dropdown
-            UpdateStartupProject();
+            // Determine the last active startup configuration and select it in the dropdown
+            dropdownService.CurrentDropdownValue = solution.ActiveConfigurationLoader.Load(dropdownService.DropdownList);
         }
 
         public void BeforeCloseSolution()
@@ -276,7 +206,7 @@ namespace LucidConcepts.SwitchStartupProject
             var selectedDropdownValue = dropdownService.CurrentDropdownValue;
             _LoadConfigurationAndPopulateDropdown();
             var equivalentItem = dropdownService.DropdownList.FirstOrDefault(item => item.IsEqual(selectedDropdownValue));
-            await _ChangeStartupProjectAsync(equivalentItem);
+            await _ChangeStartupProjectAsync(equivalentItem, store: false);
         }
 
         private void _LoadConfigurationAndPopulateDropdown()
@@ -339,7 +269,7 @@ namespace LucidConcepts.SwitchStartupProject
             return new StartupConfiguration(config.Name, startupConfigurationProjects.ToList());
         }
 
-        private async Task _ChangeStartupProjectAsync(IDropdownEntry newStartupProject)
+        private async Task _ChangeStartupProjectAsync(IDropdownEntry newStartupProject, bool store)
         {
             dropdownService.CurrentDropdownValue = newStartupProject;
             if (newStartupProject == null)
@@ -348,6 +278,7 @@ namespace LucidConcepts.SwitchStartupProject
                 _ActivateSingleProjectConfiguration(null);
                 return;
             }
+            if (store) solution.ActiveConfigurationLoader.Save(newStartupProject);
             if (newStartupProject is SingleProjectDropdownEntry)
             {
                 // Single startup project
@@ -361,115 +292,6 @@ namespace LucidConcepts.SwitchStartupProject
                 var config = (newStartupProject as MultiProjectDropdownEntry).Configuration;
                 await ActivateMultiProjectConfigurationAsync(config);
             }
-        }
-
-        private StartupConfiguration _GetCurrentlyActiveConfiguration(IEnumerable<string> newStartupProjectPaths)
-        {
-            if (solution.Projects.Count == 0) return null;
-
-            return new StartupConfiguration(null, newStartupProjectPaths.Select(projectPath =>
-            {
-                var solutionProject = solution.Projects.Values.SingleOrDefault(p => p.Path == projectPath);
-                if (solutionProject == null) return null;
-
-                var project = solutionProject.Project;
-                if (project == null) return null;
-
-                string cla = null;
-                string workingDir = null;
-                bool startProject = false;
-                string startExtProg = null;
-                string startBrowser = null;
-                bool? enableRemote = null;
-                string remoteMachine = null;
-                string profileName = null;
-
-                // Handle CPS projects in a special way
-                if (IsCpsProject(solutionProject.Hierarchy))
-                {
-                    var context = project as IVsBrowseObjectContext;
-                    if (context == null)
-                    {
-                        // VC implements this on their DTE.Project.Object
-                        context = project.Object as IVsBrowseObjectContext;
-                    }
-                    if (context != null)
-                    {
-                        if (IsProjectWithLaunchSettings(solutionProject.Hierarchy))
-                        {
-                            var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
-                            var launchProfile = launchSettingsProvider?.CurrentSnapshot?.ActiveProfile;
-                            if (launchProfile != null)
-                            {
-                                profileName = launchProfile.Name;
-                                cla = launchProfile.CommandLineArgs;
-                                workingDir = launchProfile.WorkingDirectory;
-                                startProject = launchProfile.CommandName == "Project" && !launchProfile.LaunchBrowser;
-                                startExtProg = launchProfile.ExecutablePath;
-                                startBrowser = launchProfile.LaunchUrl;
-                                //launchProfile.OtherSettings[]
-                            }
-                        }
-                    }
-                }
-                // Handle VC++ projects in a special way
-                else if (new Guid(project.Kind) == GuidList.guidCPlusPlus)
-                {
-                    var vcProject = (dynamic)project.Object;
-                    //var vcConfiguration = vcProject.ActiveConfiguration;  // TODO: Property not available in older versions
-                    foreach (var vcConfiguration in vcProject.Configurations)
-                    {
-                        var vcDebugSettings = vcConfiguration.DebugSettings;
-                        cla = vcDebugSettings.CommandArguments;
-                        workingDir = vcDebugSettings.WorkingDirectory;
-
-                        var debuggerFlavor = _GetDynamicDebuggerFlavor(vcDebugSettings);
-                        if (debuggerFlavor == "eLocalDebugger")
-                        {
-                            startExtProg = vcDebugSettings.Command;
-                            enableRemote = false;
-                            startProject = string.IsNullOrEmpty(startExtProg);
-                        }
-                        else if (debuggerFlavor == "eRemoteDebugger")
-                        {
-                            startExtProg = vcDebugSettings.RemoteCommand;
-                            enableRemote = true;
-                            remoteMachine = vcDebugSettings.RemoteMachine;
-                            startProject = string.IsNullOrEmpty(startExtProg);
-                        }
-                        else if (debuggerFlavor == "eWebBrowserDebugger")
-                        {
-                            startBrowser = vcDebugSettings.HttpUrl;
-                            startExtProg = vcDebugSettings.Command;
-                            enableRemote = false;
-                        }
-                        break;  // Only use first configuration
-                    }
-                }
-                else
-                {
-                    var configurationManager = project.ConfigurationManager;
-                    if (configurationManager == null) return null;
-                    var configuration = configurationManager.ActiveConfiguration;
-                    if (configuration == null) return null;
-                    var properties = configuration.Properties;
-                    if (properties == null) return null;
-
-
-                    foreach (var property in properties.Cast<Property>())
-                    {
-                        if (property == null) continue;
-                        if (property.Name == solutionProject.StartArgumentsPropertyName) cla = (string)property.Value;
-                        if (property.Name == "StartWorkingDirectory") workingDir = (string)property.Value;
-                        if (property.Name == "StartAction") startProject = 0 == (int)property.Value;
-                        if (property.Name == "StartProgram") startExtProg = (string)property.Value;
-                        if (property.Name == "StartURL") startBrowser = (string)property.Value;
-                        if (property.Name == "RemoteDebugEnabled") enableRemote = (bool)property.Value;
-                        if (property.Name == "RemoteDebugMachine") remoteMachine = (string)property.Value;
-                    }
-                }
-                return new StartupConfigurationProject(solutionProject, cla, workingDir, startProject, startExtProg, startBrowser, enableRemote, remoteMachine, profileName);
-            }).ToList());
         }
 
         private bool IsCpsProject(IVsHierarchy hierarchy)
@@ -644,12 +466,6 @@ namespace LucidConcepts.SwitchStartupProject
                     }
                 }
             });
-        }
-
-        private string _GetDynamicDebuggerFlavor(dynamic vcDebugSettings)
-        {
-            // This is a workaround for enum eDebuggerTypes used with dynamic types.
-            return vcDebugSettings.DebuggerFlavor.ToString();
         }
 
         private void _SetDynamicDebuggerFlavor(dynamic vcDebugSettings, string enumValueName)

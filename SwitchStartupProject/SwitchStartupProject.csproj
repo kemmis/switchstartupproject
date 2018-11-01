@@ -204,6 +204,7 @@
     <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\ActiveConfigurationLoader.cs" />
     <Compile Include="Configuration\Configuration.cs" />
     <Compile Include="Configuration\ConfigurationFileOpener.cs" />
     <Compile Include="Configuration\ConfigurationFileTracker.cs" />

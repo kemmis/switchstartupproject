@@ -1,5 +1,7 @@
 # Release notes
 
+## Version 4.0
+
 ## Version 3.5
 * Fix support for configuration parameters of C++ projects (issues #55, #61)
 * Fix detection of active configuration

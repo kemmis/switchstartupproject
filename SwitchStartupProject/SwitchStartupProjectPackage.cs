@@ -24,14 +24,14 @@ namespace LucidConcepts.SwitchStartupProject
     /// </summary>
     // This attribute tells the PkgDef creation utility (CreatePkgDef.exe) that this class is
     // a package.
-    [PackageRegistration(UseManagedResourcesOnly = true)]
+    [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     // This attribute is used to register the informations needed to show the this package
     // in the Help/About dialog of Visual Studio.
     [InstalledProductRegistration("#110", "#112", AssemblyInfoVersion.Version, IconResourceID = 400)]
     // This attribute is needed to let the shell know that this package exposes some menus.
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [Guid(GuidList.guidSwitchStartupProjectPkgString)]
-    public sealed class SwitchStartupProjectPackage : Package, IVsSolutionEvents, IVsSolutionEvents4, IVsSolutionLoadEvents, IVsSelectionEvents
+    public sealed class SwitchStartupProjectPackage : AsyncPackage, IVsSolutionEvents, IVsSolutionEvents4, IVsSolutionLoadEvents, IVsSelectionEvents
     {
 
         private uint solutionEventsCookie;
@@ -55,27 +55,25 @@ namespace LucidConcepts.SwitchStartupProject
                 ms.UnadviseSelectionEvents(selectionEventsCookie);
         }
 
-        #region Package Initializer
-
         /// <summary>
         /// Initialization of the package; this method is called right after the package is sited, so this is the place
         /// where you can put all the initilaization code that rely on services provided by VisualStudio.
         /// </summary>
-        protected override void Initialize()
+        protected override async System.Threading.Tasks.Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
+            await base.InitializeAsync(cancellationToken, progress);
+
+            await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 
             // Get VS Automation object
             var dte = (EnvDTE.DTE)GetGlobalService(typeof(EnvDTE.DTE));
 
-            IVsOutputWindow outputWindow = (IVsOutputWindow)GetService(typeof(SVsOutputWindow));
+            IVsOutputWindow outputWindow = await GetServiceAsync(typeof(SVsOutputWindow)) as IVsOutputWindow;
             var outputWindow2 = dte.Windows.Item(EnvDTE.Constants.vsWindowKindOutput);
             Logger.Initialize(outputWindow, outputWindow2);
 
-            base.Initialize();
-
             // Add our command handlers for menu (commands must exist in the .vsct file)
-            var mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
+            var mcs = await GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
             if ( null == mcs )
             {
                 Logger.LogActive("\nERROR: Could not get OleMenuCommandService");
@@ -84,7 +82,7 @@ namespace LucidConcepts.SwitchStartupProject
             var dropdownService = new DropdownService(mcs);
 
             // Get solution
-            solution = ServiceProvider.GlobalProvider.GetService(typeof(SVsSolution)) as IVsSolution2;
+            solution = await GetServiceAsync(typeof(SVsSolution)) as IVsSolution2;
             if (solution != null)
             {
                 // Register for solution events
@@ -92,7 +90,7 @@ namespace LucidConcepts.SwitchStartupProject
             }
 
             // Get selection monitor
-            ms = ServiceProvider.GlobalProvider.GetService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
+            ms = await GetServiceAsync(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
             if (ms != null)
             {
                 // Remember debugging UI context cookie for later
@@ -101,11 +99,10 @@ namespace LucidConcepts.SwitchStartupProject
                 ms.AdviseSelectionEvents(this, out selectionEventsCookie);
             }
 
-            var fileChangeService = ServiceProvider.GlobalProvider.GetService(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
+            var fileChangeService = await GetServiceAsync(typeof(SVsFileChangeEx)) as IVsFileChangeEx;
 
             switcher = new StartupProjectSwitcher(dropdownService, dte, fileChangeService);
         }
-        #endregion
 
         #region IVsSolutionEvents Members
 

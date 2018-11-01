@@ -215,8 +215,6 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterBackgroundSolutionLoadComplete()
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            switcher.AfterOpenSolution();
             return VSConstants.S_OK;
         }
 

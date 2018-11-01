@@ -102,6 +102,7 @@ namespace LucidConcepts.SwitchStartupProject
             var configurationFilename = ConfigurationLoader.GetConfigurationFilename(dte.Solution.FullName);
             var oldConfigurationFilename = ConfigurationLoader.GetOldConfigurationFilename(dte.Solution.FullName);
             solution.ConfigurationLoader = new ConfigurationLoader(configurationFilename);
+            solution.ConfigurationFileTracker?.Stop();
             solution.ConfigurationFileTracker = new ConfigurationFileTracker(configurationFilename, fileChangeService, _LoadConfigurationAndUpdateSettingsOfCurrentStartupProjectAsync);
             var configurationFileOpener = new ConfigurationFileOpener(dte, configurationFilename, oldConfigurationFilename, solution.ConfigurationLoader);
             dropdownService.OnConfigurationSelected = configurationFileOpener.Open;

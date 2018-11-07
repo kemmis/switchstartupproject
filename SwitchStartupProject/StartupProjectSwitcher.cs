@@ -160,21 +160,9 @@ namespace LucidConcepts.SwitchStartupProject
             }
         }
 
-        public void RenameProject(IVsHierarchy pHierarchy)
+        public void RepopulateDropdownList()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            _PopulateDropdownList();
-        }
-
-        public void CloseProject(IVsHierarchy pHierarchy)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            // When project is closed: remove it from list of startup projects
-            //if ((dropdownService.CurrentDropdownValue is SingleProjectDropdownEntry) &&
-            //    (dropdownService.CurrentDropdownValue as SingleProjectDropdownEntry).Project == project)
-            //{
-            //    dropdownService.CurrentDropdownValue = null;
-            //}
             _PopulateDropdownList();
         }
 

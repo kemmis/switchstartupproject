@@ -40,7 +40,6 @@ namespace LucidConcepts.SwitchStartupProject
         private uint selectionEventsCookie;
         private IVsMonitorSelection ms = null;
         private uint debuggingCookie;
-        private bool projectsAreLoadedInBatches = false;
 
         private StartupProjectSwitcher switcher;
 
@@ -127,6 +126,7 @@ namespace LucidConcepts.SwitchStartupProject
         public int OnAfterLoadProject(IVsHierarchy pStubHierarchy, IVsHierarchy pRealHierarchy)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            switcher.RepopulateDropdownList();
             switcher.UpdateStartupProject();
             return VSConstants.S_OK;
         }
@@ -142,17 +142,14 @@ namespace LucidConcepts.SwitchStartupProject
         public int OnAfterOpenSolution(object pUnkReserved, int fNewSolution)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            if (!projectsAreLoadedInBatches)
-            {
-                switcher.AfterOpenSolution();
-            }
+            switcher.AfterOpenSolution();
             return VSConstants.S_OK;
         }
 
         public int OnBeforeCloseProject(IVsHierarchy pHierarchy, int fRemoved)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            switcher.CloseProject(pHierarchy);
+            switcher.RepopulateDropdownList();
             return VSConstants.S_OK;
         }
 
@@ -200,7 +197,7 @@ namespace LucidConcepts.SwitchStartupProject
         public int OnAfterRenameProject(IVsHierarchy pHierarchy)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            switcher.RenameProject(pHierarchy);
+            switcher.RepopulateDropdownList();
             return VSConstants.S_OK;
         }
 
@@ -215,6 +212,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterBackgroundSolutionLoadComplete()
         {
+            switcher.RepopulateDropdownList();
             return VSConstants.S_OK;
         }
 
@@ -230,14 +228,12 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnBeforeLoadProjectBatch(bool fIsBackgroundIdleBatch)
         {
-            projectsAreLoadedInBatches = true;
             return VSConstants.S_OK;
         }
 
         public int OnBeforeOpenSolution(string pszSolutionFilename)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            projectsAreLoadedInBatches = false;
             switcher.BeforeOpenSolution(pszSolutionFilename);
             return VSConstants.S_OK;
         }

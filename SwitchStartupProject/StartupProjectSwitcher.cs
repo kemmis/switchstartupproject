@@ -242,16 +242,19 @@ namespace LucidConcepts.SwitchStartupProject
             if (solution != null)   // Solution may be null e.g. when creating a new website
             {
                 var projects = _GetProjects();
-                if (solution.Configuration.ListAllProjects)
+                if (solution.Configuration != null)
                 {
-                    var projectsByName = projects.ToLookup(project => project.Name);
-                    projects.OrderBy(project => project.Name).ForEach(project => startupProjects.Add(new SingleProjectDropdownEntry(project)
+                    if (solution.Configuration.ListAllProjects)
                     {
-                        Disambiguate = projectsByName[project.Name].Count() > 1
-                    }));
+                        var projectsByName = projects.ToLookup(project => project.Name);
+                        projects.OrderBy(project => project.Name).ForEach(project => startupProjects.Add(new SingleProjectDropdownEntry(project)
+                        {
+                            Disambiguate = projectsByName[project.Name].Count() > 1
+                        }));
 
+                    }
+                    solution.Configuration.MultiProjectConfigurations.ForEach(config => startupProjects.Add(new MultiProjectDropdownEntry(_GetStartupConfiguration(config, projects))));
                 }
-                solution.Configuration.MultiProjectConfigurations.ForEach(config => startupProjects.Add(new MultiProjectDropdownEntry(_GetStartupConfiguration(config, projects))));
             }
             dropdownService.DropdownList = startupProjects;
         }

@@ -49,6 +49,7 @@ namespace LucidConcepts.SwitchStartupProject
             // Don't need to check the arguments since we ever only track the settings file
             ThreadHelper.JoinableTaskFactory.Run(async () =>
             {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 try
                 {
                     await onConfigurationFileChangedAsync();

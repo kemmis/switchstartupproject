@@ -212,6 +212,7 @@ namespace LucidConcepts.SwitchStartupProject
 
         public int OnAfterBackgroundSolutionLoadComplete()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
             switcher.RepopulateDropdownList();
             return VSConstants.S_OK;
         }

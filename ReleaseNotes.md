@@ -7,6 +7,7 @@
 * To improve Visual Studio responsiveness load the SwitchStartupProject extension in the background when a solution is opened
 * Make project names and paths in config file case insensitive (issue #63)
 * Simplify VSSDK package management by using the VSSDK meta package (issue #78)
+* Refresh configuration of current item when configuration file has changed (issue #76)
 
 ## Version 3.5
 * Fix support for configuration parameters of C++ projects (issues #55, #61)

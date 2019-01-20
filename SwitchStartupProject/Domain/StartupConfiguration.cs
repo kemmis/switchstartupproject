@@ -16,13 +16,6 @@ namespace LucidConcepts.SwitchStartupProject
 
         public string Name { get; private set; }
         public IList<StartupConfigurationProject> Projects { get; private set; }
-
-        public bool IsEqual(StartupConfiguration other)
-        {
-            return this.Name == other.Name &&
-                   this.Projects.Zip(other.Projects, Tuple.Create)
-                       .All(tuple => tuple.Item1.IsEqual(tuple.Item2));
-        }
     }
 
     public class StartupConfigurationProject
@@ -59,18 +52,5 @@ namespace LucidConcepts.SwitchStartupProject
         public bool? EnableRemoteDebugging { get; private set; }
         public string RemoteDebuggingMachine { get; set; }
         public string ProfileName { get; private set; }
-
-        public bool IsEqual(StartupConfigurationProject other)
-        {
-            return this.Project.Path == other.Project.Path &&
-                   this.CommandLineArguments == other.CommandLineArguments &&
-                   this.WorkingDirectory == other.WorkingDirectory &&
-                   this.StartProject == other.StartProject &&
-                   this.StartExternalProgram == other.StartExternalProgram &&
-                   this.StartBrowserWithUrl == other.StartBrowserWithUrl &&
-                   this.EnableRemoteDebugging == other.EnableRemoteDebugging &&
-                   this.RemoteDebuggingMachine == other.RemoteDebuggingMachine &&
-                   this.ProfileName == other.ProfileName;
-        }
     }
 }

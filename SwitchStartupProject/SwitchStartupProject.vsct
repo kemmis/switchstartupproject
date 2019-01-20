@@ -56,7 +56,7 @@
 
   <Symbols>
     <!-- This is the package guid. -->
-    <GuidSymbol name="guidSwitchStartupProjectPkg" value="{40b5ca05-6793-42f7-a50a-cca5bf4ff495}" />
+    <GuidSymbol name="guidSwitchStartupProjectPkg" value="{399c17d5-6a98-44e4-938e-6d0f1f804076}" />
 
     <!-- This is the guid used to group the menu commands together -->
     <GuidSymbol name="guidSwitchStartupProjectCmdSet" value="{9c1b4719-1443-4d96-b264-7cf17809659b}">

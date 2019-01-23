@@ -8,14 +8,18 @@ namespace LucidConcepts.SwitchStartupProject
 {
     public class StartupConfiguration
     {
-        public StartupConfiguration(string name, IList<StartupConfigurationProject> projects)
+        public StartupConfiguration(string name, IList<StartupConfigurationProject> projects, string solutionConfiguration, string solutionPlatform)
         {
             this.Name = name;
             this.Projects = projects;
+            this.SolutionConfiguration = solutionConfiguration;
+            this.SolutionPlatform = solutionPlatform;
         }
 
         public string Name { get; private set; }
         public IList<StartupConfigurationProject> Projects { get; private set; }
+        public string SolutionConfiguration { get; private set; }
+        public string SolutionPlatform { get; private set; }
     }
 
     public class StartupConfigurationProject

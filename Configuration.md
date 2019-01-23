@@ -25,35 +25,44 @@ See also the [JSON schema](https://bitbucket.org/thirteen/switchstartupproject/s
 ```
 #!json
 {
-    "Version": 3,
-    "ListAllProjects": false,
-    "MultiProjectConfigurations": {
-        "A + B (Ext)": {
-            "Projects": {
-                "MyProjectA": {},
-                "MyProjectB": {
-                    "CommandLineArguments": "1234",
-                    "WorkingDirectory": "%USERPROFILE%\\test",
-                    "StartExternalProgram": "c:\\myprogram.exe"
-                }
-            }
-        },
-        "A + B": {
-            "Projects": {
-                "MyProjectA": {},
-                "MyProjectB": {
-                    "CommandLineArguments": "",
-                    "WorkingDirectory": "",
-                    "StartProject": true
-                }
-            }
-        },
-        "D": {
-            "Projects": {
-                "MyProjectD": {}
-            }
+  "Version": 3,
+  "ListAllProjects": false,
+  "MultiProjectConfigurations": {
+    "A + B (Ext)": {
+      "Projects": {
+        "MyProjectA": {},
+        "MyProjectB": {
+          "CommandLineArguments": "1234",
+          "WorkingDirectory": "%USERPROFILE%\\test",
+          "StartExternalProgram": "c:\\myprogram.exe"
         }
+      }
+    },
+    "A + B": {
+      "Projects": {
+        "MyProjectA": {},
+        "MyProjectB": {
+          "CommandLineArguments": "",
+          "WorkingDirectory": "",
+          "StartProject": true
+        }
+      }
+    },
+    "D (Debug x86)": {
+      "Projects": {
+        "MyProjectD": {}
+      },
+      "SolutionConfiguration": "Debug",
+      "SolutionPlatform": "x86"
+    },
+    "D (Release x64)": {
+      "Projects": {
+        "MyProjectD": {}
+      },
+      "SolutionConfiguration": "Release",
+      "SolutionPlatform": "x64"
     }
+  }
 }
 ```
 
@@ -81,7 +90,9 @@ Example of a startup configuration:
                     "StartExternalProgram": "c:\\myprogram.exe" /*  ... using c:\myprogram.exe as the debugging host  */
                 },
                 "Path\\To\\ProjectC.csproj": {}                 /*  and project C (specified by path)  */
-            }
+            },
+            "SolutionConfiguration": "Release",                 /*  Activating solution configuration "Release"  */
+            "SolutionPlatform": "x64"                           /*  and solution platform "x64"  */
         }
 ```
 Startup projects can be specified in two ways:
@@ -100,7 +111,7 @@ SwitchStartupProject creates an item in the dropdown for each startup configurat
 | `"StartProject"` | boolean | `true` | Starts the project. (Resets a `"StartExternalProgram"` or `"StartBrowserWithURL"` parameter specified in another configuration.) |
 | `"EnableRemoteDebugging"` | boolean | `true` | Use remote machine for debugging. |
 | `"RemoteDebuggingMachine"` | string | `"\\\\MyDomain\\MyTestMachine"` | Specify the machine name used for remote debugging. Remember to escape (double) backslashes. |
-| `"ProfileName"` | string | `"MyLaunchProfile"` | Activates the launch profile with the given name for [CPS projects](https://github.com/Microsoft/VSProjectSystem/blob/master/doc/Index.md). (VS 2017 only) |
+| `"ProfileName"` | string | `"MyLaunchProfile"` | Activates the launch profile with the given name for [CPS projects](https://github.com/Microsoft/VSProjectSystem/blob/master/doc/Index.md). (VS 2017 and later only) |
 
 String parameters may contain [build macros](https://docs.microsoft.com/en-us/cpp/ide/common-macros-for-build-commands-and-properties).
 
@@ -109,6 +120,14 @@ If a startup project specifies a parameter (like command line arguments or a wor
 If a startup project does not specify a parameter, the existing parameter value won't change when the configuration gets activated.
 To reset a parameter set by another configuration, specify the parameter with an empty string `""` value.
 Use `"StartProject": true` to reset a `"StartExternalProgram"` or `"StartBrowserWithURL"` parameter set by another configuration.
+
+Besides startup projects and their parameters, a startup configuration may contain the following parameters:
+
+| Parameter | Type | Example Value | Explanation |
+| --- | --- | --- | --- |
+| `"SolutionConfiguration"` | string | `"Release"` | Activates the solution configuration with the given name. (VS 2017 and later only) |
+| `"SolutionPlatform"` | string | `"Any CPU"` | Activates the solution platform with the given name. (VS 2017 and later only) |
+
 
 ## Default Values
 

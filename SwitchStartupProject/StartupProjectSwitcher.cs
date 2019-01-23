@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows;
 
 using EnvDTE;
+using EnvDTE80;
 
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ProjectSystem.Properties;
@@ -273,7 +274,7 @@ namespace LucidConcepts.SwitchStartupProject
                                                    configProject.EnableRemoteDebugging,
                                                    configProject.RemoteDebuggingMachine,
                                                    configProject.ProfileName);
-            return new StartupConfiguration(config.Name, startupConfigurationProjects.ToList());
+            return new StartupConfiguration(config.Name, startupConfigurationProjects.ToList(), config.SolutionConfiguration, config.SolutionPlatform);
         }
 
         private async Task _ChangeStartupProjectAsync(IDropdownEntry newStartupProject, bool store)
@@ -354,6 +355,24 @@ namespace LucidConcepts.SwitchStartupProject
                         Logger.Log("Please check your configuration file!");
                     }
                     dte.Solution.SolutionBuild.StartupProjects = projectPathArray;
+                }
+
+                // Set solution configuration/platform
+                if (startupConfiguration.SolutionConfiguration != null ||
+                    startupConfiguration.SolutionPlatform != null)
+                {
+                    var activeSolutionConfig = dte.Solution.SolutionBuild.ActiveConfiguration as SolutionConfiguration2;
+                    var newSolutionConfiguration = startupConfiguration.SolutionConfiguration ?? activeSolutionConfig.Name;
+                    var newSolutionPlatform = startupConfiguration.SolutionPlatform ?? activeSolutionConfig.PlatformName;
+
+                    foreach (SolutionConfiguration2 solutionConfig in dte.Solution.SolutionBuild.SolutionConfigurations)
+                    {
+                        if (solutionConfig.Name == newSolutionConfiguration &&
+                            solutionConfig.PlatformName == newSolutionPlatform)
+                        {
+                            solutionConfig.Activate();
+                        }
+                    }
                 }
 
                 // Set properties

@@ -30,6 +30,8 @@ namespace LucidConcepts.SwitchStartupProject
         private const string enableRemoteDebuggingKey = "EnableRemoteDebugging";
         private const string remoteDebuggingMachineKey = "RemoteDebuggingMachine";
         private const string profileNameKey = "ProfileName";
+        private const string solutionConfigurationKey = "SolutionConfiguration";
+        private const string solutionPlatformKey = "SolutionPlatform";
 
         private readonly string configurationFilename;
 
@@ -136,31 +138,40 @@ namespace LucidConcepts.SwitchStartupProject
             sb.AppendLine("        Example:");
             sb.AppendLine("");
             sb.AppendLine("        \"" + multiProjectConfigurationsKey + "\": {");
-            sb.AppendLine("            \"A + B (Ext)\": {");
-            sb.AppendLine("                \"" + projectsKey + "\": {");
-            sb.AppendLine("                    \"MyProjectA\": {},");
-            sb.AppendLine("                    \"MyProjectB\": {");
-            sb.AppendLine("                        \"" + claKey + "\": \"1234\",");
-            sb.AppendLine("                        \"" + workingDirKey + "\": \"%USERPROFILE%\\\\test\",");
-            sb.AppendLine("                        \"" + startExtProgKey + "\": \"c:\\\\myprogram.exe\"");
-            sb.AppendLine("                    }");
-            sb.AppendLine("                }");
-            sb.AppendLine("            },");
-            sb.AppendLine("            \"A + B\": {");
-            sb.AppendLine("                \"" + projectsKey + "\": {");
-            sb.AppendLine("                    \"MyProjectA\": {},");
-            sb.AppendLine("                    \"MyProjectB\": {");
-            sb.AppendLine("                        \"" + claKey + "\": \"\",");
-            sb.AppendLine("                        \"" + workingDirKey + "\": \"\",");
-            sb.AppendLine("                        \"" + startProjectKey + "\": true");
-            sb.AppendLine("                    }");
-            sb.AppendLine("                }");
-            sb.AppendLine("            },");
-            sb.AppendLine("            \"D\": {");
-            sb.AppendLine("                \"" + projectsKey + "\": {");
-            sb.AppendLine("                    \"MyProjectD\": {}");
-            sb.AppendLine("                }");
+            sb.AppendLine("          \"A + B (Ext)\": {");
+            sb.AppendLine("            \"" + projectsKey + "\": {");
+            sb.AppendLine("              \"MyProjectA\": {},");
+            sb.AppendLine("              \"MyProjectB\": {");
+            sb.AppendLine("                \"" + claKey + "\": \"1234\",");
+            sb.AppendLine("                \"" + workingDirKey + "\": \"%USERPROFILE%\\\\test\",");
+            sb.AppendLine("                \"" + startExtProgKey + "\": \"c:\\\\myprogram.exe\"");
+            sb.AppendLine("              }");
             sb.AppendLine("            }");
+            sb.AppendLine("          },");
+            sb.AppendLine("          \"A + B\": {");
+            sb.AppendLine("            \"" + projectsKey + "\": {");
+            sb.AppendLine("              \"MyProjectA\": {},");
+            sb.AppendLine("              \"MyProjectB\": {");
+            sb.AppendLine("                \"" + claKey + "\": \"\",");
+            sb.AppendLine("                \"" + workingDirKey + "\": \"\",");
+            sb.AppendLine("                \"" + startProjectKey + "\": true");
+            sb.AppendLine("              }");
+            sb.AppendLine("            }");
+            sb.AppendLine("          },");
+            sb.AppendLine("          \"D (Debug x86)\": {");
+            sb.AppendLine("            \"" + projectsKey + "\": {");
+            sb.AppendLine("              \"MyProjectD\": {}");
+            sb.AppendLine("            },");
+            sb.AppendLine("            \"" + solutionConfigurationKey + "\": \"Debug\",");
+            sb.AppendLine("            \"" + solutionPlatformKey + "\": \"x86\",");
+            sb.AppendLine("          },");
+            sb.AppendLine("          \"D (Release x64)\": {");
+            sb.AppendLine("            \"" + projectsKey + "\": {");
+            sb.AppendLine("              \"MyProjectD\": {}");
+            sb.AppendLine("            },");
+            sb.AppendLine("            \"" + solutionConfigurationKey + "\": \"Release\",");
+            sb.AppendLine("            \"" + solutionPlatformKey + "\": \"x64\",");
+            sb.AppendLine("          }");
             sb.AppendLine("        }");
             sb.AppendLine("    */");
             sb.AppendLine("    \"" + multiProjectConfigurationsKey + "\": {}");
@@ -211,7 +222,9 @@ namespace LucidConcepts.SwitchStartupProject
                                        enableRemote?.Value<bool?>(),
                                        remoteMachine?.Value<string>(),
                                        profileName?.Value<string>()))
-                   select new MultiProjectConfiguration(configuration.Name, projects.ToList());
+                   let solutionConfiguration = configuration.Value[solutionConfigurationKey]?.Value<string>()
+                   let solutionPlatform = configuration.Value[solutionPlatformKey]?.Value<string>()
+                   select new MultiProjectConfiguration(configuration.Name, projects.ToList(), solutionConfiguration, solutionPlatform);
         }
 
         private static bool _ExistsKey(JObject settings, string key)

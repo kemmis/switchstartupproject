@@ -1,6 +1,6 @@
 The BSD 3-Clause License
 
-Copyright (c) 2011-2016, Lucid Concepts AG
+Copyright (c) 2011-2019, Andreas Bilger
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:

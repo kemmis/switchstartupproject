@@ -4,9 +4,9 @@
     <Identity Id="40b5ca05-6793-42f7-a50a-cca5bf4ff495" Version="4.0" Language="en-US" Publisher="Andreas Bilger" />
     <DisplayName>SwitchStartupProject for VS 2017</DisplayName>
     <Description>Provides a toolbar dropdown box to switch between startup projects.</Description>
-    <MoreInfo>https://bitbucket.org/thirteen/switchstartupproject</MoreInfo>
+    <MoreInfo>https://heptapod.host/thirteen/switchstartupproject/</MoreInfo>
     <License>Resources\LICENSE.md</License>
-    <ReleaseNotes>https://bitbucket.org/thirteen/switchstartupproject/src/tip/ReleaseNotes.md</ReleaseNotes>
+    <ReleaseNotes>https://heptapod.host/thirteen/switchstartupproject/blob/branch/main/ReleaseNotes.md</ReleaseNotes>
     <Icon>Resources\SwitchStartupProject.ico</Icon>
     <PreviewImage>Resources\preview.png</PreviewImage>
     <Tags>startup;startup project;startup projects;multiple;dropdown</Tags>

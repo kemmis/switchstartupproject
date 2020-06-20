@@ -123,7 +123,7 @@ namespace LucidConcepts.SwitchStartupProject
             var sb = new StringBuilder();
             sb.AppendLine("/*");
             sb.AppendLine("    This is a configuration file for the SwitchStartupProject Visual Studio Extension");
-            sb.AppendLine("    See https://bitbucket.org/thirteen/switchstartupproject/src/tip/Configuration.md");
+            sb.AppendLine("    See https://heptapod.host/thirteen/switchstartupproject/blob/branch/main/Configuration.md");
             sb.AppendLine("*/");
             sb.AppendLine("{");
             sb.AppendLine("    /*  Configuration File Version  */");

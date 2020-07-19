@@ -6,7 +6,7 @@ namespace LucidConcepts.SwitchStartupProject
 {
     static class GuidList
     {
-        public const string guidSwitchStartupProjectPkgString = "40b5ca05-6793-42f7-a50a-cca5bf4ff495";
+        public const string guidSwitchStartupProjectPkgString = "399c17d5-6a98-44e4-938e-6d0f1f804076";
         public const string guidSwitchStartupProjectCmdSetString = "9c1b4719-1443-4d96-b264-7cf17809659b";
 
         public static readonly Guid guidSwitchStartupProjectCmdSet = new Guid(guidSwitchStartupProjectCmdSetString);

@@ -138,7 +138,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.Managed">
-      <Version>2.0.6142705</Version>
+      <Version>2.3.6152103</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.SDK">
       <Version>16.0.374-pre</Version>

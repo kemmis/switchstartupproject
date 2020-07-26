@@ -33,7 +33,8 @@ namespace LucidConcepts.SwitchStartupProject
             string startBrowserWithUrl,
             bool? enableRemoteDebugging,
             string remoteDebuggingMachine,
-            string profileName)
+            string profileName,
+            string targetFramework)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             this.Project = project;
@@ -45,6 +46,7 @@ namespace LucidConcepts.SwitchStartupProject
             this.EnableRemoteDebugging = enableRemoteDebugging;
             this.RemoteDebuggingMachine = project.EvaluateBuildMacros(remoteDebuggingMachine);
             this.ProfileName = project.EvaluateBuildMacros(profileName);
+            this.TargetFramework = project.EvaluateBuildMacros(targetFramework);
         }
 
         public SolutionProject Project { get; private set; }
@@ -56,5 +58,6 @@ namespace LucidConcepts.SwitchStartupProject
         public bool? EnableRemoteDebugging { get; private set; }
         public string RemoteDebuggingMachine { get; set; }
         public string ProfileName { get; private set; }
+        public string TargetFramework { get; private set; }
     }
 }

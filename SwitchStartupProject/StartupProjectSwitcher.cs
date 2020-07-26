@@ -3,16 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows;
-
 using EnvDTE;
 using EnvDTE80;
-
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.ProjectSystem;
 using Microsoft.VisualStudio.ProjectSystem.Properties;
 using Microsoft.VisualStudio.ProjectSystem.Debug;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-
 using Newtonsoft.Json;
 
 using Task = System.Threading.Tasks.Task;
@@ -273,7 +271,8 @@ namespace LucidConcepts.SwitchStartupProject
                                                    configProject.StartBrowserWithUrl,
                                                    configProject.EnableRemoteDebugging,
                                                    configProject.RemoteDebuggingMachine,
-                                                   configProject.ProfileName);
+                                                   configProject.ProfileName,
+                                                   configProject.TargetFramework);
             return new StartupConfiguration(config.Name, startupConfigurationProjects.ToList(), config.SolutionConfiguration, config.SolutionPlatform);
         }
 
@@ -396,7 +395,36 @@ namespace LucidConcepts.SwitchStartupProject
                         {
                             if (IsProjectWithLaunchSettings(solutionProject.Hierarchy))
                             {
-                                var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValue<ILaunchSettingsProvider>();
+                                if (startupProject.TargetFramework != null)
+                                {
+                                    var framework = startupProject.TargetFramework;
+                                    var frameworkServices = context.UnconfiguredProject.Services.ExportProvider.GetExportedValueOrDefault<IActiveDebugFrameworkServices>();
+                                    if (frameworkServices != null)
+                                    {
+                                        var frameworks = await frameworkServices.GetProjectFrameworksAsync();
+                                        if (frameworks != null)
+                                        {
+                                            if (frameworks.Contains(framework))
+                                            {
+                                                await frameworkServices.SetActiveDebuggingFrameworkPropertyAsync(framework);
+                                            }
+                                            else
+                                            {
+                                                Logger.LogActive($"Project is multi-targeting frameworks {string.Join(", ", frameworks)}. Cannot set target framework {framework}.");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Logger.LogActive($"Project is not multi-targeting multiple frameworks. Cannot set target framework {framework}.");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Logger.LogActive($"\nERROR: Project does not export service IActiveDebugFrameworkServices. Cannot set target framework {framework}.");
+                                    }
+                                }
+
+                                var launchSettingsProvider = context.UnconfiguredProject.Services.ExportProvider.GetExportedValueOrDefault<ILaunchSettingsProvider>();
                                 if (launchSettingsProvider != null)
                                 {
                                     var launchProfile = startupProject.ProfileName != null ?

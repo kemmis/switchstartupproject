@@ -16,7 +16,8 @@ namespace LucidConcepts.SwitchStartupProject
             string startBrowserWithUrl,
             bool? enableRemoteDebugging,
             string remoteDebuggingMachine,
-            string profileName)
+            string profileName,
+            string targetFramwork)
         {
             this.NameOrPath = nameOrPath;
             this.CommandLineArguments = commandLineArguments;
@@ -27,6 +28,7 @@ namespace LucidConcepts.SwitchStartupProject
             this.EnableRemoteDebugging = enableRemoteDebugging;
             this.RemoteDebuggingMachine = remoteDebuggingMachine;
             this.ProfileName = profileName;
+            this.TargetFramework = targetFramwork;
         }
 
         public string NameOrPath { get; private set; }
@@ -38,5 +40,7 @@ namespace LucidConcepts.SwitchStartupProject
         public bool? EnableRemoteDebugging { get; private set; }
         public string RemoteDebuggingMachine { get; set; }
         public string ProfileName { get; private set; }
+        public string TargetFramework { get; private set; }
+
     }
 }

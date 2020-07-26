@@ -112,6 +112,7 @@ SwitchStartupProject creates an item in the dropdown for each startup configurat
 | `"EnableRemoteDebugging"` | boolean | `true` | Use remote machine for debugging. |
 | `"RemoteDebuggingMachine"` | string | `"\\\\MyDomain\\MyTestMachine"` | Specify the machine name used for remote debugging. Remember to escape (double) backslashes. |
 | `"ProfileName"` | string | `"MyLaunchProfile"` | Activates the launch profile with the given name for [CPS projects](https://github.com/Microsoft/VSProjectSystem/blob/master/doc/Index.md). (VS 2017 and later only) |
+| `"TargetFramework"` | string | `"netcoreapp3.1"` | Activates the target framework with the given Target Framework Moniker (TFM) for multi-targeting projects. (VS 2019 and later only) |
 
 String parameters may contain [build macros](https://docs.microsoft.com/en-us/cpp/ide/common-macros-for-build-commands-and-properties).
 

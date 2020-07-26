@@ -1,6 +1,7 @@
 # Release notes
 
 ## Version 4.1
+* Add support for switching the target framework of multi-targeting projects (issue #89)
 
 ## Version 4.0
 * Add Output Window pane named "SwitchStartupProject"

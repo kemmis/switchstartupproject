@@ -7,6 +7,6 @@ namespace LucidConcepts.SwitchStartupProject
 {
     internal static class AssemblyInfoVersion
     {
-        public const string Version = "4.0";
+        public const string Version = "4.1";
     }
 }

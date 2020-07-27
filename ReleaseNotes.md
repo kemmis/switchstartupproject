@@ -1,5 +1,7 @@
 # Release notes
 
+## Version 4.1
+
 ## Version 4.0
 * Add Output Window pane named "SwitchStartupProject"
 * Replace ActivityLog messages and popup messages with log messages in Output Window (issue #60)

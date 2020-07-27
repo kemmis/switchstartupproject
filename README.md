@@ -2,7 +2,7 @@
 
 A **Visual Studio extension** that allows you to quickly **select startup projects from a dropdown**.
 
-![Preview](https://heptapod.host/thirteen/switchstartupproject/raw/branch/main/SwitchStartupProject/Resources/preview.png)
+![Preview](https://heptapod.host/thirteen/switchstartupproject/raw/branch/current/SwitchStartupProject/Resources/preview.png)
 
 No more scrolling up and down the solution explorer tree just to change the startup project!
 
@@ -20,9 +20,9 @@ No more scrolling up and down the solution explorer tree just to change the star
 * Source code on [heptapod.host](https://heptapod.host/thirteen/switchstartupproject/)
 
 ## More Information
-* [Configuration](https://heptapod.host/thirteen/switchstartupproject/blob/branch/main/Configuration.md)
-* [Release Notes](https://heptapod.host/thirteen/switchstartupproject/blob/branch/main/ReleaseNotes.md)
-* [License](https://heptapod.host/thirteen/switchstartupproject/blob/branch/main/LICENSE.md)
+* [Configuration](https://heptapod.host/thirteen/switchstartupproject/blob/branch/current/Configuration.md)
+* [Release Notes](https://heptapod.host/thirteen/switchstartupproject/blob/branch/current/ReleaseNotes.md)
+* [License](https://heptapod.host/thirteen/switchstartupproject/blob/branch/current/LICENSE.md)
 
 ## Found a problem?
 

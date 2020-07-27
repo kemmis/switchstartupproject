@@ -18,7 +18,7 @@ The configuration file is located in the same folder as the solution file, it ha
 ## Format
 
 The configuration file uses [JSON](http://json.org/) syntax with C-style `/* ... */` comments.
-See also the [JSON schema](https://heptapod.host/thirteen/switchstartupproject/blob/branch/main/SwitchStartupProject/Configuration/ConfigurationSchema.json) that is used to validate the configuration file.
+See also the [JSON schema](https://heptapod.host/thirteen/switchstartupproject/blob/branch/current/SwitchStartupProject/Configuration/ConfigurationSchema.json) that is used to validate the configuration file.
 
 ## Example
 

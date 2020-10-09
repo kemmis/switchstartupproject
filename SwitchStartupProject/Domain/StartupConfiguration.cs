@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Microsoft.VisualStudio.Shell;
+using Newtonsoft.Json.Linq;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -33,7 +34,7 @@ namespace LucidConcepts.SwitchStartupProject
             string startBrowserWithUrl,
             bool? enableRemoteDebugging,
             string remoteDebuggingMachine,
-            string profileName)
+            string profileName, JToken jsonTransforms)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             this.Project = project;
@@ -43,6 +44,7 @@ namespace LucidConcepts.SwitchStartupProject
             this.StartExternalProgram = project.EvaluateBuildMacros(startExternalProgram);
             this.StartBrowserWithUrl = project.EvaluateBuildMacros(startBrowserWithUrl);
             this.EnableRemoteDebugging = enableRemoteDebugging;
+            JsonTransforms = jsonTransforms;
             this.RemoteDebuggingMachine = project.EvaluateBuildMacros(remoteDebuggingMachine);
             this.ProfileName = project.EvaluateBuildMacros(profileName);
         }
@@ -56,5 +58,6 @@ namespace LucidConcepts.SwitchStartupProject
         public bool? EnableRemoteDebugging { get; private set; }
         public string RemoteDebuggingMachine { get; set; }
         public string ProfileName { get; private set; }
+        public JToken JsonTransforms { get; private set; }
     }
 }

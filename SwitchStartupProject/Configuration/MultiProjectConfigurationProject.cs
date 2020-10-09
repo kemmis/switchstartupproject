@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Newtonsoft.Json.Linq;
 
 namespace LucidConcepts.SwitchStartupProject
 {
@@ -16,7 +17,7 @@ namespace LucidConcepts.SwitchStartupProject
             string startBrowserWithUrl,
             bool? enableRemoteDebugging,
             string remoteDebuggingMachine,
-            string profileName)
+            string profileName, JToken jsonTransforms)
         {
             this.NameOrPath = nameOrPath;
             this.CommandLineArguments = commandLineArguments;
@@ -27,6 +28,7 @@ namespace LucidConcepts.SwitchStartupProject
             this.EnableRemoteDebugging = enableRemoteDebugging;
             this.RemoteDebuggingMachine = remoteDebuggingMachine;
             this.ProfileName = profileName;
+            JsonTransforms = jsonTransforms;
         }
 
         public string NameOrPath { get; private set; }
@@ -38,5 +40,6 @@ namespace LucidConcepts.SwitchStartupProject
         public bool? EnableRemoteDebugging { get; private set; }
         public string RemoteDebuggingMachine { get; set; }
         public string ProfileName { get; private set; }
+        public JToken JsonTransforms { get; private set; }
     }
 }

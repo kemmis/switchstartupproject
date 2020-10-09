@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows;
-
+using System.IO;
 using EnvDTE;
 using EnvDTE80;
 
@@ -14,7 +14,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 
 using Newtonsoft.Json;
-
+using Newtonsoft.Json.Linq;
 using Task = System.Threading.Tasks.Task;
 
 namespace LucidConcepts.SwitchStartupProject
@@ -62,7 +62,7 @@ namespace LucidConcepts.SwitchStartupProject
 
             // Try to find a matching dropdown entry
             var bestMatch = dropdownService.DropdownList.OfType<SingleProjectDropdownEntry>().SingleOrDefault(entry => entry.MatchesPaths(newStartupProjectPaths)) ??
-                (IDropdownEntry) dropdownService.DropdownList.OfType<MultiProjectDropdownEntry>().FirstOrDefault(entry => entry.MatchesPaths(newStartupProjectPaths));
+                (IDropdownEntry)dropdownService.DropdownList.OfType<MultiProjectDropdownEntry>().FirstOrDefault(entry => entry.MatchesPaths(newStartupProjectPaths));
             if (bestMatch != null)
             {
                 Logger.Log("New startup configuration was activated outside of dropdown: {0}", bestMatch.DisplayName);
@@ -178,9 +178,9 @@ namespace LucidConcepts.SwitchStartupProject
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             return (from hierarchy in _GetProjectHierarchies()
-                let project = SolutionProject.FromHierarchy(hierarchy, dte.Solution.FullName)
-                where project != null
-                select project).ToArray();
+                    let project = SolutionProject.FromHierarchy(hierarchy, dte.Solution.FullName)
+                    where project != null
+                    select project).ToArray();
         }
 
         private IEnumerable<IVsHierarchy> _GetProjectHierarchies()
@@ -273,7 +273,8 @@ namespace LucidConcepts.SwitchStartupProject
                                                    configProject.StartBrowserWithUrl,
                                                    configProject.EnableRemoteDebugging,
                                                    configProject.RemoteDebuggingMachine,
-                                                   configProject.ProfileName);
+                                                   configProject.ProfileName,
+                                                   configProject.JsonTransforms);
             return new StartupConfiguration(config.Name, startupConfigurationProjects.ToList(), config.SolutionConfiguration, config.SolutionPlatform);
         }
 
@@ -346,9 +347,9 @@ namespace LucidConcepts.SwitchStartupProject
                 {
                     // SolutionBuild.StartupProjects expects an array of objects
                     var projectPathArray = (from startupProject in startupProjects
-                                           let project = startupProject.Project
-                                           where project != null
-                                           select (object)project.Path).ToArray();
+                                            let project = startupProject.Project
+                                            where project != null
+                                            select (object)project.Path).ToArray();
                     if (startupProjects.Count != projectPathArray.Length)
                     {
                         Logger.LogActive("\nERROR: The activated configuration refers to inexistent projects.");
@@ -442,6 +443,27 @@ namespace LucidConcepts.SwitchStartupProject
                                     {
                                         await launchSettingsProvider.SetActiveProfileAsync(startupProject.ProfileName);
                                     }
+                                }
+                            }
+                        }
+
+                        if (startupProject.JsonTransforms.Any())
+                        {
+                            var projectFilePath = project.FullName;
+                            var projectFolderPath = Path.GetDirectoryName(projectFilePath);
+                            
+                            foreach (var jsonTransform in startupProject.JsonTransforms.Cast<JProperty>())
+                            {
+                                var jsonFilePath = Path.Combine(projectFolderPath, jsonTransform.Name);
+                                if (File.Exists(jsonFilePath))
+                                {
+                                    var jsonFile = JObject.Parse(File.ReadAllText(jsonFilePath));
+                                    jsonFile.Merge(jsonTransform.Value);
+                                    File.WriteAllText(jsonFilePath, jsonFile.ToString());
+                                }
+                                else
+                                {
+                                    Logger.Log("File does not exist.", jsonFilePath);
                                 }
                             }
                         }

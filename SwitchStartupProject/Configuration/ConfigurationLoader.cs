@@ -32,6 +32,7 @@ namespace LucidConcepts.SwitchStartupProject
         private const string profileNameKey = "ProfileName";
         private const string solutionConfigurationKey = "SolutionConfiguration";
         private const string solutionPlatformKey = "SolutionPlatform";
+        private const string jsonTransformsKey = "JsonTransforms";
 
         private readonly string configurationFilename;
 
@@ -212,6 +213,8 @@ namespace LucidConcepts.SwitchStartupProject
                                    let enableRemote = project.Value[enableRemoteDebuggingKey]
                                    let remoteMachine = project.Value[remoteDebuggingMachineKey]
                                    let profileName = project.Value[profileNameKey]
+                                   let jsonTransforms = project.Value[jsonTransformsKey]
+
                                    select new MultiProjectConfigurationProject(
                                        project.Name,
                                        cla?.Value<string>(),
@@ -221,7 +224,8 @@ namespace LucidConcepts.SwitchStartupProject
                                        startBrowser?.Value<string>(),
                                        enableRemote?.Value<bool?>(),
                                        remoteMachine?.Value<string>(),
-                                       profileName?.Value<string>()))
+                                       profileName?.Value<string>(),
+                                       jsonTransforms))
                    let solutionConfiguration = configuration.Value[solutionConfigurationKey]?.Value<string>()
                    let solutionPlatform = configuration.Value[solutionPlatformKey]?.Value<string>()
                    select new MultiProjectConfiguration(configuration.Name, projects.ToList(), solutionConfiguration, solutionPlatform);
